@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>NexoraPilot — Ecommerce Intelligence</title>
+<link rel="stylesheet" href="user.css">
+</head>
+<body>
+
+<!-- ═══ BACKGROUND ═══ -->
+<div class="bg"></div>
+<div class="o1 orb"></div><div class="o2 orb"></div><div class="o3 orb"></div>
+<div class="o4 orb"></div><div class="o5 orb"></div>
+<div class="shimmer"></div>
+<div class="pts" id="pts"></div>
+<div class="sov" id="sov" onclick="closeSB()"></div>
+
+<div class="layout">
+
+<!-- ══════════════════════════════
+     SIDEBAR
+══════════════════════════════ -->
+<nav class="sidebar" id="sidebar">
+
+  <!-- Logo -->
+  <div class="sb-logo">
+    <div class="logo-r">
+      <div class="logo-g">🧭</div>
+      <div>
+        <div class="logo-n">NexoraPilot</div>
+        <div class="logo-s">Ecommerce Intelligence</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Profile -->
+  <div class="sb-prof" onclick="goprof()">
+    <div class="sb-av" id="sbav">U</div>
+    <div style="flex:1;min-width:0">
+      <div class="sb-un" id="sbun">User</div>
+      <div class="sb-ur" id="sbur">Free Plan</div>
+    </div>
+    <div class="sb-dt" id="sbdt"></div>
+  </div>
+
+  <!-- Navigation -->
+  <div class="sb-nav">
+
+    <div class="sl">Main</div>
+    <div class="ni act" onclick="nav(this,'home')">
+      <span class="ni-i">🏠</span><span class="ni-l">Home</span>
+    </div>
+
+    <div class="sl">Products</div>
+    <div class="ni" onclick="nav(this,'winning')">
+      <span class="ni-i">🏆</span><span class="ni-l">Winning Products</span>
+      <span class="ni-b nb-hot">HOT</span>
+    </div>
+    <div class="ni" onclick="nav(this,'tiktok')">
+      <span class="ni-i">🎵</span><span class="ni-l">TikTok Finder</span>
+    </div>
+    <div class="ni" onclick="nav(this,'competitor')">
+      <span class="ni-i">🎯</span><span class="ni-l">Competitor Analysis</span>
+    </div>
+    <div class="ni" onclick="nav(this,'reviews')">
+      <span class="ni-i">🔎</span><span class="ni-l">Fake Review Detector</span>
+    </div>
+
+    <div class="sl">AI Tools</div>
+    <div class="ni" onclick="nav(this,'adgen')">
+      <span class="ni-i">⚡</span><span class="ni-l">Ad Script Generator</span>
+      <span class="ni-b nb-ai">AI</span>
+    </div>
+    <div class="ni" onclick="nav(this,'descgen')">
+      <span class="ni-i">✍️</span><span class="ni-l">Product Description</span>
+    </div>
+
+    <div class="sl">Business</div>
+    <div class="ni" onclick="nav(this,'supplier')">
+      <span class="ni-i">🏭</span><span class="ni-l">Supplier Finder</span>
+    </div>
+    <div class="ni" onclick="nav(this,'market')">
+      <span class="ni-i">📋</span><span class="ni-l">Market Reports</span>
+    </div>
+
+    <div class="sl">Account</div>
+    <div class="ni" onclick="nav(this,'profile')">
+      <span class="ni-i">👤</span><span class="ni-l">My Profile</span>
+    </div>
+    <div class="ni" onclick="nav(this,'support')">
+      <span class="ni-i">💬</span><span class="ni-l">Support Chat</span>
+      <span class="ni-b nb-chat" id="chat-badge" style="display:none">New</span>
+    </div>
+
+  </div><!-- sb-nav -->
+
+  <!-- Upgrade Card (hidden for Pro) -->
+  <div class="sb-foot" id="sbfoot">
+    <div class="upc">
+      <div class="upc-t">⭐ Free Plan</div>
+      <div class="upc-s">Top 10 products unlock করতে Upgrade করুন</div>
+      <button class="upc-btn" onclick="openPay()">⚡ মাত্র ৳<span class="pv">199</span>/মাস</button>
+    </div>
+  </div>
+
+</nav><!-- sidebar -->
+
+<!-- ══════════════════════════════
+     MAIN AREA
+══════════════════════════════ -->
+<div class="main">
+
+  <!-- TOP BAR -->
+  <header class="topbar">
+    <div class="tb-l">
+      <div class="hbg" id="hbg" onclick="sbtog()">☰</div>
+      <div class="tb-title" id="ptitle">🏠 NexoraPilot</div>
+    </div>
+    <div class="tb-r">
+      <button class="gbtn" onclick="nav(document.querySelector('[onclick*=\"support\"]'),'support')">💬 সাপোর্ট</button>
+      <button class="gbtn gold" id="tbup" onclick="openPay()">৳<span class="pv">199</span>/মাস</button>
+      <div class="tbav" id="tbav" onclick="goprof()">U</div>
+    </div>
+  </header>
+
+  <!-- PAGES CONTAINER -->
+  <div class="cnt">
+
+    <!-- ══════════════════
+         HOME PAGE
+    ══════════════════ -->
+    <div class="pg on pad" id="pg-home">
+
+      <!-- Banner Slider -->
+      <div class="ban-wrap">
+        <div id="ban-slides">
+          <!-- filled by JS / default shown -->
+          <div class="ban-slide on">
+            <div class="ban-ph" style="background:linear-gradient(135deg,rgba(0,50,140,.90),rgba(80,0,140,.84))">🚀</div>
+            <div class="ban-overlay">
+              <div class="ban-title">NexoraPilot-এ স্বাগতম!</div>
+              <div class="ban-sub">বাংলাদেশের সেরা Ecommerce Intelligence Tool</div>
+              <button class="ban-btn" onclick="nav(document.querySelector('[onclick*=winning]'),'winning')">Winning Products দেখুন →</button>
+            </div>
+          </div>
+        </div>
+        <div class="ban-dots" id="ban-dots"></div>
+      </div>
+
+      <!-- Stats Row -->
+      <div class="stats-row" id="home-stats"></div>
+
+      <!-- Features -->
+      <div class="sec-h">
+        <div class="sec-ht">🔥 সব Features</div>
+        <div class="sec-hl"></div>
+      </div>
+      <div class="feat-grid">
+        <div class="fcard" onclick="nav(document.querySelector('[onclick*=winning]'),'winning')">
+          <div class="fc-ic">🏆</div>
+          <div class="fc-nm">Winning Products</div>
+          <div class="fc-ds">প্রতিদিন আপডেট হওয়া winning products দেখুন</div>
+        </div>
+        <div class="fcard" onclick="nav(document.querySelector('[onclick*=tiktok]'),'tiktok')">
+          <div class="fc-ic">🎵</div>
+          <div class="fc-nm">TikTok Finder</div>
+          <div class="fc-ds">TikTok-এ viral হওয়া products খুঁজুন</div>
+        </div>
+        <div class="fcard" onclick="nav(document.querySelector('[onclick*=adgen]'),'adgen')">
+          <div class="fc-ic">⚡</div>
+          <div class="fc-nm">Ad Script AI</div>
+          <div class="fc-ds">Gemini AI দিয়ে viral ad script তৈরি করুন</div>
+        </div>
+        <div class="fcard" onclick="nav(document.querySelector('[onclick*=competitor]'),'competitor')">
+          <div class="fc-ic">🎯</div>
+          <div class="fc-nm">Competitor Analysis</div>
+          <div class="fc-ds">Competitor-দের strategy বিশ্লেষণ</div>
+        </div>
+        <div class="fcard" onclick="nav(document.querySelector('[onclick*=supplier]'),'supplier')">
+          <div class="fc-ic">🏭</div>
+          <div class="fc-nm">Supplier Finder</div>
+          <div class="fc-ds">Verified supplier খুঁজুন</div>
+        </div>
+        <div class="fcard" onclick="nav(document.querySelector('[onclick*=support]'),'support')">
+          <div class="fc-ic">💬</div>
+          <div class="fc-nm">Support Chat</div>
+          <div class="fc-ds">Admin-এর সাথে সরাসরি কথা বলুন</div>
+        </div>
+      </div>
+
+      <!-- Upgrade CTA -->
+      <div class="up-cta" id="home-upgrade-cta">
+        <h2>⭐ Pro Plan-এ Upgrade করুন</h2>
+        <p>প্রতি ক্যাটাগরির Top 10 Winning Products দেখুন<br>Ad Guide, Supplier Info সহ সব Premium Feature পান</p>
+        <div class="up-feats">
+          <div class="up-feat"><span>✅</span> Top 10 Products/Category</div>
+          <div class="up-feat"><span>✅</span> Facebook ও TikTok Ad Guide</div>
+          <div class="up-feat"><span>✅</span> Supplier Links</div>
+          <div class="up-feat"><span>✅</span> AI Script Generator</div>
+        </div>
+        <button class="upc-btn" style="display:inline-block;width:auto;padding:10px 28px;font-size:13px" onclick="openPay()">
+          ⚡ মাত্র ৳<span class="pv">199</span>/মাস — এখনই শুরু করুন
+        </button>
+      </div>
+
+    </div><!-- pg-home -->
+
+    <!-- ══════════════════
+         WINNING PRODUCTS
+    ══════════════════ -->
+    <div class="pg pad" id="pg-winning">
+
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px">
+        <div>
+          <div style="font-family:'Outfit',sans-serif;font-size:21px;font-weight:800;letter-spacing:-.5px;margin-bottom:3px">
+            🏆 <span style="background:linear-gradient(90deg,var(--gold),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent">Winning</span> Products
+          </div>
+          <div style="font-size:12px;color:var(--t3)">AI-curated · প্রতিদিন আপডেট</div>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <div class="st" style="min-width:80px"><div class="st-v" style="color:var(--pink)" id="stprods">0</div><div class="st-l">Products</div></div>
+          <div class="st" style="min-width:80px"><div class="st-v" style="color:var(--gold)">৳<span class="pv">199</span></div><div class="st-l">Per Month</div></div>
+        </div>
+      </div>
+
+      <!-- Pro banner -->
+      <div id="winban" style="background:linear-gradient(135deg,rgba(42,28,0,.90),rgba(40,0,28,.80));border:1px solid rgba(255,210,80,.20);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;margin-bottom:18px;flex-wrap:wrap">
+        <div style="font-size:20px;flex-shrink:0">🔒</div>
+        <div style="flex:1;min-width:150px">
+          <div style="font-size:12px;font-weight:700;color:var(--gold)">Top 10 দেখতে Pro দরকার</div>
+          <div style="font-size:10px;color:var(--t3);margin-top:1px">#11–#20 ফ্রিতে · বিকাশে মাত্র ৳<span class="pv">199</span>/মাস</div>
+        </div>
+        <button id="upbtnw" style="background:linear-gradient(135deg,rgba(255,200,60,.72),rgba(255,140,0,.68));border:1px solid rgba(255,220,80,.22);color:#000;padding:7px 14px;border-radius:8px;font-size:11px;font-weight:800;white-space:nowrap;flex-shrink:0" onclick="openPay()">⚡ Upgrade করুন</button>
+      </div>
+
+      <!-- Category tabs -->
+      <div class="cat-sc"><div class="cat-row" id="catrow"></div></div>
+
+      <!-- Free products -->
+      <div class="sh">
+        <div class="sh-t">Free Products</div>
+        <div class="sh-b sh-fr">✅ #11–#20</div>
+        <div class="sh-ln"></div>
+        <div class="sh-i" id="fcnt">0 টি</div>
+      </div>
+      <div class="pgrid" id="fg"></div>
+
+      <!-- Pro products -->
+      <div class="sh">
+        <div class="sh-t">⭐ Pro Products</div>
+        <div class="sh-b sh-pr">🔒 Pro Only</div>
+        <div class="sh-ln"></div>
+        <div class="sh-i" style="color:var(--gold)">৳<span class="pv">199</span>/মাস</div>
+      </div>
+      <div class="pgrid" id="prg"></div>
+
+    </div><!-- pg-winning -->
+
+    <!-- ══ COMING SOON PAGES ══ -->
+    <div class="pg pad" id="pg-tiktok">
+      <div class="cs"><div class="cs-ic">🎵</div><div class="cs-t">TikTok Viral Finder</div><div class="cs-s">TikTok-এ viral হওয়া products AI দিয়ে detect করা হবে।</div><div class="cs-b">🚀 Coming Soon</div></div>
+    </div>
+    <div class="pg pad" id="pg-competitor">
+      <div class="cs"><div class="cs-ic">🎯</div><div class="cs-t">Competitor Analysis</div><div class="cs-s">Competitor-দের product ও pricing AI দিয়ে বিশ্লেষণ।</div><div class="cs-b">🚀 Coming Soon</div></div>
+    </div>
+    <div class="pg pad" id="pg-reviews">
+      <div class="cs"><div class="cs-ic">🔎</div><div class="cs-t">Fake Review Detector</div><div class="cs-s">AI দিয়ে fake review detect করুন।</div><div class="cs-b">🚀 Coming Soon</div></div>
+    </div>
+    <div class="pg pad" id="pg-adgen">
+      <div class="cs"><div class="cs-ic">⚡</div><div class="cs-t">Ad Script Generator</div><div class="cs-s">Gemini AI দিয়ে viral TikTok ও Facebook ad script।</div><div class="cs-b">🚀 Coming Soon</div></div>
+    </div>
+    <div class="pg pad" id="pg-descgen">
+      <div class="cs"><div class="cs-ic">✍️</div><div class="cs-t">Product Description</div><div class="cs-s">SEO-optimized description Gemini AI দিয়ে তৈরি করুন।</div><div class="cs-b">🚀 Coming Soon</div></div>
+    </div>
+    <div class="pg pad" id="pg-supplier">
+      <div class="cs"><div class="cs-ic">🏭</div><div class="cs-t">Supplier Finder</div><div class="cs-s">Verified supplier খুঁজুন ও outreach email তৈরি করুন।</div><div class="cs-b">🚀 Coming Soon</div></div>
+    </div>
+    <div class="pg pad" id="pg-market">
+      <div class="cs"><div class="cs-ic">📋</div><div class="cs-t">Market Reports</div><div class="cs-s">যেকোনো niche-এর full market analysis AI দিয়ে।</div><div class="cs-b">🚀 Coming Soon</div></div>
+    </div>
+
+    <!-- ══════════════════
+         PROFILE
+    ══════════════════ -->
+    <div class="pg pad" id="pg-profile">
+
+      <div class="pof-card">
+        <div class="pof-cov">
+          <div class="pof-avw"><div class="pof-av" id="pav">U</div></div>
+        </div>
+        <div class="pof-bd">
+          <div class="pof-nm"  id="pofnm">User</div>
+          <div class="pof-em"  id="pofem">—</div>
+          <div class="pof-pl"  id="pofpill">⭐ Free Plan</div>
+          <div class="pof-st">
+            <div class="pst-b"><div class="pst-v" id="pdays">0</div><div class="pst-l">দিন বাকি</div></div>
+            <div class="pst-b"><div class="pst-v" id="psaves">0</div><div class="pst-l">Saved</div></div>
+            <div class="pst-b"><div class="pst-v" id="pscripts">0</div><div class="pst-l">Scripts</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sub-row" id="subrow">
+        <div style="font-size:26px;flex-shrink:0">⭐</div>
+        <div style="flex:1;min-width:140px">
+          <div class="sub-t" id="subt">Free Plan Active</div>
+          <div class="sub-s" id="subsub">Upgrade করলে Top 10 দেখতে পাবেন</div>
+        </div>
+        <button class="sub-btn" onclick="openPay()" id="subbtn">⚡ Upgrade</button>
+      </div>
+
+      <div class="ig2">
+        <div class="ibox">
+          <div class="ibox-t">Account Info</div>
+          <div class="irow"><span class="irl">নাম</span>   <span class="irv" id="pinm">—</span></div>
+          <div class="irow"><span class="irl">ফোন</span>   <span class="irv" id="piph">—</span></div>
+          <div class="irow"><span class="irl">Plan</span>   <span class="irv" id="pipl">Free</span></div>
+          <div class="irow"><span class="irl">যোগদান</span><span class="irv" id="pisn">—</span></div>
+        </div>
+        <div class="ibox">
+          <div class="ibox-t">Subscription</div>
+          <div class="irow"><span class="irl">Status</span><span class="irv" id="pist" style="color:var(--t3)">Inactive</span></div>
+          <div class="irow"><span class="irl">শুরু</span>  <span class="irv" id="piss">—</span></div>
+          <div class="irow"><span class="irl">শেষ</span>   <span class="irv" id="pise">—</span></div>
+          <div class="irow"><span class="irl">TrxID</span> <span class="irv" id="pitx" style="font-size:10px;color:var(--t3)">—</span></div>
+        </div>
+      </div>
+
+      <div class="ibox" style="margin-bottom:13px">
+        <div class="ibox-t">Edit Profile</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">
+          <div>
+            <label style="font-size:10px;color:var(--t3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">নাম</label>
+            <input class="ginp" id="edname" placeholder="আপনার নাম" style="margin-bottom:0">
+          </div>
+          <div>
+            <label style="font-size:10px;color:var(--t3);display:block;margin-bottom:4px;text-transform:uppercase;letter-spacing:.5px">ফোন</label>
+            <input class="ginp" id="edphone" placeholder="017xx-xxxxxx" style="margin-bottom:0">
+          </div>
+        </div>
+        <button style="background:linear-gradient(135deg,rgba(80,60,220,.45),rgba(140,0,200,.38));border:1px solid rgba(120,100,255,.22);color:#fff;padding:8px 16px;border-radius:8px;font-size:11px;font-weight:600" onclick="saveProf()">💾 Save করুন</button>
+      </div>
+
+      <div id="profcta" style="background:linear-gradient(135deg,rgba(0,50,120,.85),rgba(80,0,120,.78));border:1px solid rgba(100,180,255,.16);border-radius:var(--r);padding:18px;text-align:center;margin-bottom:14px">
+        <div style="font-family:'Outfit',sans-serif;font-size:16px;font-weight:800;margin-bottom:4px;letter-spacing:-.3px">⭐ Pro-তে Upgrade করুন</div>
+        <div style="font-size:11px;color:var(--t2);margin-bottom:14px">সব ক্যাটাগরির Top 10, Ad Guide, AI Script Generator সহ সব feature পান</div>
+        <button class="upc-btn" style="display:inline-block;width:auto;padding:10px 24px;font-size:12px" onclick="openPay()">⚡ মাত্র ৳<span class="pv">199</span>/মাস</button>
+      </div>
+
+    </div><!-- pg-profile -->
+
+    <!-- ══════════════════
+         SUPPORT CHAT
+    ══════════════════ -->
+    <div id="pg-support" style="display:none;flex-direction:column;height:calc(100vh - 52px)">
+
+      <!-- Chat header -->
+      <div class="chat-header">
+        <div class="chat-adm-av">A</div>
+        <div>
+          <div class="chat-adm-nm">NexoraPilot Support</div>
+          <div class="chat-adm-st"><span class="chat-dot"></span> Online</div>
+        </div>
+        <div style="margin-left:auto;font-size:10px;color:var(--t3);text-align:right">
+          সাধারণত ২৪ ঘণ্টার<br>মধ্যে reply
+        </div>
+      </div>
+
+      <!-- Messages -->
+      <div class="chat-msgs" id="chat-msgs">
+        <div class="msg">
+          <div class="msg-av adm">A</div>
+          <div>
+            <div class="msg-bub adm">
+              👋 আস্সালামু আলাইকুম!<br>
+              NexoraPilot Support-এ স্বাগতম।<br>
+              আপনার যেকোনো প্রশ্ন বা সমস্যা এখানে জানান।<br>
+              আমরা সাহায্য করব ইনশাআল্লাহ 🙂
+            </div>
+            <div class="msg-time">NexoraPilot Support</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Input bar -->
+      <div class="chat-inp-bar">
+        <input class="chat-inp" id="chat-inp" placeholder="আপনার প্রশ্ন বা সমস্যা লিখুন..." onkeydown="chatKey(event)">
+        <div class="chat-send" onclick="sendChat()">➤</div>
+      </div>
+
+    </div><!-- pg-support -->
+
+  </div><!-- cnt -->
+</div><!-- main -->
+</div><!-- layout -->
+
+<!-- ══════════════════════════════
+     PAY MODAL
+══════════════════════════════ -->
+<div class="mbg" id="pay-modal">
+  <div class="msh">
+    <span class="mhnd"></span>
+    <div class="mclose" onclick="closeM('pay-modal')">✕</div>
+    <div class="mpad">
+      <div class="pay-ico">💸</div>
+      <div class="pay-t">Upgrade to <span class="g">Pro</span></div>
+      <div class="pay-s">বিকাশ/নগদ/রকেটে পে করুন · ২৪ ঘণ্টায় Activate</div>
+      <div class="pbox">
+        <div class="pamt">৳<span class="pv">199</span></div>
+        <div class="pper">প্রতি মাস · সব ক্যাটাগরির Top 10 Unlock</div>
+        <div class="prenew">🔄 প্রতি মাস Renew করতে হবে</div>
+      </div>
+      <div class="perks">
+        <div class="perk"><div class="pdot"></div>প্রতি ক্যাটাগরির Top 10</div>
+        <div class="perk"><div class="pdot"></div>Facebook & TikTok Ad Guide</div>
+        <div class="perk"><div class="pdot"></div>⚡ AI Script Generator</div>
+        <div class="perk"><div class="pdot"></div>Profit Margin %</div>
+        <div class="perk"><div class="pdot"></div>Supplier Links</div>
+        <div class="perk"><div class="pdot"></div>Admin Product Notes</div>
+      </div>
+      <label style="font-size:9px;font-weight:700;color:var(--t3);text-transform:uppercase;letter-spacing:.8px;display:block;margin-bottom:7px">পেমেন্ট মেথড</label>
+      <div class="pm-opts" id="pmopts"><div style="color:var(--t3);font-size:11px">Loading...</div></div>
+      <div class="pinst" id="payinst">বিকাশ নম্বরে পেমেন্ট করুন, TrxID পাঠান।</div>
+      <input class="ginp" id="payphone" placeholder="আপনার ফোন নম্বর / ইমেইল">
+      <div class="inp-row">
+        <input class="ginp" id="paytrx" placeholder="Transaction ID (TrxID)">
+        <button class="sbmt" onclick="subPay()">📤 Submit</button>
+      </div>
+      <div class="pnote">🔒 সমস্যায় WhatsApp: <strong id="paywa" style="color:var(--cyan2)">—</strong></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     PRODUCT DETAIL MODAL
+══════════════════════════════ -->
+<div class="mbg" id="det-modal">
+  <div class="msh" style="max-height:93vh">
+    <span class="mhnd"></span>
+    <div class="mclose" onclick="closeM('det-modal')">✕</div>
+
+    <!-- Product image banner -->
+    <div class="det-ban" id="detbn"><div class="det-bph">🖼️</div></div>
+
+    <div class="dbd">
+      <div class="dnm"  id="detnm">—</div>
+      <div class="dni"  id="detni">—</div>
+      <div class="dbds" id="detbds"></div>
+
+      <!-- Tabs -->
+      <div class="dtabs">
+        <div class="dtab on"  id="tab-ov" onclick="dtab(this,'det-ov')">📊 Overview</div>
+        <div class="dtab"     id="tab-ad" onclick="dtab(this,'det-ad')">📢 Ad Guide</div>
+      </div>
+
+      <!-- Overview pane -->
+      <div class="dtpane on" id="det-ov">
+        <!-- filled by JS -->
+      </div>
+
+      <!-- Ad Guide pane -->
+      <div class="dtpane" id="det-ad">
+        <!-- filled by JS -->
+      </div>
+
+      <div class="dacts">
+        <button class="da da1" onclick="closeM('det-modal')">🔍 আরো Research</button>
+        <button class="da da2" onclick="goSupport();closeM('det-modal')">💬 Support নিন</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script src="user.js"></script>
+</body>
+</html>
