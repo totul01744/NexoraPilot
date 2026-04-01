@@ -9,87 +9,92 @@
 <body>
 <header class="header">
   <div class="header-inner">
-    <a href="index.html" class="logo"><div class="logo-icon">⚡</div><span>Ecom<span>Spark</span></span></a>
+    <a href="index.html" class="logo"><div class="logo-icon">⚡</div>EcomSpark</a>
     <nav class="nav" id="mainNav">
       <a class="nav-link" href="index.html">🏠 Home</a>
       <a class="nav-link" href="index.html#winning">🏆 Products</a>
       <a class="nav-link" href="index.html#tools">🛠️ AI Tools</a>
       <a class="nav-link active" href="help.html">💬 Support</a>
       <button class="btn btn-sm btn-secondary" onclick="showApiModal()">⚙️ API Key</button>
-      <div class="usage-pill" style="margin-left:6px"><span class="glow-dot blue"></span><span class="usage-display">3/3</span> left</div>
+      <div class="usage-pill" style="margin-left:6px"><span class="glow-dot mint"></span><span class="usage-display">3/3</span> বাকি</div>
     </nav>
     <button class="hamburger" onclick="document.getElementById('mainNav').classList.toggle('open')">☰</button>
   </div>
 </header>
 
-<section style="padding:56px 0 80px">
+<section style="padding:60px 0 80px">
   <div class="container" style="max-width:900px">
     <div class="section-header">
       <div class="section-label">💬 Support Center</div>
-      <h2 class="section-title">How Can We Help?</h2>
-      <p class="section-sub">Got a question, issue, or want to upgrade? We're here for you.</p>
+      <h2 class="section-title">আমরা কীভাবে সাহায্য করতে পারি?</h2>
+      <p class="section-sub">প্রশ্ন, সমস্যা বা upgrade করতে চান? আমরা সবসময় আপনার পাশে আছি।</p>
     </div>
 
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px">
-      <div class="card" style="padding:26px">
-        <h3 style="margin-bottom:18px">🆘 Submit Help Request</h3>
-        <div class="form-group"><label class="form-label">Your Name</label><input class="form-control" id="helpName" placeholder="John Doe"></div>
-        <div class="form-group"><label class="form-label">Email Address</label><input class="form-control" id="helpEmail" type="email" placeholder="john@example.com"></div>
-        <div class="form-group"><label class="form-label">Category</label>
+      <!-- Help Request -->
+      <div class="card" style="padding:28px">
+        <h3 style="margin-bottom:18px">🆘 Help Request পাঠান</h3>
+        <div class="form-group"><label class="form-label">আপনার নাম</label><input class="form-control" id="helpName" placeholder="আপনার নাম লিখুন"></div>
+        <div class="form-group"><label class="form-label">Email Address</label><input class="form-control" id="helpEmail" type="email" placeholder="you@example.com"></div>
+        <div class="form-group"><label class="form-label">বিষয়</label>
           <select class="form-control" id="helpCat">
-            <option>API / Technical Issue</option><option>Billing / Upgrade</option>
-            <option>How to Use a Feature</option><option>Bug Report</option><option>Feature Request</option><option>General Question</option>
+            <option>API / Technical সমস্যা</option><option>Billing / Upgrade</option>
+            <option>Feature কীভাবে ব্যবহার করবো</option><option>Bug Report</option>
+            <option>Feature Request</option><option>সাধারণ প্রশ্ন</option>
           </select>
         </div>
-        <div class="form-group"><label class="form-label">Your Message</label><textarea class="form-control" id="helpMsg" rows="5" placeholder="Describe your issue or question in detail..."></textarea></div>
-        <button class="btn btn-primary btn-full" onclick="submitHelp()">📤 Send Request</button>
+        <div class="form-group"><label class="form-label">আপনার বার্তা</label><textarea class="form-control" id="helpMsg" rows="5" placeholder="আপনার প্রশ্ন বা সমস্যা বিস্তারিত লিখুন..."></textarea></div>
+        <button class="btn btn-primary btn-full" onclick="submitHelp()">📤 Request পাঠান</button>
       </div>
 
-      <div class="card" style="padding:26px;border-color:rgba(167,139,250,.25)">
-        <h3 style="margin-bottom:6px">🚀 Upgrade to Pro/Agency</h3>
-        <p style="font-size:.84rem;margin-bottom:18px">Unlock all products, unlimited AI, and full ad strategies.</p>
-        <div class="form-group"><label class="form-label">Business / Your Name</label><input class="form-control" id="agName" placeholder="Your Company or Name"></div>
+      <!-- Upgrade Inquiry -->
+      <div class="card card-violet" style="padding:28px">
+        <h3 style="margin-bottom:6px">🚀 Pro / Agency Inquiry</h3>
+        <p style="font-size:.84rem;margin-bottom:18px">সব products unlock করুন এবং unlimited AI access পান।</p>
+        <div class="form-group"><label class="form-label">আপনার নাম / Business</label><input class="form-control" id="agName" placeholder="আপনার নাম বা company"></div>
         <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="agEmail" type="email" placeholder="hello@company.com"></div>
-        <div class="form-group"><label class="form-label">Plan Interest</label>
+        <div class="form-group"><label class="form-label">Plan</label>
           <select class="form-control" id="agPlan">
-            <option>Pro ($29/mo)</option><option>Agency ($99/mo)</option><option>Annual Pro ($199/yr)</option><option>Custom Enterprise</option>
+            <option>Pro (৳২,৯০০/মাস)</option><option>Agency (৳৯,৯০০/মাস)</option>
+            <option>Annual Pro (৳২৪,৯০০/বছর)</option><option>Custom Enterprise</option>
           </select>
         </div>
-        <div class="form-group"><label class="form-label">Monthly Revenue Range</label>
+        <div class="form-group"><label class="form-label">মাসিক Revenue</label>
           <select class="form-control" id="agRev">
-            <option>Just Starting ($0)</option><option>$1K-$10K/mo</option><option>$10K-$50K/mo</option><option>$50K-$200K/mo</option><option>$200K+/mo</option>
+            <option>শুরু করছি (৳০)</option><option>৳১০,০০০-১,০০,০০০/মাস</option>
+            <option>৳১,০০,০০০-৫,০০,০০০/মাস</option><option>৳৫,০০,০০০+/মাস</option>
           </select>
         </div>
-        <div class="form-group"><label class="form-label">Message (optional)</label><textarea class="form-control" id="agMsg" rows="2" placeholder="What are your main goals?"></textarea></div>
-        <button class="btn btn-primary btn-full" style="background:linear-gradient(135deg,var(--purple),var(--blue))" onclick="submitAgency()">🚀 Submit Inquiry</button>
+        <div class="form-group"><label class="form-label">অতিরিক্ত তথ্য (optional)</label><textarea class="form-control" id="agMsg" rows="2" placeholder="আপনার মূল লক্ষ্য কী?"></textarea></div>
+        <button class="btn btn-primary btn-full" style="background:linear-gradient(135deg,var(--a2),var(--a5))" onclick="submitAgency()">🚀 Inquiry পাঠান</button>
       </div>
     </div>
 
     <!-- FAQ -->
-    <div class="card" style="padding:26px;margin-bottom:24px">
-      <h3 style="margin-bottom:20px">❓ Frequently Asked Questions</h3>
+    <div class="card" style="padding:28px;margin-bottom:24px">
+      <h3 style="margin-bottom:20px">❓ সাধারণ প্রশ্নোত্তর</h3>
       <div id="faqList"></div>
     </div>
 
-    <!-- How to connect API -->
-    <div class="card" style="padding:26px">
-      <h3 style="margin-bottom:16px">🔑 How to Connect Your AI Key</h3>
+    <!-- How to Connect API -->
+    <div class="card" style="padding:28px">
+      <h3 style="margin-bottom:18px">🔑 AI Key কীভাবে যোগ করবেন</h3>
       <div style="display:grid;gap:14px">
         <div style="display:flex;gap:14px;align-items:flex-start">
-          <div style="width:30px;height:30px;border-radius:50%;background:rgba(56,189,248,.15);border:1px solid rgba(56,189,248,.3);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.84rem;color:var(--blue);flex-shrink:0">1</div>
-          <div><strong style="color:#fff">Go to console.anthropic.com</strong><p style="font-size:.84rem;margin-top:2px">Create a free Anthropic account if you don't have one already.</p></div>
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(0,245,212,.12);border:1px solid rgba(0,245,212,.25);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.84rem;color:var(--a1);flex-shrink:0">1</div>
+          <div><strong style="color:#fff">console.anthropic.com-এ যান</strong><p style="font-size:.84rem;margin-top:2px">Anthropic account তৈরি করুন (বিনামূল্যে)।</p></div>
         </div>
         <div style="display:flex;gap:14px;align-items:flex-start">
-          <div style="width:30px;height:30px;border-radius:50%;background:rgba(56,189,248,.15);border:1px solid rgba(56,189,248,.3);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.84rem;color:var(--blue);flex-shrink:0">2</div>
-          <div><strong style="color:#fff">Generate an API Key</strong><p style="font-size:.84rem;margin-top:2px">Go to "API Keys" in the console and create a new key. It starts with sk-ant-...</p></div>
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(0,245,212,.12);border:1px solid rgba(0,245,212,.25);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.84rem;color:var(--a1);flex-shrink:0">2</div>
+          <div><strong style="color:#fff">API Key তৈরি করুন</strong><p style="font-size:.84rem;margin-top:2px">"API Keys" section-এ গিয়ে নতুন key তৈরি করুন। এটা sk-ant- দিয়ে শুরু হবে।</p></div>
         </div>
         <div style="display:flex;gap:14px;align-items:flex-start">
-          <div style="width:30px;height:30px;border-radius:50%;background:rgba(56,189,248,.15);border:1px solid rgba(56,189,248,.3);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.84rem;color:var(--blue);flex-shrink:0">3</div>
-          <div><strong style="color:#fff">Click "⚙️ API Key" in the header</strong><p style="font-size:.84rem;margin-top:2px">Paste your key. It's stored only in your browser — never on our servers.</p></div>
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(0,245,212,.12);border:1px solid rgba(0,245,212,.25);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.84rem;color:var(--a1);flex-shrink:0">3</div>
+          <div><strong style="color:#fff">Header-এর "⚙️ API Key" ক্লিক করুন</strong><p style="font-size:.84rem;margin-top:2px">Key paste করুন। শুধু আপনার browser-এ থাকবে, কোনো server-এ যাবে না।</p></div>
         </div>
         <div style="display:flex;gap:14px;align-items:flex-start">
-          <div style="width:30px;height:30px;border-radius:50%;background:rgba(74,222,128,.15);border:1px solid rgba(74,222,128,.3);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.84rem;color:var(--green);flex-shrink:0">✓</div>
-          <div><strong style="color:var(--green)">You're ready!</strong><p style="font-size:.84rem;margin-top:2px">All AI tools will now work. Free plan = 3 uses/day. Pro = unlimited.</p></div>
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(0,245,212,.12);border:1px solid rgba(0,245,212,.3);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.84rem;color:var(--a1);flex-shrink:0">✓</div>
+          <div><strong style="color:var(--a1)">Ready!</strong><p style="font-size:.84rem;margin-top:2px">সব AI tool এখন কাজ করবে। Free plan = দিনে ৩ বার। Pro = unlimited।</p></div>
         </div>
       </div>
     </div>
@@ -100,34 +105,32 @@
   <div class="modal-box">
     <div class="modal-header"><div class="modal-title">🔑 API Key</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
     <div class="form-group"><label class="form-label">Anthropic API Key</label><input type="password" class="form-control" id="apiKeyInput" placeholder="sk-ant-api03-..."></div>
-    <div style="display:flex;gap:10px"><button class="btn btn-primary" style="flex:1" onclick="saveApiKey()">Save</button><button class="btn btn-secondary" onclick="Modal.hideAll()">Cancel</button></div>
+    <div style="display:flex;gap:10px"><button class="btn btn-primary" style="flex:1" onclick="saveApiKey()">Save</button><button class="btn btn-secondary" onclick="Modal.hideAll()">বাতিল</button></div>
   </div>
 </div>
 
 <script src="assets/js/app.js"></script>
 <script>
 const FAQS=[
-  {q:"Is my API key safe?",a:"Yes. Your API key is stored only in your browser's localStorage and goes directly to Anthropic's API. We never see or store it."},
-  {q:"How many free uses do I get?",a:"Free plan gives you 3 AI generations per day. Each new day resets. Upgrade to Pro for unlimited access."},
-  {q:"Do I need a Shopify account?",a:"No! EcomSpark works for Amazon, Etsy, WooCommerce, TikTok Shop, direct-to-consumer, or any ecommerce model."},
-  {q:"How accurate is the AI analysis?",a:"EcomSpark uses Claude AI by Anthropic, which provides research-grade analysis. Always validate with real market testing before large investments."},
-  {q:"What are the Winning Products?",a:"Winning Products are hand-picked by our admin team. Premium members get full access including ad strategies, captions, and supplier info for each product."},
-  {q:"How do I upgrade to Pro?",a:"Submit an inquiry through the form on this page. After payment confirmation, admin will activate your Pro access."},
-  {q:"Can I use this for TikTok Shop?",a:"Absolutely! The TikTok Viral Finder and Ad Creative Generator are specifically designed for TikTok Shop sellers."},
-  {q:"Is there an Agency plan?",a:"Yes, Agency plan at $99/month includes 5 team seats, white-label reports, and priority support. Submit an inquiry above."},
+  {q:"আমার API key কি নিরাপদ?",a:"হ্যাঁ। আপনার API key শুধুমাত্র আপনার browser-এর localStorage-এ থাকে এবং সরাসরি Anthropic-এর API-তে যায়। আমরা কখনো এটা দেখি না বা সংরক্ষণ করি না।"},
+  {q:"ফ্রিতে কতটি ব্যবহার পাবো?",a:"ফ্রি plan-এ প্রতিদিন ৩টি AI generation পাবেন। প্রতিদিন রাত ১২টায় reset হয়। Unlimited access-এর জন্য Pro-তে upgrade করুন।"},
+  {q:"Winning Products কীভাবে কাজ করে?",a:"Admin প্রতিটি product upload করেন সম্পূর্ণ ad strategy, caption ও supplier তথ্যসহ। Premium members সব দেখতে পান। Free users শুধু public products দেখতে পাবেন।"},
+  {q:"Shopify ছাড়া কি কাজ করবে?",a:"হ্যাঁ! EcomSpark সম্পূর্ণভাবে platform-agnostic। Amazon, Etsy, WooCommerce, TikTok Shop, বা যেকোনো ecommerce model-এর জন্য কাজ করে।"},
+  {q:"Pro তে কীভাবে upgrade করবো?",a:"এই page-এর form-এ inquiry পাঠান অথবা floating chat button ব্যবহার করুন। Payment confirmation-এর পর admin আপনার account activate করবেন।"},
+  {q:"AI analysis কতটা accurate?",a:"EcomSpark Claude AI (Anthropic) ব্যবহার করে যা research-grade analysis প্রদান করে। বড় investment-এর আগে সবসময় real market testing করুন।"},
 ];
 
 document.getElementById('faqList').innerHTML=FAQS.map((f,i)=>`
 <div style="border-bottom:1px solid var(--border);padding:14px 0">
   <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleFaq(${i})">
-    <strong style="font-size:.9rem;color:#fff">Q: ${f.q}</strong>
-    <span id="fi${i}" style="color:var(--accent);font-size:1.1rem">+</span>
+    <strong style="font-size:.9rem;color:#fff">প্রশ্ন: ${f.q}</strong>
+    <span id="fi${i}" style="color:var(--a1);font-size:1.1rem">+</span>
   </div>
-  <div id="fa${i}" class="hidden" style="margin-top:10px;font-size:.87rem;color:var(--text2);line-height:1.65">A: ${f.a}</div>
+  <div id="fa${i}" class="hidden" style="margin-top:10px;font-size:.87rem;color:var(--text2);line-height:1.65">উত্তর: ${f.a}</div>
 </div>`).join('');
 
 function toggleFaq(i){
-  const a=document.getElementById('fa'+i), ic=document.getElementById('fi'+i);
+  const a=document.getElementById('fa'+i),ic=document.getElementById('fi'+i);
   const h=a.classList.contains('hidden');
   a.classList.toggle('hidden',!h); ic.textContent=h?'−':'+';
 }
@@ -137,13 +140,13 @@ function submitHelp(){
   const email=document.getElementById('helpEmail').value.trim();
   const cat=document.getElementById('helpCat').value;
   const msg=document.getElementById('helpMsg').value.trim();
-  if(!name||!email||!msg){ Toast.error('Please fill in all fields'); return; }
+  if(!name||!email||!msg){ Toast.error('সব তথ্য পূরণ করুন'); return; }
   Store.addHelp({name,email,category:cat,message:msg});
   Store.logEvent('help',{name,email,cat});
   document.getElementById('helpName').value='';
   document.getElementById('helpEmail').value='';
   document.getElementById('helpMsg').value='';
-  Toast.success('Help request submitted! We\'ll respond within 24h ✅');
+  Toast.success('Help request পাঠানো হয়েছে! ২৪ ঘণ্টার মধ্যে reply পাবেন ✅');
 }
 
 function submitAgency(){
@@ -152,13 +155,13 @@ function submitAgency(){
   const plan=document.getElementById('agPlan').value;
   const rev=document.getElementById('agRev').value;
   const msg=document.getElementById('agMsg').value.trim();
-  if(!name||!email){ Toast.error('Please enter your name and email'); return; }
+  if(!name||!email){ Toast.error('নাম ও email দিন'); return; }
   Store.addAgency({name,email,plan,revenue:rev,message:msg});
   Store.logEvent('agency',{name,email,plan});
   document.getElementById('agName').value='';
   document.getElementById('agEmail').value='';
   document.getElementById('agMsg').value='';
-  Toast.success('Inquiry received! We\'ll reach out within 12h 🚀');
+  Toast.success('Inquiry পাঠানো হয়েছে! ১২ ঘণ্টার মধ্যে যোগাযোগ করা হবে 🚀');
 }
 </script>
 </body>

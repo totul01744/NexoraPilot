@@ -13,7 +13,7 @@
   <div class="header-inner">
     <a href="index.html" class="logo">
       <div class="logo-icon">⚡</div>
-      <span>Ecom<span>Spark</span></span>
+      EcomSpark
     </a>
     <nav class="nav" id="mainNav">
       <a class="nav-link active" href="index.html">🏠 Home</a>
@@ -23,11 +23,11 @@
       <span class="nav-badge">AI-Powered</span>
       <button class="btn btn-sm btn-secondary" onclick="showApiModal()" style="margin-left:8px">⚙️ API Key</button>
       <div class="usage-pill" style="margin-left:6px">
-        <span class="glow-dot blue"></span>
-        <span class="usage-display">3/3</span> left
+        <span class="glow-dot mint"></span>
+        <span class="usage-display">3/3</span> বাকি
       </div>
     </nav>
-    <button class="hamburger" id="hamBtn">☰</button>
+    <button class="hamburger" onclick="document.getElementById('mainNav').classList.toggle('open')">☰</button>
   </div>
 </header>
 
@@ -35,240 +35,229 @@
 <section class="hero">
   <div class="container">
     <div class="hero-badge">⚡ AI-Powered Ecommerce Intelligence</div>
-    <h1 class="hero-title">Find Winning Products.<br>Dominate Your Market.</h1>
-    <p class="hero-sub">From viral TikTok products to competitor analysis — every tool you need to build a profitable ecommerce business, powered by Claude AI.</p>
+    <h1 class="hero-title">Winning Products খুঁজুন।<br>Market Dominate করুন।</h1>
+    <p class="hero-sub">TikTok viral products থেকে competitor analysis — সব টুল এক জায়গায়। Claude AI দ্বারা পরিচালিত।</p>
     <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
       <a href="#winning" class="btn btn-primary btn-lg">🏆 Winning Products</a>
-      <a href="#tools" class="btn btn-secondary btn-lg">🛠️ AI Tools</a>
+      <a href="#tools" class="btn btn-outline btn-lg">🛠️ AI Tools দেখুন</a>
     </div>
-    <div style="margin-top:30px;display:flex;gap:32px;justify-content:center;flex-wrap:wrap">
-      <div style="text-align:center"><div style="font-family:var(--font-h);font-size:1.7rem;font-weight:900;color:#fff">10+</div><div style="font-size:.8rem;color:var(--text2)">AI Tools</div></div>
-      <div style="text-align:center"><div style="font-family:var(--font-h);font-size:1.7rem;font-weight:900;color:#fff">0%</div><div style="font-size:.8rem;color:var(--text2)">Shopify Required</div></div>
-      <div style="text-align:center"><div style="font-family:var(--font-h);font-size:1.7rem;font-weight:900;color:#fff">∞</div><div style="font-size:.8rem;color:var(--text2)">Pro Access</div></div>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="hero-stat-num mint">10+</div>
+        <div class="hero-stat-label">AI Tools</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-num">0%</div>
+        <div class="hero-stat-label">Shopify দরকার নেই</div>
+      </div>
+      <div class="hero-stat">
+        <div class="hero-stat-num violet">∞</div>
+        <div class="hero-stat-label">Pro Access</div>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- BANNER SLIDER -->
-<div class="container" style="margin-top:-20px;margin-bottom:0">
-  <div class="banner-slider card" id="bannerSlider">
-    <!-- Rendered by JS -->
+<div class="container" style="margin-bottom:64px">
+  <div class="banner-wrap card" id="bannerSlider">
+    <!-- JS রেন্ডার করবে -->
   </div>
 </div>
 
-<!-- WINNING PRODUCTS SECTION -->
-<section id="winning" style="padding:60px 0">
+<!-- WINNING PRODUCTS -->
+<section id="winning" style="padding:64px 0">
   <div class="container">
     <div class="section-header">
-      <div class="section-label">🏆 Curated by Admin</div>
+      <div class="section-label">🏆 Admin Curated</div>
       <h2 class="section-title">Winning Products</h2>
-      <p class="section-sub">Hand-picked high-potential products with detailed ad strategies, pricing & supplier info. Premium members get full access.</p>
+      <p class="section-sub">প্রতিটি প্রোডাক্টের সম্পূর্ণ অ্যাড স্ট্র্যাটেজি, সরবরাহকারী তথ্য ও মূল্য বিশ্লেষণসহ। Premium সদস্যরা সব দেখতে পাবেন।</p>
     </div>
 
-    <!-- Filter Bar -->
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:24px;flex-wrap:wrap">
+    <!-- Filter + Pro Status -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:26px;flex-wrap:wrap">
       <div style="display:flex;gap:6px;flex-wrap:wrap" id="catFilters">
-        <button class="btn btn-sm btn-primary" onclick="filterProducts('all',this)">All</button>
-        <button class="btn btn-sm btn-secondary" onclick="filterProducts('Health',this)">Health</button>
-        <button class="btn btn-sm btn-secondary" onclick="filterProducts('Beauty',this)">Beauty</button>
+        <button class="btn btn-sm btn-primary" onclick="filterProducts('all',this)">সব</button>
+        <button class="btn btn-sm btn-secondary" onclick="filterProducts('Health & Beauty',this)">Health</button>
         <button class="btn btn-sm btn-secondary" onclick="filterProducts('Electronics',this)">Electronics</button>
         <button class="btn btn-sm btn-secondary" onclick="filterProducts('Home',this)">Home</button>
         <button class="btn btn-sm btn-secondary" onclick="filterProducts('Fitness',this)">Fitness</button>
         <button class="btn btn-sm btn-secondary" onclick="filterProducts('Pet',this)">Pet</button>
+        <button class="btn btn-sm btn-secondary" onclick="filterProducts('Kitchen',this)">Kitchen</button>
       </div>
-      <div style="margin-left:auto">
-        <span id="proStatus" class="tag tag-green" style="display:none">⭐ Pro Member</span>
-        <button class="btn btn-sm btn-gold" onclick="showUpgradeModal()" id="upgradeBtn">🚀 Upgrade to Pro</button>
+      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
+        <span id="proStatus" class="tag tag-mint" style="display:none">⭐ Pro Member</span>
+        <button class="btn btn-sm btn-amber" onclick="showUpgradeModal()" id="upgradeBtn">🚀 Pro তে Upgrade করুন</button>
       </div>
     </div>
 
     <div class="product-grid" id="winningProductsGrid">
-      <!-- Rendered by JS -->
+      <div class="card" style="padding:40px;text-align:center;grid-column:1/-1">
+        <div style="font-size:3rem;margin-bottom:14px">📦</div>
+        <p>Loading products...</p>
+      </div>
     </div>
   </div>
 </section>
 
-<!-- AI TOOLS SECTION -->
-<section id="tools" style="padding:60px 0;background:rgba(5,16,40,.45)">
+<!-- AI TOOLS -->
+<section id="tools" style="padding:64px 0;background:rgba(0,0,0,.2)">
   <div class="container">
     <div class="section-header">
       <div class="section-label">🛠️ AI Research Tools</div>
-      <h2 class="section-title">Everything You Need to Sell More</h2>
-      <p class="section-sub">Click any tool to open and start generating insights instantly</p>
+      <h2 class="section-title">যা দিয়ে আপনি আরও বেশি বিক্রি করবেন</h2>
+      <p class="section-sub">যেকোনো টুলে ক্লিক করুন এবং সাথে সাথে AI analysis শুরু করুন</p>
     </div>
+    <div class="tools-grid">
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:18px">
-
-      <!-- Product Research -->
-      <div class="card" style="padding:22px;cursor:pointer;transition:all .3s" onclick="openModal('modal-pr')" onmouseenter="this.style.transform='translateY(-4px)';this.style.borderColor='rgba(56,189,248,.3)'" onmouseleave="this.style.transform='';this.style.borderColor=''">
-        <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(56,189,248,.2),rgba(14,165,233,.1));border:1px solid rgba(56,189,248,.25);display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:14px">🏆</div>
-        <h3 style="margin-bottom:6px;font-size:.97rem">Product Research</h3>
-        <p style="font-size:.83rem;margin-bottom:14px">Demand scoring, competition analysis, winning product detection</p>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"><span class="tag tag-blue">Demand Score</span><span class="tag tag-green">Win Rate</span><span class="tag tag-purple">Saturation</span></div>
-        <button class="btn btn-sm btn-primary btn-full">Launch →</button>
+      <div class="card tool-card" onclick="openModal('modal-pr')">
+        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(0,245,212,.15),rgba(59,130,246,.1));border:1px solid rgba(0,245,212,.2)">🏆</div>
+        <h3>Product Research</h3>
+        <p>Demand scoring, competition analysis, winning product detection</p>
+        <div class="tool-card-tags"><span class="tag tag-mint">Demand</span><span class="tag tag-green">Win Rate</span><span class="tag tag-violet">Saturation</span></div>
+        <button class="btn btn-primary btn-full btn-sm">Launch →</button>
       </div>
 
-      <!-- TikTok Viral -->
-      <div class="card" style="padding:22px;cursor:pointer;transition:all .3s" onclick="openModal('modal-tt')" onmouseenter="this.style.transform='translateY(-4px)';this.style.borderColor='rgba(251,113,133,.3)'" onmouseleave="this.style.transform='';this.style.borderColor=''">
-        <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(251,113,133,.2),rgba(167,139,250,.1));border:1px solid rgba(251,113,133,.25);display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:14px">🎵</div>
-        <h3 style="margin-bottom:6px;font-size:.97rem">TikTok Viral Finder</h3>
-        <p style="font-size:.83rem;margin-bottom:14px">Detect viral ecommerce products trending on TikTok Shop</p>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"><span class="tag tag-red">Viral Score</span><span class="tag tag-purple">Hashtags</span><span class="tag tag-gold">Sales Est.</span></div>
-        <button class="btn btn-sm btn-primary btn-full">Launch →</button>
+      <div class="card tool-card" onclick="openModal('modal-tt')">
+        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(236,72,153,.15),rgba(124,58,237,.1));border:1px solid rgba(236,72,153,.2)">🎵</div>
+        <h3>TikTok Viral Finder</h3>
+        <p>TikTok Shop-এ trending viral ecommerce products detect করুন</p>
+        <div class="tool-card-tags"><span class="tag tag-pink">Viral Score</span><span class="tag tag-violet">Hashtags</span><span class="tag tag-amber">Sales Est.</span></div>
+        <button class="btn btn-primary btn-full btn-sm">Launch →</button>
       </div>
 
-      <!-- Ad Creative -->
-      <div class="card" style="padding:22px;cursor:pointer;transition:all .3s" onclick="openModal('modal-ac')" onmouseenter="this.style.transform='translateY(-4px)';this.style.borderColor='rgba(251,191,36,.3)'" onmouseleave="this.style.transform='';this.style.borderColor=''">
-        <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(251,191,36,.2),rgba(251,113,133,.1));border:1px solid rgba(251,191,36,.25);display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:14px">🎨</div>
-        <h3 style="margin-bottom:6px;font-size:.97rem">Ad Creative Generator</h3>
-        <p style="font-size:.83rem;margin-bottom:14px">TikTok hooks, Facebook ads, angles & scripts</p>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"><span class="tag tag-gold">TikTok</span><span class="tag tag-blue">Facebook</span><span class="tag tag-cyan">Hooks</span></div>
-        <button class="btn btn-sm btn-primary btn-full">Launch →</button>
+      <div class="card tool-card" onclick="openModal('modal-ac')">
+        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(236,72,153,.1));border:1px solid rgba(245,158,11,.2)">🎨</div>
+        <h3>Ad Creative Generator</h3>
+        <p>TikTok hooks, Facebook ads, angles ও scripts তৈরি করুন</p>
+        <div class="tool-card-tags"><span class="tag tag-amber">TikTok</span><span class="tag tag-blue">Facebook</span><span class="tag tag-mint">Hooks</span></div>
+        <button class="btn btn-primary btn-full btn-sm">Launch →</button>
       </div>
 
-      <!-- Ad Script -->
-      <div class="card" style="padding:22px;cursor:pointer;transition:all .3s" onclick="openModal('modal-as')" onmouseenter="this.style.transform='translateY(-4px)';this.style.borderColor='rgba(34,211,238,.3)'" onmouseleave="this.style.transform='';this.style.borderColor=''">
-        <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(34,211,238,.2),rgba(45,212,191,.1));border:1px solid rgba(34,211,238,.25);display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:14px">🎬</div>
-        <h3 style="margin-bottom:6px;font-size:.97rem">Ad Script Generator</h3>
-        <p style="font-size:.83rem;margin-bottom:14px">Full UGC scripts with hook, story arc, and CTA</p>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"><span class="tag tag-cyan">UGC Style</span><span class="tag tag-teal">30s/60s</span><span class="tag tag-blue">B-Roll</span></div>
-        <button class="btn btn-sm btn-primary btn-full">Launch →</button>
+      <div class="card tool-card" onclick="openModal('modal-as')">
+        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(0,245,212,.12),rgba(59,130,246,.1));border:1px solid rgba(0,245,212,.18)">🎬</div>
+        <h3>Ad Script Generator</h3>
+        <p>Hook, story arc ও CTA সহ সম্পূর্ণ UGC script তৈরি করুন</p>
+        <div class="tool-card-tags"><span class="tag tag-mint">UGC Style</span><span class="tag tag-blue">30s/60s</span><span class="tag tag-violet">B-Roll</span></div>
+        <button class="btn btn-primary btn-full btn-sm">Launch →</button>
       </div>
 
-      <!-- Product Description -->
-      <div class="card" style="padding:22px;cursor:pointer;transition:all .3s" onclick="openModal('modal-pd')" onmouseenter="this.style.transform='translateY(-4px)';this.style.borderColor='rgba(74,222,128,.3)'" onmouseleave="this.style.transform='';this.style.borderColor=''">
-        <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(74,222,128,.2),rgba(45,212,191,.1));border:1px solid rgba(74,222,128,.25);display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:14px">✍️</div>
-        <h3 style="margin-bottom:6px;font-size:.97rem">Product Description</h3>
-        <p style="font-size:.83rem;margin-bottom:14px">High-converting copy with SEO, bullets & emotional hooks</p>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"><span class="tag tag-green">SEO</span><span class="tag tag-teal">Bullets</span><span class="tag tag-blue">Emotion</span></div>
-        <button class="btn btn-sm btn-primary btn-full">Launch →</button>
+      <div class="card tool-card" onclick="openModal('modal-pd')">
+        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,245,212,.1));border:1px solid rgba(34,197,94,.2)">✍️</div>
+        <h3>Product Description</h3>
+        <p>SEO, bullets ও emotional hooks সহ high-converting copy</p>
+        <div class="tool-card-tags"><span class="tag tag-green">SEO</span><span class="tag tag-mint">Bullets</span><span class="tag tag-blue">Emotion</span></div>
+        <button class="btn btn-primary btn-full btn-sm">Launch →</button>
       </div>
 
-      <!-- Supplier -->
-      <div class="card" style="padding:22px;cursor:pointer;transition:all .3s" onclick="openModal('modal-sf')" onmouseenter="this.style.transform='translateY(-4px)';this.style.borderColor='rgba(167,139,250,.3)'" onmouseleave="this.style.transform='';this.style.borderColor=''">
-        <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(167,139,250,.2),rgba(56,189,248,.1));border:1px solid rgba(167,139,250,.25);display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:14px">🏭</div>
-        <h3 style="margin-bottom:6px;font-size:.97rem">Supplier Finder</h3>
-        <p style="font-size:.83rem;margin-bottom:14px">Find verified suppliers + outreach email generator</p>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"><span class="tag tag-purple">Alibaba</span><span class="tag tag-blue">Verified</span><span class="tag tag-green">Outreach</span></div>
-        <button class="btn btn-sm btn-primary btn-full">Launch →</button>
+      <div class="card tool-card" onclick="openModal('modal-sf')">
+        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(59,130,246,.1));border:1px solid rgba(124,58,237,.2)">🏭</div>
+        <h3>Supplier Finder</h3>
+        <p>Verified supplier খুঁজুন + outreach email তৈরি করুন</p>
+        <div class="tool-card-tags"><span class="tag tag-violet">Alibaba</span><span class="tag tag-blue">Verified</span><span class="tag tag-green">Outreach</span></div>
+        <button class="btn btn-primary btn-full btn-sm">Launch →</button>
       </div>
 
-      <!-- SEO -->
-      <div class="card" style="padding:22px;cursor:pointer;transition:all .3s" onclick="openModal('modal-seo')" onmouseenter="this.style.transform='translateY(-4px)';this.style.borderColor='rgba(56,189,248,.3)'" onmouseleave="this.style.transform='';this.style.borderColor=''">
-        <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(56,189,248,.15),rgba(34,211,238,.1));border:1px solid rgba(56,189,248,.2);display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:14px">🔍</div>
-        <h3 style="margin-bottom:6px;font-size:.97rem">SEO Toolkit</h3>
-        <p style="font-size:.83rem;margin-bottom:14px">Keyword research, title optimizer & product SEO score</p>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"><span class="tag tag-blue">Keywords</span><span class="tag tag-cyan">Title</span><span class="tag tag-teal">Score</span></div>
-        <button class="btn btn-sm btn-primary btn-full">Launch →</button>
+      <div class="card tool-card" onclick="openModal('modal-seo')">
+        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(59,130,246,.12),rgba(0,245,212,.1));border:1px solid rgba(59,130,246,.2)">🔍</div>
+        <h3>SEO Toolkit</h3>
+        <p>Keyword research, title optimizer ও product SEO score</p>
+        <div class="tool-card-tags"><span class="tag tag-blue">Keywords</span><span class="tag tag-mint">Title</span><span class="tag tag-green">Score</span></div>
+        <button class="btn btn-primary btn-full btn-sm">Launch →</button>
       </div>
 
-      <!-- Competitor -->
-      <div class="card" style="padding:22px;cursor:pointer;transition:all .3s" onclick="openModal('modal-ca')" onmouseenter="this.style.transform='translateY(-4px)';this.style.borderColor='rgba(251,191,36,.3)'" onmouseleave="this.style.transform='';this.style.borderColor=''">
-        <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(251,191,36,.15),rgba(251,113,133,.1));border:1px solid rgba(251,191,36,.2);display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:14px">🔭</div>
-        <h3 style="margin-bottom:6px;font-size:.97rem">Competitor Analysis</h3>
-        <p style="font-size:.83rem;margin-bottom:14px">Spy on competitors, uncover market gaps, win strategy</p>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"><span class="tag tag-gold">Revenue Est.</span><span class="tag tag-red">Weaknesses</span><span class="tag tag-green">Gaps</span></div>
-        <button class="btn btn-sm btn-primary btn-full">Launch →</button>
+      <div class="card tool-card" onclick="openModal('modal-ca')">
+        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(236,72,153,.1));border:1px solid rgba(245,158,11,.18)">🔭</div>
+        <h3>Competitor Analysis</h3>
+        <p>Competitor spy করুন, market gap খুঁজুন, win strategy তৈরি করুন</p>
+        <div class="tool-card-tags"><span class="tag tag-amber">Revenue</span><span class="tag tag-red">Weaknesses</span><span class="tag tag-green">Gaps</span></div>
+        <button class="btn btn-primary btn-full btn-sm">Launch →</button>
       </div>
 
-      <!-- Fake Review -->
-      <div class="card" style="padding:22px;cursor:pointer;transition:all .3s" onclick="openModal('modal-fr')" onmouseenter="this.style.transform='translateY(-4px)';this.style.borderColor='rgba(251,113,133,.3)'" onmouseleave="this.style.transform='';this.style.borderColor=''">
-        <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(251,113,133,.15),rgba(251,191,36,.1));border:1px solid rgba(251,113,133,.2);display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:14px">🕵️</div>
-        <h3 style="margin-bottom:6px;font-size:.97rem">Fake Review Detector</h3>
-        <p style="font-size:.83rem;margin-bottom:14px">Analyze reviews for suspicious patterns & authenticity</p>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"><span class="tag tag-red">Red Flags</span><span class="tag tag-gold">Trust Score</span><span class="tag tag-green">Verified</span></div>
-        <button class="btn btn-sm btn-primary btn-full">Launch →</button>
+      <div class="card tool-card" onclick="openModal('modal-fr')">
+        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(239,68,68,.12),rgba(245,158,11,.1));border:1px solid rgba(239,68,68,.18)">🕵️</div>
+        <h3>Fake Review Detector</h3>
+        <p>Review authenticity বিশ্লেষণ করুন, suspicious patterns ধরুন</p>
+        <div class="tool-card-tags"><span class="tag tag-red">Red Flags</span><span class="tag tag-amber">Trust Score</span><span class="tag tag-green">Verified</span></div>
+        <button class="btn btn-primary btn-full btn-sm">Launch →</button>
       </div>
 
-      <!-- Market Report -->
-      <div class="card" style="padding:22px;cursor:pointer;transition:all .3s" onclick="openModal('modal-mr')" onmouseenter="this.style.transform='translateY(-4px)';this.style.borderColor='rgba(45,212,191,.3)'" onmouseleave="this.style.transform='';this.style.borderColor=''">
-        <div style="width:48px;height:48px;border-radius:13px;background:linear-gradient(135deg,rgba(45,212,191,.15),rgba(74,222,128,.1));border:1px solid rgba(45,212,191,.2);display:flex;align-items:center;justify-content:center;font-size:1.3rem;margin-bottom:14px">📊</div>
-        <h3 style="margin-bottom:6px;font-size:.97rem">Market Research Report</h3>
-        <p style="font-size:.83rem;margin-bottom:14px">Full AI report: demand, size, forecasts & action plan</p>
-        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px"><span class="tag tag-teal">Full Report</span><span class="tag tag-green">Forecast</span><span class="tag tag-blue">Action Plan</span></div>
-        <button class="btn btn-sm btn-primary btn-full">Launch →</button>
+      <div class="card tool-card" onclick="openModal('modal-mr')">
+        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(0,245,212,.1),rgba(34,197,94,.1));border:1px solid rgba(0,245,212,.18)">📊</div>
+        <h3>Market Research Report</h3>
+        <p>Demand, size, forecast ও action plan সহ সম্পূর্ণ AI রিপোর্ট</p>
+        <div class="tool-card-tags"><span class="tag tag-mint">Full Report</span><span class="tag tag-green">Forecast</span><span class="tag tag-blue">Action Plan</span></div>
+        <button class="btn btn-primary btn-full btn-sm">Launch →</button>
       </div>
 
     </div>
   </div>
 </section>
 
-<!-- PRICING SECTION -->
-<section style="padding:64px 0 80px">
+<!-- PRICING -->
+<section style="padding:80px 0">
   <div class="container">
     <div class="section-header">
-      <div class="section-label">💎 Pricing</div>
-      <h2 class="section-title">Simple, Transparent Pricing</h2>
-      <p class="section-sub">Start free. Scale with Pro.</p>
+      <div class="section-label">💎 মূল্য</div>
+      <h2 class="section-title">সহজ ও স্বচ্ছ মূল্য</h2>
+      <p class="section-sub">Free তে শুরু করুন। Pro তে Scale করুন।</p>
     </div>
     <div class="pricing-grid">
+
       <div class="card pricing-card">
-        <div class="tag tag-blue mb-3">Free</div>
-        <div class="price-amt">$0</div>
-        <div class="price-period">Forever free</div>
-        <div class="water-line" style="margin:18px 0"></div>
-        <div class="price-feat">3 AI uses per day</div>
-        <div class="price-feat">All 10 AI tools (limited)</div>
-        <div class="price-feat no">Winning products (first 10)</div>
-        <div class="price-feat no">Full product details locked</div>
-        <button class="btn btn-secondary btn-full mt-3" onclick="document.getElementById('tools').scrollIntoView({behavior:'smooth'})">Start Free</button>
+        <div class="tag tag-mint" style="margin-bottom:20px">ফ্রি</div>
+        <div class="price-amt">৳০</div>
+        <div class="price-period">চিরকাল বিনামূল্যে</div>
+        <div class="price-divider"></div>
+        <div class="price-feat"><span class="price-feat-icon yes">✓</span>দিনে ৩টি AI ব্যবহার</div>
+        <div class="price-feat"><span class="price-feat-icon yes">✓</span>সব ১০টি AI Tool (সীমিত)</div>
+        <div class="price-feat"><span class="price-feat-icon no">✗</span>Winning Products (প্রথম ১০টি লক)</div>
+        <div class="price-feat"><span class="price-feat-icon no">✗</span>পূর্ণ Product Details লক</div>
+        <button class="btn btn-secondary btn-full" style="margin-top:28px" onclick="document.getElementById('tools').scrollIntoView({behavior:'smooth'})">ফ্রিতে শুরু করুন</button>
       </div>
+
       <div class="card pricing-card featured">
-        <div class="tag tag-blue mb-3">Pro</div>
-        <div class="price-amt">$29</div>
-        <div class="price-period">per month</div>
-        <div class="water-line" style="margin:18px 0"></div>
-        <div class="price-feat">Unlimited AI generations</div>
-        <div class="price-feat">All 10 research tools</div>
-        <div class="price-feat">All winning products unlocked</div>
-        <div class="price-feat">Full ad strategies revealed</div>
-        <div class="price-feat">Priority support</div>
-        <button class="btn btn-primary btn-full mt-3" onclick="showUpgradeModal()">🚀 Get Pro</button>
+        <div class="price-ribbon">সবচেয়ে জনপ্রিয়</div>
+        <div class="tag tag-mint" style="margin-bottom:20px">Pro</div>
+        <div class="price-amt">৳২,৯০০</div>
+        <div class="price-period">প্রতি মাসে</div>
+        <div class="price-divider"></div>
+        <div class="price-feat"><span class="price-feat-icon yes">✓</span>Unlimited AI generations</div>
+        <div class="price-feat"><span class="price-feat-icon yes">✓</span>সব ১০টি Research Tool</div>
+        <div class="price-feat"><span class="price-feat-icon yes">✓</span>সব Winning Products unlock</div>
+        <div class="price-feat"><span class="price-feat-icon yes">✓</span>পূর্ণ Ad Strategy দেখুন</div>
+        <div class="price-feat"><span class="price-feat-icon yes">✓</span>Priority Support</div>
+        <button class="btn btn-primary btn-full" style="margin-top:28px" onclick="showUpgradeModal()">🚀 Pro নিন</button>
       </div>
+
       <div class="card pricing-card">
-        <div class="tag tag-purple mb-3">Agency</div>
-        <div class="price-amt">$99</div>
-        <div class="price-period">per month</div>
-        <div class="water-line" style="margin:18px 0"></div>
-        <div class="price-feat">Everything in Pro</div>
-        <div class="price-feat">5 team seats</div>
-        <div class="price-feat">White-label reports</div>
-        <div class="price-feat">Client management</div>
-        <div class="price-feat">Dedicated support</div>
-        <button class="btn btn-secondary btn-full mt-3" onclick="window.location.href='help.html'">Contact Sales</button>
+        <div class="tag tag-violet" style="margin-bottom:20px">Agency</div>
+        <div class="price-amt">৳৯,৯০০</div>
+        <div class="price-period">প্রতি মাসে</div>
+        <div class="price-divider"></div>
+        <div class="price-feat"><span class="price-feat-icon yes">✓</span>Pro-র সব সুবিধা</div>
+        <div class="price-feat"><span class="price-feat-icon yes">✓</span>৫টি Team Seat</div>
+        <div class="price-feat"><span class="price-feat-icon yes">✓</span>White-label Reports</div>
+        <div class="price-feat"><span class="price-feat-icon yes">✓</span>Client Management</div>
+        <div class="price-feat"><span class="price-feat-icon yes">✓</span>Dedicated Support</div>
+        <button class="btn btn-secondary btn-full" style="margin-top:28px" onclick="window.location.href='help.html'">Sales-এ যোগাযোগ করুন</button>
       </div>
+
     </div>
   </div>
 </section>
 
-<!-- FOOTER -->
-<footer style="padding:28px 0;border-top:1px solid var(--border)">
-  <div class="container" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px">
-    <div class="logo" style="font-size:1rem">
-      <div class="logo-icon" style="width:32px;height:32px;font-size:.9rem">⚡</div>
-      <span>Ecom<span style="color:var(--accent)">Spark</span></span>
-    </div>
-    <div style="display:flex;gap:20px;font-size:.83rem">
-      <a href="#tools" style="color:var(--text2)">AI Tools</a>
-      <a href="help.html" style="color:var(--text2)">Support</a>
-      <a href="admin/" style="color:var(--text2)">Admin</a>
-    </div>
-    <div style="font-size:.78rem;color:var(--text2)">© 2025 EcomSpark. Powered by Claude AI.</div>
-  </div>
-</footer>
-
 <!-- ============ TOOL MODALS ============ -->
-
 <!-- Product Research -->
 <div class="modal-overlay hidden" id="modal-pr">
   <div class="modal-box modal-box-lg">
     <div class="modal-header"><div class="modal-title">🏆 Product Research</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Product Name / Keyword</label><input class="form-control" id="pr-product" placeholder="e.g., posture corrector, LED face mask, grip trainer"></div>
+    <div class="form-group"><label class="form-label">Product Name / Keyword</label><input class="form-control" id="pr-product" placeholder="e.g., posture corrector, LED face mask"></div>
     <div style="display:flex;gap:12px">
       <div class="form-group" style="flex:1"><label class="form-label">Category</label><select class="form-control" id="pr-category"><option>Health & Beauty</option><option>Electronics</option><option>Home & Garden</option><option>Sports & Fitness</option><option>Baby & Kids</option><option>Pet Products</option><option>Kitchen</option><option>Fashion</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Target Market</label><select class="form-control" id="pr-market"><option>US</option><option>UK</option><option>Canada</option><option>Australia</option><option>Europe</option><option>Global</option></select></div>
+      <div class="form-group" style="flex:1"><label class="form-label">Target Market</label><select class="form-control" id="pr-market"><option>US</option><option>UK</option><option>Canada</option><option>Australia</option><option>Europe</option><option>Bangladesh</option><option>Global</option></select></div>
     </div>
-    <button class="btn btn-primary btn-full" onclick="runProductResearch()">🔬 Analyze Product</button>
+    <button class="btn btn-primary btn-full" onclick="runProductResearch()">🔬 Product Analyze করুন</button>
     <div id="pr-result" class="result-area mt-2"></div>
   </div>
 </div>
@@ -279,10 +268,10 @@
     <div class="modal-header"><div class="modal-title">🎵 TikTok Viral Finder</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
     <div style="display:flex;gap:12px">
       <div class="form-group" style="flex:1"><label class="form-label">Niche / Category</label><input class="form-control" id="tt-niche" placeholder="e.g., beauty, kitchen gadgets, fitness"></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Budget</label><select class="form-control" id="tt-budget"><option>$500-1000</option><option>$1000-3000</option><option>$3000-10000</option><option>$10000+</option></select></div>
+      <div class="form-group" style="flex:1"><label class="form-label">Budget</label><select class="form-control" id="tt-budget"><option>৳৫০,০০০-১,০০,০০০</option><option>৳১,০০,০০০-৩,০০,০০০</option><option>৳৩,০০,০০০+</option></select></div>
     </div>
     <div class="form-group"><label class="form-label">Target Market</label><select class="form-control" id="tt-market"><option>US</option><option>UK</option><option>Global</option><option>Southeast Asia</option></select></div>
-    <button class="btn btn-primary btn-full" onclick="runTikTokFinder()">🎵 Find Viral Products</button>
+    <button class="btn btn-primary btn-full" onclick="runTikTokFinder()">🎵 Viral Products খুঁজুন</button>
     <div id="tt-result" class="result-area mt-2"></div>
   </div>
 </div>
@@ -297,7 +286,7 @@
       <div class="form-group" style="flex:1"><label class="form-label">Target Audience</label><input class="form-control" id="ac-audience" placeholder="e.g., women 25-45"></div>
     </div>
     <div class="form-group"><label class="form-label">Unique Selling Point (USP)</label><input class="form-control" id="ac-usp" placeholder="e.g., reduces puffiness in 5 minutes"></div>
-    <button class="btn btn-primary btn-full" onclick="runAdCreative()">🎨 Generate Ad Creatives</button>
+    <button class="btn btn-primary btn-full" onclick="runAdCreative()">🎨 Ad Creative তৈরি করুন</button>
     <div id="ac-result" class="result-area mt-2"></div>
   </div>
 </div>
@@ -309,10 +298,10 @@
     <div class="form-group"><label class="form-label">Product</label><input class="form-control" id="as-product" placeholder="e.g., Magnetic Phone Mount for Car"></div>
     <div style="display:flex;gap:12px">
       <div class="form-group" style="flex:1"><label class="form-label">Platform</label><select class="form-control" id="as-platform"><option>TikTok</option><option>Instagram Reels</option><option>YouTube Shorts</option><option>Facebook Video</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Duration</label><select class="form-control" id="as-duration"><option>15 seconds</option><option>30 seconds</option><option>60 seconds</option><option>2 minutes</option></select></div>
+      <div class="form-group" style="flex:1"><label class="form-label">Duration</label><select class="form-control" id="as-duration"><option>15 seconds</option><option>30 seconds</option><option>60 seconds</option></select></div>
       <div class="form-group" style="flex:1"><label class="form-label">Style</label><select class="form-control" id="as-style"><option>UGC/Authentic</option><option>Educational</option><option>Storytelling</option><option>Before/After</option></select></div>
     </div>
-    <button class="btn btn-primary btn-full" onclick="runAdScript()">🎬 Write Script</button>
+    <button class="btn btn-primary btn-full" onclick="runAdScript()">🎬 Script লিখুন</button>
     <div id="as-result" class="result-area mt-2"></div>
   </div>
 </div>
@@ -327,7 +316,7 @@
       <div class="form-group" style="flex:1"><label class="form-label">Target Buyer</label><input class="form-control" id="pd-buyer" placeholder="e.g., home chefs, gift buyers"></div>
       <div class="form-group" style="flex:1"><label class="form-label">Tone</label><select class="form-control" id="pd-tone"><option>Professional yet friendly</option><option>Luxury/Premium</option><option>Fun & Playful</option><option>Technical/Precise</option><option>Emotional/Story-driven</option></select></div>
     </div>
-    <button class="btn btn-primary btn-full" onclick="runProductDesc()">✍️ Generate Description</button>
+    <button class="btn btn-primary btn-full" onclick="runProductDesc()">✍️ Description তৈরি করুন</button>
     <div id="pd-result" class="result-area mt-2"></div>
   </div>
 </div>
@@ -338,10 +327,10 @@
     <div class="modal-header"><div class="modal-title">🏭 Supplier Finder & Outreach</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
     <div class="form-group"><label class="form-label">Product to Source</label><input class="form-control" id="sf-product" placeholder="e.g., stainless steel water bottle with straw"></div>
     <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">MOQ Budget</label><select class="form-control" id="sf-budget"><option>$200-500</option><option>$500-1000</option><option>$1000-3000</option><option>$3000+</option></select></div>
+      <div class="form-group" style="flex:1"><label class="form-label">MOQ Budget</label><select class="form-control" id="sf-budget"><option>৳২০,০০০-৫০,০০০</option><option>৳৫০,০০০-১,০০,০০০</option><option>৳১,০০,০০০-৩,০০,০০০</option><option>৳৩,০০,০০০+</option></select></div>
       <div class="form-group" style="flex:1"><label class="form-label">Quality Level</label><select class="form-control" id="sf-quality"><option>Medium (standard)</option><option>High (premium)</option><option>Budget (low cost)</option><option>OEM/Custom brand</option></select></div>
     </div>
-    <button class="btn btn-primary btn-full" onclick="runSupplier()">🏭 Find Suppliers</button>
+    <button class="btn btn-primary btn-full" onclick="runSupplier()">🏭 Supplier খুঁজুন</button>
     <div id="sf-result" class="result-area mt-2"></div>
   </div>
 </div>
@@ -355,7 +344,7 @@
       <div class="form-group" style="flex:1"><label class="form-label">Platform</label><select class="form-control" id="seo-platform"><option>Amazon</option><option>Etsy</option><option>WooCommerce/Google</option><option>eBay</option></select></div>
       <div class="form-group" style="flex:1"><label class="form-label">Competitor Keywords (optional)</label><input class="form-control" id="seo-competitors" placeholder="e.g., theragun, massage gun"></div>
     </div>
-    <button class="btn btn-primary btn-full" onclick="runSEO()">🔍 Generate SEO Strategy</button>
+    <button class="btn btn-primary btn-full" onclick="runSEO()">🔍 SEO Strategy তৈরি করুন</button>
     <div id="seo-result" class="result-area mt-2"></div>
   </div>
 </div>
@@ -369,7 +358,7 @@
       <div class="form-group" style="flex:1"><label class="form-label">Known Competitors (optional)</label><input class="form-control" id="ca-competitors" placeholder="e.g., Anker, Logitech"></div>
       <div class="form-group" style="flex:1"><label class="form-label">Platform</label><select class="form-control" id="ca-platform"><option>Amazon</option><option>Etsy</option><option>Direct-to-Consumer</option><option>General</option></select></div>
     </div>
-    <button class="btn btn-primary btn-full" onclick="runCompetitor()">🔭 Analyze Competitors</button>
+    <button class="btn btn-primary btn-full" onclick="runCompetitor()">🔭 Competitor Analyze করুন</button>
     <div id="ca-result" class="result-area mt-2"></div>
   </div>
 </div>
@@ -379,9 +368,9 @@
   <div class="modal-box modal-box-lg">
     <div class="modal-header"><div class="modal-title">🕵️ Fake Review Detector</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
     <div class="form-group"><label class="form-label">Product Name</label><input class="form-control" id="fr-product" placeholder="e.g., BlueLink Wireless Earbuds"></div>
-    <div class="form-group"><label class="form-label">Paste Sample Reviews (3-10)</label><textarea class="form-control" id="fr-reviews" rows="5" placeholder="Paste customer reviews here, one per line..."></textarea></div>
+    <div class="form-group"><label class="form-label">Sample Reviews পেস্ট করুন (৩-১০টি)</label><textarea class="form-control" id="fr-reviews" rows="5" placeholder="এখানে customer reviews পেস্ট করুন, প্রতিটি নতুন লাইনে..."></textarea></div>
     <div class="form-group"><label class="form-label">Platform</label><select class="form-control" id="fr-platform"><option>Amazon</option><option>AliExpress</option><option>Alibaba</option><option>Etsy</option><option>General</option></select></div>
-    <button class="btn btn-primary btn-full" onclick="runFakeReview()">🕵️ Analyze Reviews</button>
+    <button class="btn btn-primary btn-full" onclick="runFakeReview()">🕵️ Reviews Analyze করুন</button>
     <div id="fr-result" class="result-area mt-2"></div>
   </div>
 </div>
@@ -392,10 +381,10 @@
     <div class="modal-header"><div class="modal-title">📊 Market Research Report</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
     <div class="form-group"><label class="form-label">Product / Niche</label><input class="form-control" id="mr-product" placeholder="e.g., sustainable baby toys, home gym equipment"></div>
     <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">Target Market</label><select class="form-control" id="mr-market"><option>US</option><option>UK</option><option>Canada</option><option>Australia</option><option>Europe</option><option>Global</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Investment Budget</label><select class="form-control" id="mr-budget"><option>$500-2000</option><option>$2000-5000</option><option>$5000-20000</option><option>$20000+</option></select></div>
+      <div class="form-group" style="flex:1"><label class="form-label">Target Market</label><select class="form-control" id="mr-market"><option>US</option><option>UK</option><option>Canada</option><option>Australia</option><option>Bangladesh</option><option>Global</option></select></div>
+      <div class="form-group" style="flex:1"><label class="form-label">Investment Budget</label><select class="form-control" id="mr-budget"><option>৳৫০,০০০-২,০০,০০০</option><option>৳২,০০,০০০-৫,০০,০০০</option><option>৳৫,০০,০০০-২০,০০,০০০</option><option>৳২০,০০,০০০+</option></select></div>
     </div>
-    <button class="btn btn-primary btn-full" onclick="runMarketReport()">📊 Generate Full Report</button>
+    <button class="btn btn-primary btn-full" onclick="runMarketReport()">📊 Full Report তৈরি করুন</button>
     <div id="mr-result" class="result-area mt-2"></div>
   </div>
 </div>
@@ -411,13 +400,13 @@
 <!-- API Key -->
 <div class="modal-overlay hidden" id="apiModal">
   <div class="modal-box">
-    <div class="modal-header"><div class="modal-title">🔑 Connect Anthropic AI</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <p style="font-size:.88rem;color:var(--text2);margin-bottom:18px">Enter your Anthropic API key. Stored locally in your browser only.</p>
+    <div class="modal-header"><div class="modal-title">🔑 Anthropic AI Connect করুন</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
+    <p style="font-size:.88rem;color:var(--text2);margin-bottom:18px">আপনার Anthropic API key দিন। শুধুমাত্র আপনার browser-এ সংরক্ষিত হবে।</p>
     <div class="form-group"><label class="form-label">Anthropic API Key</label><input type="password" class="form-control" id="apiKeyInput" placeholder="sk-ant-api03-..."></div>
-    <p style="font-size:.78rem;color:var(--text2);margin-bottom:16px">Get key at <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a></p>
+    <p style="font-size:.78rem;color:var(--text2);margin-bottom:16px">Key পান: <a href="https://console.anthropic.com" target="_blank" style="color:var(--a1)">console.anthropic.com</a></p>
     <div style="display:flex;gap:10px">
-      <button class="btn btn-primary" style="flex:1" onclick="saveApiKey()">Save Key</button>
-      <button class="btn btn-secondary" onclick="Modal.hideAll()">Cancel</button>
+      <button class="btn btn-primary" style="flex:1" onclick="saveApiKey()">Save করুন</button>
+      <button class="btn btn-secondary" onclick="Modal.hideAll()">বাতিল</button>
     </div>
   </div>
 </div>
@@ -425,39 +414,32 @@
 <!-- Upgrade -->
 <div class="modal-overlay hidden" id="upgradeModal">
   <div class="modal-box">
-    <div class="modal-header"><div class="modal-title">🚀 Upgrade to Pro</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div style="text-align:center;padding:10px 0 20px">
-      <div style="font-size:2.8rem;font-weight:900;font-family:var(--font-h);color:#fff">$29<span style="font-size:1rem;color:var(--text2)">/mo</span></div>
+    <div class="modal-header"><div class="modal-title">🚀 Pro তে Upgrade করুন</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
+    <div style="text-align:center;padding:10px 0 22px">
+      <div style="font-size:3rem;font-weight:900;font-family:var(--font-h);color:#fff">৳২,৯০০<span style="font-size:1rem;color:var(--text2)">/মাস</span></div>
+      <div style="font-size:.84rem;color:var(--text2);margin-top:4px">অথবা ৳২৪,৯০০/বছর — ২৯% সাশ্রয়</div>
     </div>
-    <div class="price-feat">Unlimited AI generations</div>
-    <div class="price-feat">All 10+ research tools</div>
-    <div class="price-feat">All winning products unlocked</div>
-    <div class="price-feat">Full ad strategies for every product</div>
-    <div class="price-feat">Priority support</div>
-    <div style="margin-top:20px">
-      <button class="btn btn-primary btn-full" onclick="Modal.hideAll();Toast.info('Contact support via Help page to activate Pro.')">🚀 Upgrade Now</button>
-      <p style="text-align:center;font-size:.78rem;color:var(--text2);margin-top:12px">After payment, <a href="help.html" style="color:var(--accent)">contact support</a> to activate.</p>
+    <div class="price-feat"><span class="price-feat-icon yes">✓</span>Unlimited AI generations</div>
+    <div class="price-feat"><span class="price-feat-icon yes">✓</span>সব ১০+ research tools</div>
+    <div class="price-feat"><span class="price-feat-icon yes">✓</span>সব winning products unlock</div>
+    <div class="price-feat"><span class="price-feat-icon yes">✓</span>প্রতিটি product-এর পূর্ণ ad strategy</div>
+    <div class="price-feat"><span class="price-feat-icon yes">✓</span>Priority support</div>
+    <div style="margin-top:24px">
+      <button class="btn btn-primary btn-full" onclick="Modal.hideAll();Toast.info('Payment এর পরে Help page থেকে support-এ যোগাযোগ করুন।')">🚀 এখনই Upgrade করুন</button>
+      <p style="text-align:center;font-size:.78rem;color:var(--text2);margin-top:12px">Payment পরে <a href="help.html" style="color:var(--a1)">support-এ যোগাযোগ</a> করে activate করুন।</p>
     </div>
   </div>
 </div>
 
-<!-- SUPPORT CHAT FAB -->
-<button class="support-fab" onclick="toggleSupport()" title="Get Support">
-  💬
-  <div class="notif-dot" id="supportNotif" style="display:none">!</div>
-</button>
-
+<!-- SUPPORT FAB -->
+<button class="support-fab" onclick="toggleSupport()" title="Support নিন">💬</button>
 <div class="support-panel" id="supportPanel">
-  <div class="support-header">
-    <div>
-      <h4>💬 Live Support</h4>
-      <p>We typically reply within a few hours</p>
-    </div>
+  <div class="support-panel-head">
+    <h4>💬 Live Support</h4>
+    <p>আমরা সাধারণত কয়েক ঘণ্টার মধ্যে reply করি</p>
     <button class="support-close" onclick="toggleSupport()">✕</button>
   </div>
-  <div class="support-body" id="supportBody">
-    <!-- Rendered by JS -->
-  </div>
+  <div class="support-body" id="supportBody"></div>
 </div>
 
 <script src="assets/js/app.js"></script>
@@ -465,27 +447,55 @@
 function openModal(id){ Modal.hideAll(); Modal.show(id); }
 
 function filterProducts(cat, btn){
-  document.querySelectorAll('#catFilters .btn').forEach(b=>b.className='btn btn-sm btn-secondary');
+  document.querySelectorAll('#catFilters .btn').forEach(b=>{ b.className='btn btn-sm btn-secondary'; });
   btn.className='btn btn-sm btn-primary';
-  const products = Store.getProducts();
-  const isPro = Store.isPro();
-  const filtered = cat==='all' ? products : products.filter(p=>p.category===cat);
-  const container = document.getElementById('winningProductsGrid');
-  if(!filtered.length){ container.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)"><p>No products in this category yet.</p></div>`; return; }
-  // Re-render with filter
-  const originalProducts = Store.getProducts();
-  Store.setProducts(filtered); renderWinningProducts(); Store.setProducts(originalProducts);
+  const all=Store.getProducts();
+  const filtered=cat==='all'?all:all.filter(p=>p.category===cat||p.category?.includes(cat));
+  renderGrid(filtered);
+}
+
+function renderGrid(products){
+  const container=document.getElementById('winningProductsGrid');
+  if(!products||!products.length){
+    container.innerHTML=`<div class="card" style="padding:40px;text-align:center;grid-column:1/-1"><div style="font-size:3rem;margin-bottom:14px">📦</div><p>এই category-তে এখনো কোনো product নেই।</p></div>`;
+    return;
+  }
+  const isPro=Store.isPro();
+  container.innerHTML=products.map((p,i)=>{
+    const locked=!isPro&&p.premium;
+    const sc=p.score||0;
+    const sc_c=sc>=80?'var(--a1)':sc>=60?'var(--a3)':'#f87171';
+    return `<div class="card product-card ${locked?'product-locked':''}" onclick="${locked?'showUpgradeModal()':'openProductDetail('+p.id+')'}" >
+      ${p.image?`<img class="product-card-img" src="${p.image}" alt="${p.name}" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`:''}
+      <div class="product-card-img-ph" style="${p.image?'display:none':''}">🏆</div>
+      <div class="product-card-body">
+        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
+          <div class="product-card-title">${p.name}</div>
+          ${sc?`<div style="width:38px;height:38px;border-radius:50%;border:2px solid ${sc_c};color:${sc_c};display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.85rem;flex-shrink:0">${sc}</div>`:''}
+        </div>
+        <p class="product-card-desc">${p.shortDesc||''}</p>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">
+          ${p.category?`<span class="tag tag-mint">${p.category}</span>`:''}
+          ${p.premium?`<span class="tag tag-amber">⭐ Premium</span>`:''}
+          ${sc>=80?`<span class="tag tag-green">🏆 Winner</span>`:''}
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <span style="font-size:.8rem;color:var(--text2)">${p.price||''}</span>
+          <button class="btn btn-sm ${locked?'btn-amber':'btn-primary'}">${locked?'🔒 Premium':'বিস্তারিত দেখুন →'}</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
   initBanners();
-  renderWinningProducts();
-  document.getElementById('supportBody').innerHTML = supportBodyHTML();
+  renderGrid(Store.getProducts());
+  document.getElementById('supportBody').innerHTML=supportBodyHTML();
   if(Store.isPro()){
     document.getElementById('proStatus').style.display='inline-flex';
     document.getElementById('upgradeBtn').style.display='none';
   }
-  document.getElementById('hamBtn').addEventListener('click',()=>document.getElementById('mainNav').classList.toggle('open'));
 });
 </script>
 </body>
