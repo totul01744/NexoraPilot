@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel — EcomSpark</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-box">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="width:58px;height:58px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto 14px;box-shadow:0 0 32px var(--glow)">⚡</div>
+      <div style="font-family:var(--font-h);font-weight:900;font-size:1.2rem;color:#fff">Admin Panel</div>
+      <div style="font-size:.79rem;color:var(--text2);margin-top:3px">EcomSpark Control Center</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Admin Password</label>
+      <input type="password" class="form-control" id="adminPass" placeholder="Enter password" onkeydown="if(event.key==='Enter')adminLogin()">
+    </div>
+    <div id="loginErr" class="hidden mb-3"><div class="alert alert-error">❌ Wrong password. Try again.</div></div>
+    <button class="btn btn-primary btn-full" onclick="adminLogin()">🔐 Login</button>
+    <p style="text-align:center;margin-top:14px;font-size:.78rem"><a href="../index.html" style="color:var(--text2)">← Back to EcomSpark</a></p>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="adminApp" class="admin-layout hidden">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div style="width:34px;height:34px;background:linear-gradient(135deg,var(--blue),var(--purple));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem">⚡</div>
+      <div style="font-family:var(--font-h);font-weight:900;font-size:.87rem;color:#fff;line-height:1.2">EcomSpark<br><span style="font-size:.62rem;color:var(--accent);text-transform:uppercase;letter-spacing:1px">Admin</span></div>
+    </div>
+    <div style="padding:10px">
+      <div class="sidebar-section">Dashboard</div>
+      <button class="sidebar-link active" data-page="dashboard" onclick="showPage('dashboard',this)"><span class="s-icon">📊</span> Overview</button>
+
+      <div class="sidebar-section">Products</div>
+      <button class="sidebar-link" data-page="products" onclick="showPage('products',this)"><span class="s-icon">🏆</span> Winning Products</button>
+      <button class="sidebar-link" data-page="banners" onclick="showPage('banners',this)"><span class="s-icon">🖼️</span> Banners</button>
+
+      <div class="sidebar-section">Users</div>
+      <button class="sidebar-link" data-page="help" onclick="showPage('help',this)"><span class="s-icon">🆘</span> Help Requests <span class="s-badge" id="sb-help">0</span></button>
+      <button class="sidebar-link" data-page="agency" onclick="showPage('agency',this)"><span class="s-icon">🚀</span> Upgrade Inquiries <span class="s-badge" id="sb-agency">0</span></button>
+      <button class="sidebar-link" data-page="users" onclick="showPage('users',this)"><span class="s-icon">👥</span> Pro Users</button>
+
+      <div class="sidebar-section">System</div>
+      <button class="sidebar-link" data-page="analytics" onclick="showPage('analytics',this)"><span class="s-icon">📈</span> Analytics</button>
+      <button class="sidebar-link" data-page="settings" onclick="showPage('settings',this)"><span class="s-icon">⚙️</span> Settings</button>
+
+      <div style="position:absolute;bottom:16px;left:10px;right:10px">
+        <button class="sidebar-link" style="color:var(--red)" onclick="adminLogout()"><span class="s-icon">🚪</span> Logout</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard">
+      <div class="admin-header">
+        <div><div class="page-title">📊 Dashboard Overview</div><div class="page-subtitle" id="dashDate"></div></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm btn-secondary" onclick="initAdmin()">🔄 Refresh</button>
+          <a href="../index.html" target="_blank" class="btn btn-sm btn-secondary">🌐 View Site</a>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card card-blue"><div class="stat-num" id="s-prod">0</div><div class="stat-label">Winning Products</div><div class="stat-change" style="color:var(--blue)">published</div></div>
+        <div class="stat-card"><div class="stat-num" id="s-help">0</div><div class="stat-label">Help Requests</div><div class="stat-change" style="color:var(--gold)" id="s-hp">0 pending</div></div>
+        <div class="stat-card"><div class="stat-num" id="s-agency">0</div><div class="stat-label">Upgrade Inquiries</div><div class="stat-change" style="color:var(--green)">potential revenue</div></div>
+        <div class="stat-card"><div class="stat-num" id="s-users">0</div><div class="stat-label">Pro Users</div><div class="stat-change" style="color:var(--blue)">active</div></div>
+        <div class="stat-card"><div class="stat-num" id="s-gen">0</div><div class="stat-label">AI Generations</div><div class="stat-change" style="color:var(--cyan)">all time</div></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><div class="table-title">🆘 Recent Help Requests</div><button class="btn btn-sm btn-secondary" onclick="showPage('help',document.querySelector('[data-page=help]'))">View All</button></div>
+        <div id="recentHelp"></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><div class="table-title">🚀 Recent Upgrade Inquiries</div><button class="btn btn-sm btn-secondary" onclick="showPage('agency',document.querySelector('[data-page=agency]'))">View All</button></div>
+        <div id="recentAgency"></div>
+      </div>
+    </div>
+
+    <!-- WINNING PRODUCTS MANAGEMENT -->
+    <div id="page-products" class="hidden">
+      <div class="admin-header">
+        <div><div class="page-title">🏆 Winning Products</div><div class="page-subtitle">Add, edit, and manage curated products shown to users</div></div>
+        <button class="btn btn-primary" onclick="openProductForm()">+ Add Product</button>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <div class="table-title">All Products</div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-sm btn-secondary" onclick="addSampleProducts()">📦 Add Sample Data</button>
+          </div>
+        </div>
+        <div id="productsTable"></div>
+      </div>
+    </div>
+
+    <!-- BANNER MANAGEMENT -->
+    <div id="page-banners" class="hidden">
+      <div class="admin-header">
+        <div><div class="page-title">🖼️ Banner Management</div><div class="page-subtitle">Control homepage banners shown to users</div></div>
+        <button class="btn btn-primary" onclick="openBannerForm()">+ Add Banner</button>
+      </div>
+      <div id="bannersGrid" style="display:grid;gap:16px"></div>
+    </div>
+
+    <!-- HELP REQUESTS -->
+    <div id="page-help" class="hidden">
+      <div class="admin-header">
+        <div><div class="page-title">🆘 Help Requests</div><div class="page-subtitle">All support tickets from users</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select class="form-control" id="helpFilter" onchange="renderHelpTable()" style="width:auto;padding:7px 12px;font-size:.82rem">
+            <option value="all">All Status</option><option value="pending">Pending</option><option value="replied">Replied</option><option value="closed">Closed</option>
+          </select>
+          <button class="btn btn-sm btn-secondary" onclick="exportCSV('help')">⬇️ Export CSV</button>
+        </div>
+      </div>
+      <div class="table-card"><div id="helpTable"></div></div>
+    </div>
+
+    <!-- AGENCY / UPGRADE INQUIRIES -->
+    <div id="page-agency" class="hidden">
+      <div class="admin-header">
+        <div><div class="page-title">🚀 Upgrade Inquiries</div><div class="page-subtitle">Potential Pro/Agency customers</div></div>
+        <button class="btn btn-sm btn-secondary" onclick="exportCSV('agency')">⬇️ Export CSV</button>
+      </div>
+      <div class="table-card"><div id="agencyTable"></div></div>
+    </div>
+
+    <!-- PRO USERS -->
+    <div id="page-users" class="hidden">
+      <div class="admin-header">
+        <div><div class="page-title">👥 Pro User Management</div></div>
+        <button class="btn btn-primary" onclick="showAddUser()">+ Add Pro User</button>
+      </div>
+      <div class="table-card"><div id="usersTable"></div></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div id="page-analytics" class="hidden">
+      <div class="admin-header"><div><div class="page-title">📈 Analytics</div><div class="page-subtitle">Tool usage & user activity</div></div></div>
+      <div class="stats-grid" id="analyticsStats"></div>
+      <div class="table-card">
+        <div class="table-header"><div class="table-title">🔬 Tool Usage</div></div>
+        <div id="toolUsage" style="padding:20px"></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><div class="table-title">📋 Recent Events</div></div>
+        <div id="eventsTable"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="page-settings" class="hidden">
+      <div class="admin-header"><div><div class="page-title">⚙️ Settings</div></div></div>
+      <div class="settings-section">
+        <h3>🔐 Change Admin Password</h3>
+        <div class="form-group"><label class="form-label">New Password</label><input class="form-control" type="password" id="newPass" placeholder="Min 6 characters"></div>
+        <div class="form-group"><label class="form-label">Confirm Password</label><input class="form-control" type="password" id="confPass" placeholder="Repeat password"></div>
+        <button class="btn btn-primary btn-sm" onclick="changePass()">🔐 Update Password</button>
+      </div>
+      <div class="settings-section">
+        <h3>⚙️ Platform Settings</h3>
+        <div class="toggle-row"><label>Free daily limit (3 generations)</label><button class="toggle-switch on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="toggle-row"><label>Show upgrade modal to free users</label><button class="toggle-switch on" onclick="this.classList.toggle('on')"></button></div>
+        <div class="toggle-row"><label>Lock premium products for free users</label><button class="toggle-switch on" id="t-lock" onclick="this.classList.toggle('on')"></button></div>
+        <div class="toggle-row"><label>Maintenance mode</label><button class="toggle-switch" onclick="this.classList.toggle('on')"></button></div>
+      </div>
+      <div class="settings-section">
+        <h3 style="color:var(--red)">💣 Danger Zone</h3>
+        <p style="font-size:.85rem;color:var(--text2);margin-bottom:14px">Permanently delete all stored data. This cannot be undone.</p>
+        <button class="btn btn-danger btn-sm" onclick="clearAll()">🗑️ Clear All Data</button>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- PRODUCT FORM MODAL -->
+<div class="modal-overlay hidden" id="productFormModal">
+  <div class="modal-box modal-box-lg" style="max-width:700px">
+    <div class="modal-header">
+      <div class="modal-title" id="productFormTitle">➕ Add Winning Product</div>
+      <button class="modal-close" onclick="Modal.hideAll()">✕</button>
+    </div>
+    <div class="product-form-grid">
+      <div class="form-group"><label class="form-label">Product Name *</label><input class="form-control" id="pf-name" placeholder="e.g., Posture Corrector Pro"></div>
+      <div class="form-group"><label class="form-label">Category</label>
+        <select class="form-control" id="pf-cat">
+          <option>Health & Beauty</option><option>Electronics</option><option>Home & Garden</option>
+          <option>Sports & Fitness</option><option>Baby & Kids</option><option>Pet Products</option>
+          <option>Kitchen</option><option>Fashion</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Image URL</label><input class="form-control" id="pf-img" placeholder="https://...image.jpg"></div>
+      <div class="form-group"><label class="form-label">Price Range</label><input class="form-control" id="pf-price" placeholder="e.g., $25-$45"></div>
+      <div class="form-group"><label class="form-label">Product Score (1-100)</label><input class="form-control" id="pf-score" type="number" min="1" max="100" placeholder="85"></div>
+      <div class="form-group"><label class="form-label">Premium Only?</label>
+        <select class="form-control" id="pf-premium"><option value="true">Yes — Premium Users Only</option><option value="false">No — Free for All</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Short Description (shown on card)</label><input class="form-control" id="pf-short" placeholder="1-2 sentence teaser..."></div>
+    <div class="form-group"><label class="form-label">Full Description</label><textarea class="form-control" id="pf-desc" rows="3" placeholder="Detailed product description..."></textarea></div>
+    <div class="form-group"><label class="form-label">Where to Find / Source</label><input class="form-control" id="pf-where" placeholder="e.g., AliExpress, Alibaba, DHgate, Amazon wholesale"></div>
+    <div class="form-group"><label class="form-label">Key Selling Points (one per line)</label><textarea class="form-control" id="pf-points" rows="3" placeholder="Reduces back pain in 10 days&#10;Works for all body types&#10;Doctor recommended"></textarea></div>
+    <div class="form-group"><label class="form-label">🎵 TikTok Ad Strategy</label><textarea class="form-control" id="pf-tiktok" rows="3" placeholder="TikTok ad angles, hooks, video ideas, content strategy..."></textarea></div>
+    <div class="form-group"><label class="form-label">📘 Facebook Ad Strategy</label><textarea class="form-control" id="pf-facebook" rows="3" placeholder="Facebook ad copy, targeting, budget recommendations..."></textarea></div>
+    <div class="form-group"><label class="form-label">💰 Ad Budget Recommendation</label><input class="form-control" id="pf-budget" placeholder="e.g., Start with $20/day, scale to $100/day after ROAS 3x"></div>
+    <div class="form-group"><label class="form-label">💬 Caption Template</label><textarea class="form-control" id="pf-caption" rows="2" placeholder="Caption for social media posts..."></textarea></div>
+    <div class="form-group"><label class="form-label">🏷️ Hashtags</label><input class="form-control" id="pf-tags" placeholder="#posturecorrector #backpain #healthgadgets"></div>
+    <div class="form-group"><label class="form-label">📌 Additional Notes</label><textarea class="form-control" id="pf-notes" rows="2" placeholder="Any extra tips, competitor notes, etc."></textarea></div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveProduct()">💾 Save Product</button>
+      <button class="btn btn-secondary" onclick="Modal.hideAll()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- BANNER FORM MODAL -->
+<div class="modal-overlay hidden" id="bannerFormModal">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title" id="bannerFormTitle">🖼️ Add Banner</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
+    <div class="form-group"><label class="form-label">Title *</label><input class="form-control" id="bn-title" placeholder="e.g., 🚀 Find Winning Products Fast"></div>
+    <div class="form-group"><label class="form-label">Subtitle</label><input class="form-control" id="bn-sub" placeholder="Banner description text..."></div>
+    <div class="form-group"><label class="form-label">CTA Button Text</label><input class="form-control" id="bn-cta" placeholder="Start Research"></div>
+    <div class="form-group"><label class="form-label">CTA Link</label><input class="form-control" id="bn-link" placeholder="#tools or https://..."></div>
+    <div class="form-group"><label class="form-label">Background Gradient (CSS)</label><input class="form-control" id="bn-bg" placeholder="linear-gradient(135deg,#0369a1,#7c3aed)"></div>
+    <div class="form-group"><label class="form-label">Active?</label><select class="form-control" id="bn-active"><option value="true">Yes</option><option value="false">No (hidden)</option></select></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveBanner()">💾 Save Banner</button>
+      <button class="btn btn-secondary" onclick="Modal.hideAll()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay hidden" id="detailModal">
+  <div class="modal-box" style="max-width:580px">
+    <div class="modal-header"><div class="modal-title" id="detailTitle">Details</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<!-- ADD USER MODAL -->
+<div class="modal-overlay hidden" id="addUserModal">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title">👥 Add Pro User</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
+    <div class="form-group"><label class="form-label">Name</label><input class="form-control" id="nu-name" placeholder="User name"></div>
+    <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="nu-email" type="email" placeholder="user@example.com"></div>
+    <div class="form-group"><label class="form-label">Plan</label><select class="form-control" id="nu-plan"><option>Pro Monthly</option><option>Pro Annual</option><option>Agency</option></select></div>
+    <button class="btn btn-primary btn-full" onclick="addUser()">✅ Add User</button>
+  </div>
+</div>
+
+<script src="../assets/js/app.js"></script>
+<script>
+/* ===== ADMIN AUTH ===== */
+function adminLogin(){
+  const p=document.getElementById('adminPass').value;
+  const stored=Store.D().adminPassword||CONFIG.ADMIN_KEY;
+  if(p===stored){
+    Store.set('es_admin_auth',true);
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('adminApp').classList.remove('hidden');
+    initAdmin();
+  } else {
+    document.getElementById('loginErr').classList.remove('hidden');
+    document.getElementById('adminPass').value='';
+  }
+}
+function adminLogout(){ Store.rm('es_admin_auth'); location.reload(); }
+
+function initAdmin(){
+  const st=Store.stats();
+  document.getElementById('dashDate').textContent=new Date().toLocaleString();
+  document.getElementById('s-prod').textContent=st.products;
+  document.getElementById('s-help').textContent=st.help;
+  document.getElementById('s-hp').textContent=`${st.helpPending} pending`;
+  document.getElementById('s-agency').textContent=st.agency;
+  document.getElementById('s-users').textContent=st.proUsers;
+  document.getElementById('s-gen').textContent=st.totalGen;
+  document.getElementById('sb-help').textContent=st.helpPending;
+  document.getElementById('sb-agency').textContent=st.agencyNew;
+  renderRecentHelp(); renderRecentAgency();
+}
+
+/* ===== PAGE ROUTING ===== */
+function showPage(name,btn){
+  document.querySelectorAll('[id^="page-"]').forEach(p=>p.classList.add('hidden'));
+  document.getElementById('page-'+name)?.classList.remove('hidden');
+  document.querySelectorAll('.sidebar-link').forEach(l=>l.classList.remove('active'));
+  btn?.classList.add('active');
+  if(name==='products') renderProductsTable();
+  if(name==='banners') renderBanners();
+  if(name==='help') renderHelpTable();
+  if(name==='agency') renderAgencyTable();
+  if(name==='users') renderUsersTable();
+  if(name==='analytics') renderAnalytics();
+}
+
+/* ===== DATE FORMAT ===== */
+function fd(iso){ try{return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}catch{return '—'} }
+
+/* ===== PRODUCTS MANAGEMENT ===== */
+let editingProductId=null;
+
+function openProductForm(id=null){
+  editingProductId=id;
+  const p=id?Store.getProducts().find(x=>x.id===id):null;
+  document.getElementById('productFormTitle').textContent=id?'✏️ Edit Product':'➕ Add Winning Product';
+  const fields=[
+    ['pf-name',p?.name||''],['pf-cat',p?.category||'Health & Beauty'],
+    ['pf-img',p?.image||''],['pf-price',p?.price||''],
+    ['pf-score',p?.score||''],['pf-premium',p?.premium!==false?'true':'false'],
+    ['pf-short',p?.shortDesc||''],['pf-desc',p?.description||''],
+    ['pf-where',p?.whereToFind||''],['pf-points',(p?.sellingPoints||[]).join('\n')],
+    ['pf-tiktok',p?.tiktokAd||''],['pf-facebook',p?.facebookAd||''],
+    ['pf-budget',p?.adBudget||''],['pf-caption',p?.caption||''],
+    ['pf-tags',p?.hashtags||''],['pf-notes',p?.notes||''],
+  ];
+  fields.forEach(([id,val])=>{ const el=document.getElementById(id); if(el)el.value=val; });
+  Modal.show('productFormModal');
+}
+
+function saveProduct(){
+  const name=document.getElementById('pf-name')?.value?.trim();
+  if(!name){ Toast.error('Product name required'); return; }
+  const pointsRaw=document.getElementById('pf-points')?.value||'';
+  const productData={
+    name, category:document.getElementById('pf-cat')?.value,
+    image:document.getElementById('pf-img')?.value?.trim(),
+    price:document.getElementById('pf-price')?.value?.trim(),
+    score:parseInt(document.getElementById('pf-score')?.value)||0,
+    premium:document.getElementById('pf-premium')?.value==='true',
+    shortDesc:document.getElementById('pf-short')?.value?.trim(),
+    description:document.getElementById('pf-desc')?.value?.trim(),
+    whereToFind:document.getElementById('pf-where')?.value?.trim(),
+    sellingPoints:pointsRaw.split('\n').map(s=>s.trim()).filter(Boolean),
+    tiktokAd:document.getElementById('pf-tiktok')?.value?.trim(),
+    facebookAd:document.getElementById('pf-facebook')?.value?.trim(),
+    adBudget:document.getElementById('pf-budget')?.value?.trim(),
+    caption:document.getElementById('pf-caption')?.value?.trim(),
+    hashtags:document.getElementById('pf-tags')?.value?.trim(),
+    notes:document.getElementById('pf-notes')?.value?.trim(),
+  };
+  if(editingProductId){
+    Store.updateProduct(editingProductId, productData);
+    Toast.success('Product updated! ✅');
+  } else {
+    Store.addProduct(productData);
+    Toast.success('Product added! ✅');
+  }
+  Modal.hideAll(); renderProductsTable(); initAdmin();
+}
+
+function renderProductsTable(){
+  const products=Store.getProducts();
+  if(!products.length){
+    document.getElementById('productsTable').innerHTML=`<div style="padding:30px;text-align:center;color:var(--text2)"><p>No products yet. Click "Add Product" or "Add Sample Data".</p></div>`;
+    return;
+  }
+  document.getElementById('productsTable').innerHTML=`<table>
+    <thead><tr><th>Product</th><th>Category</th><th>Score</th><th>Premium</th><th>Date</th><th>Actions</th></tr></thead>
+    <tbody>${products.map(p=>`<tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        ${p.image?`<img src="${p.image}" style="width:40px;height:40px;border-radius:8px;object-fit:cover" onerror="this.style.display='none'">`:'<div style="width:40px;height:40px;border-radius:8px;background:rgba(56,189,248,.1);display:flex;align-items:center;justify-content:center">🏆</div>'}
+        <div><div style="font-weight:800;color:#fff">${p.name}</div><div style="font-size:.78rem;color:var(--text2)">${p.shortDesc?.substring(0,40)||''}…</div></div>
+      </div></td>
+      <td><span class="tag tag-blue">${p.category||'—'}</span></td>
+      <td><span style="font-weight:900;color:${p.score>=80?'var(--green)':p.score>=60?'var(--gold)':'var(--red)'}">${p.score||'—'}</span></td>
+      <td><span class="tag ${p.premium?'tag-gold':'tag-green'}">${p.premium?'⭐ Premium':'Free'}</span></td>
+      <td style="font-size:.79rem;color:var(--text2)">${fd(p.date)}</td>
+      <td>
+        <button class="action-btn" onclick="openProductForm(${p.id})">✏️ Edit</button>
+        <button class="action-btn" style="color:var(--red);margin-left:4px" onclick="deleteProduct(${p.id})">🗑️</button>
+      </td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function deleteProduct(id){
+  if(!confirm('Delete this product?'))return;
+  Store.deleteProduct(id); renderProductsTable(); initAdmin(); Toast.success('Product deleted');
+}
+
+function addSampleProducts(){
+  const samples=[
+    {name:'Posture Corrector Pro',category:'Health & Beauty',score:88,premium:true,price:'$25-$45',shortDesc:'Back support brace — huge demand on TikTok & Amazon',description:'The #1 trending health product on TikTok. Adjustable posture corrector that helps reduce back pain.',whereToFind:'AliExpress — search "adjustable posture brace"',sellingPoints:['Reduces back pain in 10 days','Fits all body types','Doctor recommended','One size fits all'],tiktokAd:'Hook: "I fixed my back pain in 10 days with this $12 brace"\nContent angle: Before/After transformation\nPost 3x/day, use #backpain #posturecorrector',facebookAd:'Headline: Finally! A Simple Fix For Back Pain\nTargeting: Adults 30-55, health interest\nBudget: $20/day to start',adBudget:'Start $15/day on TikTok, scale to $80/day when ROAS hits 2.5x',caption:'This changed my life 😱 Back pain gone in just 10 days! #PostureCorrector',hashtags:'#posturecorrector #backpain #healthhack #spine #wellness',notes:'Trending consistently for 18+ months. Very low return rate.'},
+    {name:'LED Face Mask',category:'Health & Beauty',score:85,premium:true,price:'$30-$60',shortDesc:'7-color LED therapy mask — viral TikTok beauty product',description:'Professional-grade LED light therapy mask for anti-aging, acne treatment, and skin rejuvenation.',whereToFind:'Alibaba — minimum 50 units, OEM available',sellingPoints:['7 LED light modes','Anti-aging & acne treatment','Spa results at home','FDA-cleared technology'],tiktokAd:'Hook: "I used this for 30 days and my skin transformed"\nViral angle: Before/after skin transformation\nUse aesthetic lighting, slow mo content',facebookAd:'Headline: Get Spa Results At Home\nAudience: Women 25-45, skincare interest\n$30/day budget recommended',adBudget:'$25/day Facebook, $20/day TikTok — high ROAS category',caption:'30 day glow up ✨ This LED mask is unreal #skincare #glowup',hashtags:'#LEDmask #skincare #antiaging #glowup #beautytips',notes:'Premium positioning works well. Avoid cheap-looking ads.'},
+    {name:'Portable Blender',category:'Kitchen',score:79,premium:false,price:'$15-$35',shortDesc:'USB rechargeable mini blender — great for smoothies on-the-go',description:'Compact, powerful USB-C rechargeable personal blender. Perfect for smoothies, protein shakes, and baby food.',whereToFind:'AliExpress or DHgate — bulk available from $4/unit',sellingPoints:['USB-C rechargeable','250ml capacity','Self-cleaning mode','BPA-free materials'],tiktokAd:'Hook: "Making smoothies anywhere is game changing"\nAngle: Lifestyle content — gym, travel, office',facebookAd:'Target fitness enthusiasts and busy moms\nHeadline: Make Fresh Smoothies Anywhere',adBudget:'$10-20/day starter budget, scale based on ROAS',caption:'Gym smoothie on the go 🥤 Never skip protein again! #fitness #blender',hashtags:'#portableblender #fitness #smoothie #gymlife #healthyliving',notes:'Good volume product. Great for bundling with protein powder affiliate.'},
+  ];
+  samples.forEach(s=>Store.addProduct(s));
+  renderProductsTable(); initAdmin(); Toast.success('Sample products added! ✅');
+}
+
+/* ===== BANNER MANAGEMENT ===== */
+let editingBannerId=null;
+
+function openBannerForm(id=null){
+  editingBannerId=id;
+  const banners=Store.getBanners();
+  const b=id!==null?banners.find(x=>x.id===id):null;
+  document.getElementById('bannerFormTitle').textContent=b?'✏️ Edit Banner':'🖼️ Add Banner';
+  document.getElementById('bn-title').value=b?.title||'';
+  document.getElementById('bn-sub').value=b?.subtitle||'';
+  document.getElementById('bn-cta').value=b?.cta||'Learn More';
+  document.getElementById('bn-link').value=b?.link||'#';
+  document.getElementById('bn-bg').value=b?.bg||'linear-gradient(135deg,#0369a1,#7c3aed)';
+  document.getElementById('bn-active').value=b?.active!==false?'true':'false';
+  Modal.show('bannerFormModal');
+}
+
+function saveBanner(){
+  const title=document.getElementById('bn-title')?.value?.trim();
+  if(!title){ Toast.error('Banner title required'); return; }
+  const banners=Store.getBanners();
+  const data={
+    title, subtitle:document.getElementById('bn-sub')?.value?.trim(),
+    cta:document.getElementById('bn-cta')?.value?.trim()||'Learn More',
+    link:document.getElementById('bn-link')?.value?.trim()||'#',
+    bg:document.getElementById('bn-bg')?.value?.trim()||'linear-gradient(135deg,#0369a1,#7c3aed)',
+    active:document.getElementById('bn-active')?.value==='true',
+  };
+  if(editingBannerId!==null){
+    const i=banners.findIndex(b=>b.id===editingBannerId);
+    if(i!==-1){ banners[i]={...banners[i],...data}; }
+  } else {
+    data.id=Date.now(); banners.push(data);
+  }
+  Store.setBanners(banners); Modal.hideAll(); renderBanners(); Toast.success('Banner saved! ✅');
+}
+
+function renderBanners(){
+  const banners=Store.getBanners();
+  document.getElementById('bannersGrid').innerHTML=banners.map((b,i)=>`
+    <div class="card" style="padding:20px;border-left:4px solid ${b.active?'var(--green)':'var(--border)'}">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:80px;height:50px;border-radius:8px;background:${b.bg};flex-shrink:0"></div>
+        <div style="flex:1">
+          <strong style="color:#fff">${b.title}</strong>
+          <p style="font-size:.82rem;margin:2px 0">${b.subtitle||''}</p>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <span class="tag ${b.active?'tag-green':'tag-red'}">${b.active?'Active':'Hidden'}</span>
+            <span class="tag tag-blue">CTA: ${b.cta}</span>
+          </div>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="action-btn" onclick="openBannerForm(${b.id})">✏️</button>
+          <button class="action-btn" style="color:var(--red)" onclick="deleteBanner(${b.id})">🗑️</button>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function deleteBanner(id){
+  if(!confirm('Delete this banner?'))return;
+  const banners=Store.getBanners().filter(b=>b.id!==id);
+  Store.setBanners(banners); renderBanners(); Toast.success('Banner deleted');
+}
+
+/* ===== HELP TABLE ===== */
+function renderRecentHelp(){
+  const r=Store.getHelp().slice(0,5);
+  document.getElementById('recentHelp').innerHTML=buildHelpHTML(r,true);
+}
+function renderHelpTable(){
+  const f=document.getElementById('helpFilter')?.value||'all';
+  let r=Store.getHelp(); if(f!=='all')r=r.filter(x=>x.status===f);
+  document.getElementById('helpTable').innerHTML=buildHelpHTML(r,false);
+}
+function buildHelpHTML(rows,compact){
+  if(!rows.length) return `<div style="padding:28px;text-align:center;color:var(--text2)">No requests yet.</div>`;
+  return `<table><thead><tr><th>Name</th><th>Email</th>${compact?'':'<th>Category</th>'}<th>Message</th><th>Date</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr>
+      <td><strong>${r.name}</strong></td>
+      <td style="color:var(--text2)">${r.email}</td>
+      ${compact?'':'<td><span class="tag tag-blue">'+r.category+'</span></td>'}
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">${r.message?.substring(0,70)}…</td>
+      <td style="font-size:.79rem;color:var(--text2)">${fd(r.date)}</td>
+      <td><span class="status-pill status-${r.status}">${r.status}</span></td>
+      <td>
+        <button class="action-btn" onclick="viewHelp(${r.id})">View</button>
+        <button class="action-btn" onclick="updHelp(${r.id},'replied')" style="margin-left:4px">✅</button>
+        <button class="action-btn" onclick="updHelp(${r.id},'closed')" style="margin-left:4px;color:var(--red)">✕</button>
+      </td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+function updHelp(id,status){ Store.updHelp(id,{status}); renderHelpTable(); renderRecentHelp(); initAdmin(); Toast.success(`Status → ${status}`); }
+function viewHelp(id){
+  const r=Store.getHelp().find(x=>x.id===id); if(!r)return;
+  document.getElementById('detailTitle').textContent=`🆘 ${r.name}`;
+  document.getElementById('detailContent').innerHTML=`
+    <div style="display:grid;gap:12px">
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <div><div style="font-size:.73rem;color:var(--text2)">Name</div><strong>${r.name}</strong></div>
+        <div><div style="font-size:.73rem;color:var(--text2)">Email</div><strong>${r.email}</strong></div>
+        <div><div style="font-size:.73rem;color:var(--text2)">Category</div><span class="tag tag-blue">${r.category||'General'}</span></div>
+        <div><div style="font-size:.73rem;color:var(--text2)">Date</div><span style="font-size:.84rem">${fd(r.date)}</span></div>
+      </div>
+      <div style="background:rgba(56,189,248,.05);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:.88rem;line-height:1.7">${r.message}</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-success btn-sm" onclick="updHelp(${r.id},'replied');Modal.hideAll()">✅ Mark Replied</button>
+        <button class="btn btn-secondary btn-sm" onclick="copyText('${r.email}',this)">📋 Copy Email</button>
+        <button class="btn btn-danger btn-sm" onclick="updHelp(${r.id},'closed');Modal.hideAll()">✕ Close</button>
+      </div>
+    </div>`;
+  Modal.show('detailModal');
+}
+
+/* ===== AGENCY TABLE ===== */
+function renderRecentAgency(){
+  const r=Store.getAgency().slice(0,5);
+  document.getElementById('recentAgency').innerHTML=buildAgencyHTML(r,true);
+}
+function renderAgencyTable(){ document.getElementById('agencyTable').innerHTML=buildAgencyHTML(Store.getAgency(),false); }
+function buildAgencyHTML(rows,compact){
+  if(!rows.length) return `<div style="padding:28px;text-align:center;color:var(--text2)">No inquiries yet.</div>`;
+  return `<table><thead><tr><th>Name</th><th>Email</th><th>Plan</th>${compact?'':'<th>Revenue</th>'}<th>Date</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr>
+      <td><strong>${r.name}</strong></td>
+      <td style="color:var(--text2)">${r.email}</td>
+      <td><span class="tag tag-purple">${r.plan}</span></td>
+      ${compact?'':'<td style="color:var(--green);font-size:.83rem">'+r.revenue+'</td>'}
+      <td style="font-size:.79rem;color:var(--text2)">${fd(r.date)}</td>
+      <td><span class="status-pill status-${r.status}">${r.status}</span></td>
+      <td><button class="action-btn" onclick="viewAgency(${r.id})">View</button></td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+function viewAgency(id){
+  const r=Store.getAgency().find(x=>x.id===id); if(!r)return;
+  document.getElementById('detailTitle').textContent=`🚀 ${r.name}`;
+  document.getElementById('detailContent').innerHTML=`
+    <div style="display:grid;gap:12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><div style="font-size:.73rem;color:var(--text2)">Business</div><strong>${r.name}</strong></div>
+        <div><div style="font-size:.73rem;color:var(--text2)">Email</div><strong>${r.email}</strong></div>
+        <div><div style="font-size:.73rem;color:var(--text2)">Plan Interest</div><span class="tag tag-purple">${r.plan}</span></div>
+        <div><div style="font-size:.73rem;color:var(--text2)">Revenue</div><strong style="color:var(--green)">${r.revenue}</strong></div>
+      </div>
+      ${r.message?`<div style="background:rgba(167,139,250,.05);border:1px solid var(--border);border-radius:10px;padding:14px;font-size:.88rem">${r.message}</div>`:''}
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-primary btn-sm" onclick="activatePro('${r.name}','${r.email}','${r.plan}')">⭐ Activate Pro</button>
+        <button class="btn btn-secondary btn-sm" onclick="copyText('${r.email}',this)">📋 Copy Email</button>
+      </div>
+    </div>`;
+  Modal.show('detailModal');
+}
+function activatePro(name,email,plan){
+  const d=Store.D();
+  if(!d.proUsers)d.proUsers=[];
+  if(d.proUsers.find(u=>u.email===email)){ Toast.warning('User already exists'); return; }
+  d.proUsers.push({id:Date.now(),name,email,plan,date:new Date().toISOString()});
+  Store.SD(d);
+  Modal.hideAll(); renderUsersTable(); initAdmin();
+  Toast.success(`✅ ${name} activated as Pro!`);
+}
+
+/* ===== PRO USERS ===== */
+function renderUsersTable(){
+  const users=Store.getProUsers();
+  if(!users.length){ document.getElementById('usersTable').innerHTML=`<div style="padding:28px;text-align:center;color:var(--text2)">No pro users yet. Add from Agency inquiries or manually.</div>`; return; }
+  document.getElementById('usersTable').innerHTML=`<table><thead><tr><th>Name</th><th>Email</th><th>Plan</th><th>Added</th><th>Actions</th></tr></thead><tbody>
+    ${users.map(u=>`<tr>
+      <td><strong>${u.name}</strong></td>
+      <td style="color:var(--text2)">${u.email}</td>
+      <td><span class="tag tag-blue">${u.plan}</span></td>
+      <td style="font-size:.79rem;color:var(--text2)">${fd(u.date)}</td>
+      <td><button class="action-btn" style="color:var(--red)" onclick="removeUser(${u.id})">Remove</button></td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+function showAddUser(){ Modal.show('addUserModal'); }
+function addUser(){
+  const name=document.getElementById('nu-name')?.value?.trim();
+  const email=document.getElementById('nu-email')?.value?.trim();
+  const plan=document.getElementById('nu-plan')?.value;
+  if(!name||!email){ Toast.error('Enter name and email'); return; }
+  const d=Store.D();
+  if(!d.proUsers)d.proUsers=[];
+  d.proUsers.push({id:Date.now(),name,email,plan,date:new Date().toISOString()});
+  Store.SD(d); Modal.hideAll(); renderUsersTable(); initAdmin();
+  Toast.success(`${name} added as Pro!`);
+}
+function removeUser(id){
+  if(!confirm('Remove this pro user?'))return;
+  const d=Store.D();
+  d.proUsers=(d.proUsers||[]).filter(u=>u.id!==id);
+  Store.SD(d); renderUsersTable(); initAdmin(); Toast.success('User removed');
+}
+
+/* ===== ANALYTICS ===== */
+function renderAnalytics(){
+  const d=Store.D(); const events=d.events||[];
+  const tc={};
+  events.forEach(e=>{ tc[e.ev]=(tc[e.ev]||0)+1; });
+  const labels={product_research:'🏆 Product Research',tiktok:'🎵 TikTok Finder',ad_creative:'🎨 Ad Creative',ad_script:'🎬 Ad Script',product_desc:'✍️ Product Desc',supplier:'🏭 Supplier',seo:'🔍 SEO',competitor:'🔭 Competitor',fake_review:'🕵️ Fake Review',market_report:'📊 Market Report',help:'🆘 Help Request',agency:'🚀 Agency Inquiry',support_chat:'💬 Support Chat'};
+  document.getElementById('analyticsStats').innerHTML=`
+    <div class="stat-card"><div class="stat-num">${events.length}</div><div class="stat-label">Total Events</div></div>
+    <div class="stat-card"><div class="stat-num">${Object.keys(tc).length}</div><div class="stat-label">Tool Types</div></div>
+    <div class="stat-card"><div class="stat-num">${d.usage?.total||0}</div><div class="stat-label">AI Calls Total</div></div>`;
+  const sorted=Object.entries(tc).sort((a,b)=>b[1]-a[1]);
+  const maxV=sorted[0]?.[1]||1;
+  document.getElementById('toolUsage').innerHTML=sorted.length?sorted.map(([k,v])=>`
+    <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)">
+      <span style="width:190px;font-size:.84rem">${labels[k]||k}</span>
+      <div style="flex:1;background:var(--border);border-radius:4px;height:8px;overflow:hidden"><div style="width:${(v/maxV*100).toFixed(0)}%;height:100%;background:linear-gradient(90deg,var(--blue),var(--purple));border-radius:4px"></div></div>
+      <span style="width:30px;text-align:right;font-weight:800;color:var(--blue);font-size:.84rem">${v}</span>
+    </div>`).join(''):'<p style="color:var(--text2)">No usage data yet.</p>';
+  const recent=events.slice(-30).reverse();
+  document.getElementById('eventsTable').innerHTML=recent.length?`<table><thead><tr><th>Event</th><th>Data</th><th>Time</th></tr></thead><tbody>
+    ${recent.map(e=>`<tr>
+      <td><span class="tag tag-blue">${labels[e.ev]||e.ev}</span></td>
+      <td style="color:var(--text2);font-size:.81rem">${JSON.stringify(e.data||{}).substring(0,60)}</td>
+      <td style="font-size:.78rem;color:var(--text2)">${new Date(e.t).toLocaleString()}</td>
+    </tr>`).join('')}
+  </tbody></table>`:`<div style="padding:20px;color:var(--text2)">No events yet.</div>`;
+}
+
+/* ===== SETTINGS ===== */
+function changePass(){
+  const np=document.getElementById('newPass').value;
+  const cp=document.getElementById('confPass').value;
+  if(!np||np.length<6){ Toast.error('Password must be 6+ characters'); return; }
+  if(np!==cp){ Toast.error('Passwords do not match'); return; }
+  const d=Store.D(); d.adminPassword=np; Store.SD(d);
+  Toast.success('Password updated! ✅');
+  document.getElementById('newPass').value='';
+  document.getElementById('confPass').value='';
+}
+function clearAll(){
+  if(!confirm('Delete ALL data? Cannot be undone!'))return;
+  if(!confirm('Final warning — are you absolutely sure?'))return;
+  localStorage.removeItem(CONFIG.SK); Toast.success('All data cleared');
+  setTimeout(()=>location.reload(),1500);
+}
+
+/* ===== EXPORT ===== */
+function exportCSV(type){
+  const data=type==='help'?Store.getHelp():Store.getAgency();
+  if(!data.length){ Toast.warning('No data to export'); return; }
+  const h=Object.keys(data[0]).join(',');
+  const rows=data.map(r=>Object.values(r).map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
+  const csv=[h,...rows].join('\n');
+  const b=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b);
+  a.download=`ecomspark-${type}-${Date.now()}.csv`; a.click();
+  Toast.success('CSV exported!');
+}
+
+/* ===== INIT ===== */
+document.addEventListener('DOMContentLoaded',()=>{
+  Toast.init();
+  if(Store.isAdmin()){
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('adminApp').classList.remove('hidden');
+    initAdmin();
+  }
+  document.getElementById('adminPass')?.addEventListener('keydown',e=>{ if(e.key==='Enter')adminLogin(); });
+});
+</script>
+</body>
+</html>
