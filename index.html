@@ -270,7 +270,7 @@
       <div class="card pricing-card featured">
         <div class="price-ribbon">সবচেয়ে জনপ্রিয়</div>
         <div class="tag tag-mint" style="margin-bottom:20px">Pro</div>
-        <div class="price-amt">৳২,৯০০</div>
+        <div class="price-amt">৳১৯৯</div>
         <div class="price-period">প্রতি মাসে</div>
         <div class="price-divider"></div>
         <div class="price-feat"><span class="price-feat-icon yes">✓</span>Unlimited ব্যবহার</div>
@@ -282,7 +282,7 @@
       </div>
       <div class="card pricing-card">
         <div class="tag tag-violet" style="margin-bottom:20px">Agency</div>
-        <div class="price-amt">৳৯,৯০০</div>
+        <div class="price-amt">৳৪৯৯</div>
         <div class="price-period">প্রতি মাসে</div>
         <div class="price-divider"></div>
         <div class="price-feat"><span class="price-feat-icon yes">✓</span>Pro-র সব সুবিধা</div>
@@ -570,8 +570,8 @@
   <div class="modal-box">
     <div class="modal-header"><div class="modal-title">🚀 Pro-তে Upgrade করুন</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
     <div style="text-align:center;padding:10px 0 22px">
-      <div style="font-size:3rem;font-weight:900;font-family:var(--font-h);color:#fff">৳২,৯০০<span style="font-size:1rem;color:var(--text2)">/মাস</span></div>
-      <div style="font-size:.84rem;color:var(--text2);margin-top:4px">অথবা ৳২৪,৯০০/বছর — সাশ্রয় করুন</div>
+      <div style="font-size:3rem;font-weight:900;font-family:var(--font-h);color:#fff">৳১৯৯<span style="font-size:1rem;color:var(--text2)">/মাস</span></div>
+      <div style="font-size:.84rem;color:var(--text2);margin-top:4px">বা ৳১,৯৯৯/বছর — সাশ্রয় করুন</div>
     </div>
     <div class="price-feat"><span class="price-feat-icon yes">✓</span>Unlimited ব্যবহার</div>
     <div class="price-feat"><span class="price-feat-icon yes">✓</span>সব ২০+ tools</div>
@@ -663,7 +663,27 @@ function renderGrid(products){
 
 function openProductDetail(id){
   const p=Store.getProducts().find(x=>x.id===id); if(!p)return;
+  const isPro=Store.isPro();
+  const isFreeProduct=!p.premium;
+  const hideInfo=isFreeProduct&&!isPro;
   document.getElementById('productDetailTitle').textContent=p.name;
+  if(hideInfo){
+    document.getElementById('productDetailContent').innerHTML=`
+      <div style="display:grid;gap:16px">
+        ${p.image
+          ?`<img src="${p.image}" style="width:100%;max-height:300px;object-fit:cover;border-radius:var(--radius-sm)" onerror="this.style.display='none'">`
+          :`<div style="height:200px;background:linear-gradient(135deg,rgba(0,245,212,.1),rgba(124,58,237,.1));border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:4rem">🏆</div>`
+        }
+        <div style="text-align:center;padding:24px 20px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:var(--radius-sm)">
+          <div style="font-size:2rem;margin-bottom:10px">🔓</div>
+          <div style="font-family:var(--font-h);font-size:1rem;font-weight:800;color:#fff;margin-bottom:8px">সম্পূর্ণ তথ্য দেখতে Pro নিন</div>
+          <div style="font-size:.85rem;color:var(--text2);margin-bottom:16px">Ad strategy, supplier info, captions, hashtags — সব দেখতে Pro membership নিন।</div>
+          <button class="btn btn-primary" onclick="Modal.hideAll();showUpgradeModal()">🚀 মাত্র ৳১৯৯/মাসে Pro নিন</button>
+        </div>
+      </div>`;
+    Modal.show('productDetailModal');
+    return;
+  }
   const R_local={
     copyBox:(text,label)=>{
       const id='cb_'+Math.random().toString(36).slice(2);

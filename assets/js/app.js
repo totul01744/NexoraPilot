@@ -131,27 +131,47 @@ const Toast = {
 const Engine = {
   async call(prompt){
     const apiKey = Store.getApiKey();
-    if(!apiKey) throw new Error('সিস্টেম এখনো সেটআপ হয়নি। Admin-এর সাথে যোগাযোগ করুন।');
+    if(!apiKey) throw new Error('সিস্টেম এখনো চালু হয়নি। Admin-এর সাথে যোগাযোগ করুন।');
 
     const url = `${CONFIG.GEMINI_URL}?key=${apiKey}`;
-    const res = await fetch(url, {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({
-        contents:[{parts:[{text: prompt + '\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown, no backticks, no extra text.'}]}],
-        generationConfig:{temperature:0.7, maxOutputTokens:4000},
-      }),
-    });
+    let res;
+    try {
+      res = await fetch(url, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          contents:[{parts:[{text: prompt + '\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown, no backticks, no extra text.'}]}],
+          generationConfig:{temperature:0.7, maxOutputTokens:4000},
+        }),
+      });
+    } catch(networkErr) {
+      throw new Error('ইন্টারনেট সংযোগ সমস্যা। আবার চেষ্টা করুন।');
+    }
 
     if(!res.ok){
       const err=await res.json().catch(()=>({}));
-      throw new Error(err.error?.message||`Error: ${res.status}`);
+      const msg = err.error?.message || '';
+      const status = res.status;
+      // Friendly error messages
+      if(msg.includes('suspended') || msg.includes('Consumer') || status === 403)
+        throw new Error('সিস্টেম key মেয়াদ শেষ। Admin-এর সাথে যোগাযোগ করুন।');
+      if(msg.includes('quota') || status === 429)
+        throw new Error('আজকের limit শেষ হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।');
+      if(msg.includes('API_KEY_INVALID') || msg.includes('invalid'))
+        throw new Error('সিস্টেম সেটআপে সমস্যা। Admin-এর সাথে যোগাযোগ করুন।');
+      if(status === 500 || status === 503)
+        throw new Error('সার্ভার সাময়িক সমস্যায়। একটু পরে আবার চেষ্টা করুন।');
+      throw new Error('সিস্টেম সমস্যা হয়েছে। আবার চেষ্টা করুন।');
     }
 
     const data = await res.json();
     const raw = data.candidates?.[0]?.content?.parts?.[0]?.text||'';
     const clean = raw.replace(/```json|```/g,'').trim();
-    return JSON.parse(clean);
+    try {
+      return JSON.parse(clean);
+    } catch {
+      throw new Error('ফলাফল প্রক্রিয়া করতে সমস্যা। আবার চেষ্টা করুন।');
+    }
   },
 
   checkLimit(){ return Store.isPro()||Store.getUsage().count<CONFIG.FREE_DAILY_LIMIT },
