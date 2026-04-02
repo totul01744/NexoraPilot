@@ -247,8 +247,23 @@ select.form-control{cursor:pointer}
 .product-card-body{padding:18px}
 .product-card-title{font-family:var(--font-h);font-weight:800;color:#fff;font-size:.95rem;margin-bottom:6px;line-height:1.35}
 .product-card-desc{font-size:.82rem;color:var(--text2);line-height:1.5;margin-bottom:12px}
-.product-locked{position:relative;overflow:hidden}
-.product-locked::after{content:'🔒 Premium Members Only';position:absolute;inset:0;background:rgba(4,8,15,.82);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.88rem;color:var(--a3);letter-spacing:.5px;border-radius:var(--radius)}
+/* Locked card — নতুন solid block style (পুরাপুরি লুকানো) */
+.product-locked-full{position:relative;overflow:hidden}
+
+/* Select & Option dark theme fix */
+select.form-control{
+  color-scheme: dark;
+}
+select.form-control option{
+  background:#0a1628;
+  color:var(--text);
+}
+select.form-control option:hover,
+select.form-control option:focus,
+select.form-control option:checked{
+  background:#0f2040;
+  color:#fff;
+}
 
 /* COPY BOX */
 .copy-box{position:relative}
@@ -369,4 +384,22 @@ tr:hover td{background:rgba(0,245,212,.02)}
 @media(max-width:520px){
   .product-grid{grid-template-columns:1fr}
   .hero-stat{padding:12px 20px}
+}
+
+/* ── Global Select Dark Fix ── */
+select,select option{
+  background-color:#0a1628;
+  color:var(--text);
+  color-scheme:dark;
+}
+select option:hover,
+select option:focus,
+select option:checked,
+select option:active{
+  background-color:#0f2545 !important;
+  color:#fff !important;
+}
+/* Firefox specific */
+@-moz-document url-prefix() {
+  select option{background:#0a1628;color:var(--text)}
 }

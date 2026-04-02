@@ -451,7 +451,9 @@ function filterProducts(cat, btn){
   btn.className='btn btn-sm btn-primary';
   const all=Store.getProducts();
   const filtered=cat==='all'?all:all.filter(p=>p.category===cat||p.category?.includes(cat));
-  renderGrid(filtered);
+  // premium products সবসময় আগে
+  const sorted=[...filtered.filter(p=>p.premium),...filtered.filter(p=>!p.premium)];
+  renderGrid(sorted);
 }
 
 function renderGrid(products){
@@ -461,11 +463,35 @@ function renderGrid(products){
     return;
   }
   const isPro=Store.isPro();
-  container.innerHTML=products.map((p,i)=>{
-    const locked=!isPro&&p.premium;
+
+  // প্রথমে premium products, তারপর free products সাজাও
+  const premiumProducts = products.filter(p => p.premium);
+  const freeProducts    = products.filter(p => !p.premium);
+  const sorted = [...premiumProducts, ...freeProducts];
+
+  container.innerHTML=sorted.map((p,i)=>{
+    // প্রথম ১০টি premium product → lock (free users)
+    // ১১তম থেকে → সবাই দেখতে পাবে
+    const isPremiumSlot = i < 10 && p.premium;
+    const locked = !isPro && isPremiumSlot;
+
     const sc=p.score||0;
     const sc_c=sc>=80?'var(--a1)':sc>=60?'var(--a3)':'#f87171';
-    return `<div class="card product-card ${locked?'product-locked':''}" onclick="${locked?'showUpgradeModal()':'openProductDetail('+p.id+')'}" >
+
+    if(locked){
+      // সম্পূর্ণ locked card — কোনো content দেখাবে না
+      return `<div class="card product-card product-locked-full" onclick="showUpgradeModal()" style="cursor:pointer;min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;border:1px solid rgba(245,158,11,0.2);background:rgba(0,0,0,0.5)">
+        <div style="width:64px;height:64px;border-radius:50%;background:rgba(245,158,11,0.12);border:2px solid rgba(245,158,11,0.3);display:flex;align-items:center;justify-content:center;font-size:1.8rem">🔒</div>
+        <div style="text-align:center">
+          <div style="font-family:var(--font-h);font-weight:800;color:#fff;font-size:.95rem;margin-bottom:6px">Premium Product</div>
+          <div style="font-size:.82rem;color:var(--text2);margin-bottom:14px">শুধুমাত্র Pro সদস্যরা দেখতে পাবেন</div>
+          <button class="btn btn-sm btn-amber">🚀 Unlock করুন</button>
+        </div>
+        <div style="position:absolute;top:12px;right:12px"><span class="tag tag-amber">⭐ Premium</span></div>
+      </div>`;
+    }
+
+    return `<div class="card product-card" onclick="openProductDetail(${p.id})" style="cursor:pointer">
       ${p.image?`<img class="product-card-img" src="${p.image}" alt="${p.name}" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`:''}
       <div class="product-card-img-ph" style="${p.image?'display:none':''}">🏆</div>
       <div class="product-card-body">
@@ -481,7 +507,7 @@ function renderGrid(products){
         </div>
         <div style="display:flex;align-items:center;justify-content:space-between">
           <span style="font-size:.8rem;color:var(--text2)">${p.price||''}</span>
-          <button class="btn btn-sm ${locked?'btn-amber':'btn-primary'}">${locked?'🔒 Premium':'বিস্তারিত দেখুন →'}</button>
+          <button class="btn btn-sm btn-primary">বিস্তারিত দেখুন →</button>
         </div>
       </div>
     </div>`;
@@ -490,7 +516,10 @@ function renderGrid(products){
 
 document.addEventListener('DOMContentLoaded',()=>{
   initBanners();
-  renderGrid(Store.getProducts());
+  const all=Store.getProducts();
+  // প্রথমে premium, তারপর free
+  const sorted=[...all.filter(p=>p.premium),...all.filter(p=>!p.premium)];
+  renderGrid(sorted);
   document.getElementById('supportBody').innerHTML=supportBodyHTML();
   if(Store.isPro()){
     document.getElementById('proStatus').style.display='inline-flex';
