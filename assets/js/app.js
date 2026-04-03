@@ -17,9 +17,9 @@ const FB_CONFIG = {
 const CONFIG = {
   GEMINI_URL: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
   FREE_DAILY_LIMIT: 3,
-  ADMIN_KEY: 'nexora_admin_2025',
+  ADMIN_KEY: 'Totul1122@',
   SK: 'nexora_data',
-  BKASH_NUMBER: '01XXXXXXXXX', /* Admin sets this */
+  BKASH_NUMBER: '01859-393487', /* Admin sets this */
 };
 
 /* ── Firebase App (loaded via CDN) ── */
