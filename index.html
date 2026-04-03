@@ -3,8 +3,11 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>EcomSpark — Ecommerce Research Platform</title>
+<title>NexoraPilot — Ecommerce Research Platform</title>
 <link rel="stylesheet" href="assets/css/style.css">
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -12,18 +15,21 @@
 <header class="header">
   <div class="header-inner">
     <a href="index.html" class="logo">
-      <div class="logo-icon">⚡</div>
-      EcomSpark
+      <div class="logo-icon">🚀</div>
+      NexoraPilot
     </a>
     <nav class="nav" id="mainNav">
       <a class="nav-link active" href="index.html">🏠 Home</a>
       <a class="nav-link" href="#winning">🏆 Products</a>
       <a class="nav-link" href="#tools">🛠️ Tools</a>
       <a class="nav-link" href="help.html">💬 Support</a>
+      <span id="proBadge" class="tag tag-mint" style="display:none;margin-left:6px">⭐ Pro</span>
       <div class="usage-pill" style="margin-left:6px">
         <span class="glow-dot mint"></span>
         <span class="usage-display">3/3</span> বাকি
       </div>
+      <button class="btn btn-sm btn-amber" id="upgradeBtn" onclick="showPaymentModal()" style="margin-left:6px">🚀 Pro নিন</button>
+      <button class="btn btn-sm btn-secondary" onclick="showProLoginModal()" style="margin-left:4px">🔑 Login</button>
     </nav>
     <button class="hamburger" onclick="document.getElementById('mainNav').classList.toggle('open')">☰</button>
   </div>
@@ -58,7 +64,7 @@
     <div class="section-header">
       <div class="section-label">🏆 Admin Curated</div>
       <h2 class="section-title">Winning Products</h2>
-      <p class="section-sub">প্রতিটি প্রোডাক্টের সম্পূর্ণ অ্যাড স্ট্র্যাটেজি, সরবরাহকারী তথ্য ও মূল্য বিশ্লেষণসহ। Premium সদস্যরা সব দেখতে পাবেন।</p>
+      <p class="section-sub">প্রতিটি প্রোডাক্টের সম্পূর্ণ অ্যাড স্ট্র্যাটেজি, সরবরাহকারী তথ্যসহ। Premium সদস্যরা সব দেখতে পাবেন।</p>
     </div>
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:26px;flex-wrap:wrap">
       <div style="display:flex;gap:6px;flex-wrap:wrap" id="catFilters">
@@ -70,10 +76,6 @@
         <button class="btn btn-sm btn-secondary" onclick="filterProducts('Pet',this)">Pet</button>
         <button class="btn btn-sm btn-secondary" onclick="filterProducts('Kitchen',this)">Kitchen</button>
         <button class="btn btn-sm btn-secondary" onclick="filterProducts('Fashion',this)">Fashion</button>
-      </div>
-      <div style="margin-left:auto;display:flex;gap:8px;align-items:center">
-        <span id="proStatus" class="tag tag-mint" style="display:none">⭐ Pro Member</span>
-        <button class="btn btn-sm btn-amber" onclick="showUpgradeModal()" id="upgradeBtn">🚀 Pro-তে Upgrade করুন</button>
       </div>
     </div>
     <div class="product-grid" id="winningProductsGrid">
@@ -92,34 +94,10 @@
       <h2 class="section-title">পোস্ট এবং কন্টেন্ট তৈরি</h2>
     </div>
     <div class="tools-grid" style="margin-bottom:56px">
-      <div class="card tool-card" onclick="openModal('modal-pg')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(0,245,212,.15),rgba(59,130,246,.1));border:1px solid rgba(0,245,212,.2)">✍️</div>
-        <h3>Post Generator</h3>
-        <p>পণ্যের নাম ও বৈশিষ্ট্য থেকে Facebook পোস্ট তৈরি করুন। বাংলা ও ইংরেজি উভয় ভাষায়।</p>
-        <div class="tool-card-tags"><span class="tag tag-mint">Facebook</span><span class="tag tag-blue">বাংলা/English</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
-      <div class="card tool-card" onclick="openModal('modal-vp')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(236,72,153,.15),rgba(124,58,237,.1));border:1px solid rgba(236,72,153,.2)">🔥</div>
-        <h3>Viral Post Generator</h3>
-        <p>বর্তমান ট্রেন্ড ও hook ব্যবহার করে এমন পোস্ট যা সোশ্যাল মিডিয়ায় দ্রুত ছড়িয়ে পড়বে।</p>
-        <div class="tool-card-tags"><span class="tag tag-pink">Viral</span><span class="tag tag-violet">Trending</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
-      <div class="card tool-card" onclick="openModal('modal-pp')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(236,72,153,.1));border:1px solid rgba(245,158,11,.2)">🎁</div>
-        <h3>Promotional Post Generator</h3>
-        <p>বিশেষ অফার, ডিসকাউন্ট বা সেল ইভেন্টের জন্য আকর্ষণীয় sales copy তৈরি করুন।</p>
-        <div class="tool-card-tags"><span class="tag tag-amber">Sale</span><span class="tag tag-red">Urgency</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
-      <div class="card tool-card" onclick="openModal('modal-adc')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(0,245,212,.1));border:1px solid rgba(59,130,246,.2)">📢</div>
-        <h3>Ad Copy Generator</h3>
-        <p>Facebook ও Google Ads-এর জন্য high-converting টেক্সট ও headline তৈরি করুন।</p>
-        <div class="tool-card-tags"><span class="tag tag-blue">Facebook</span><span class="tag tag-green">Google</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
+      <div class="card tool-card" onclick="openModal('modal-pg')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(0,245,212,.15),rgba(59,130,246,.1));border:1px solid rgba(0,245,212,.2)">✍️</div><h3>Post Generator</h3><p>পণ্যের নাম থেকে Facebook পোস্ট তৈরি করুন। বাংলা ও ইংরেজি উভয় ভাষায়।</p><div class="tool-card-tags"><span class="tag tag-mint">Facebook</span><span class="tag tag-blue">বাংলা/English</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
+      <div class="card tool-card" onclick="openModal('modal-vp')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(236,72,153,.15),rgba(124,58,237,.1));border:1px solid rgba(236,72,153,.2)">🔥</div><h3>Viral Post Generator</h3><p>বর্তমান ট্রেন্ড ও hook ব্যবহার করে viral পোস্ট তৈরি করুন।</p><div class="tool-card-tags"><span class="tag tag-pink">Viral</span><span class="tag tag-violet">Trending</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
+      <div class="card tool-card" onclick="openModal('modal-pp')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(236,72,153,.1));border:1px solid rgba(245,158,11,.2)">🎁</div><h3>Promotional Post Generator</h3><p>বিশেষ অফার ও ডিসকাউন্টের জন্য আকর্ষণীয় sales copy।</p><div class="tool-card-tags"><span class="tag tag-amber">Sale</span><span class="tag tag-red">Urgency</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
+      <div class="card tool-card" onclick="openModal('modal-adc')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(0,245,212,.1));border:1px solid rgba(59,130,246,.2)">📢</div><h3>Ad Copy Generator</h3><p>Facebook ও Google Ads-এর জন্য high-converting টেক্সট।</p><div class="tool-card-tags"><span class="tag tag-blue">Facebook</span><span class="tag tag-green">Google</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
     </div>
 
     <!-- Video & Script -->
@@ -128,84 +106,24 @@
       <h2 class="section-title">ভিডিও এবং স্ক্রিপ্ট টুলস</h2>
     </div>
     <div class="tools-grid" style="margin-bottom:56px">
-      <div class="card tool-card" onclick="openModal('modal-as')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(0,245,212,.12),rgba(59,130,246,.1));border:1px solid rgba(0,245,212,.18)">🎬</div>
-        <h3>Ad Script Generator</h3>
-        <p>Hook, story arc ও CTA সহ সম্পূর্ণ UGC ad script তৈরি করুন।</p>
-        <div class="tool-card-tags"><span class="tag tag-mint">UGC</span><span class="tag tag-blue">30s/60s</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
-      <div class="card tool-card" onclick="openModal('modal-vs')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(245,158,11,.1));border:1px solid rgba(239,68,68,.2)">🎥</div>
-        <h3>Video Script Generator</h3>
-        <p>YouTube বা Facebook ভিডিওর জন্য intro, body ও outro সহ সম্পূর্ণ script লিখুন।</p>
-        <div class="tool-card-tags"><span class="tag tag-red">YouTube</span><span class="tag tag-blue">Facebook</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
-      <div class="card tool-card" onclick="openModal('modal-vpr')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(236,72,153,.1));border:1px solid rgba(124,58,237,.2)">🤖</div>
-        <h3>Video Prompt Generator</h3>
-        <p>Veo বা Sora-এর মতো video tools-এর জন্য নিখুঁত prompt তৈরি করুন।</p>
-        <div class="tool-card-tags"><span class="tag tag-violet">Veo/Sora</span><span class="tag tag-pink">Cinematic</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
-      <div class="card tool-card" onclick="openModal('modal-sb')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,245,212,.1));border:1px solid rgba(34,197,94,.2)">🎞️</div>
-        <h3>Storyboard Generator</h3>
-        <p>ভিডিওর প্রতিটি scene-এর জন্য বর্ণনা ও visual idea তৈরি করুন।</p>
-        <div class="tool-card-tags"><span class="tag tag-green">Scene</span><span class="tag tag-mint">Visual</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
-      <div class="card tool-card" onclick="openModal('modal-st')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(59,130,246,.1));border:1px solid rgba(245,158,11,.18)">🌐</div>
-        <h3>Subtitle Translator</h3>
-        <p>ভিডিওর subtitle এক ভাষা থেকে অন্য ভাষায় নিখুঁতভাবে অনুবাদ করুন।</p>
-        <div class="tool-card-tags"><span class="tag tag-amber">বাংলা</span><span class="tag tag-blue">English</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
+      <div class="card tool-card" onclick="openModal('modal-as')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(0,245,212,.12),rgba(59,130,246,.1));border:1px solid rgba(0,245,212,.18)">🎬</div><h3>Ad Script Generator</h3><p>Hook, story arc ও CTA সহ সম্পূর্ণ UGC ad script।</p><div class="tool-card-tags"><span class="tag tag-mint">UGC</span><span class="tag tag-blue">30s/60s</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
+      <div class="card tool-card" onclick="openModal('modal-vs')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(239,68,68,.15),rgba(245,158,11,.1));border:1px solid rgba(239,68,68,.2)">🎥</div><h3>Video Script Generator</h3><p>YouTube বা Facebook ভিডিওর জন্য সম্পূর্ণ script।</p><div class="tool-card-tags"><span class="tag tag-red">YouTube</span><span class="tag tag-blue">Facebook</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
+      <div class="card tool-card" onclick="openModal('modal-vpr')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(236,72,153,.1));border:1px solid rgba(124,58,237,.2)">🤖</div><h3>Video Prompt Generator</h3><p>Veo বা Sora-এর জন্য নিখুঁত video prompt তৈরি করুন।</p><div class="tool-card-tags"><span class="tag tag-violet">Veo/Sora</span><span class="tag tag-pink">Cinematic</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
+      <div class="card tool-card" onclick="openModal('modal-sb')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,245,212,.1));border:1px solid rgba(34,197,94,.2)">🎞️</div><h3>Storyboard Generator</h3><p>ভিডিওর প্রতিটি scene-এর জন্য বর্ণনা ও visual idea।</p><div class="tool-card-tags"><span class="tag tag-green">Scene</span><span class="tag tag-mint">Visual</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
+      <div class="card tool-card" onclick="openModal('modal-st')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(59,130,246,.1));border:1px solid rgba(245,158,11,.18)">🌐</div><h3>Subtitle Translator</h3><p>ভিডিওর subtitle এক ভাষা থেকে অন্য ভাষায় অনুবাদ করুন।</p><div class="tool-card-tags"><span class="tag tag-amber">বাংলা</span><span class="tag tag-blue">English</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
     </div>
 
-    <!-- Product Research -->
+    <!-- Research Tools -->
     <div class="section-header" style="margin-bottom:30px">
       <div class="section-label">🔬 Research Tools</div>
       <h2 class="section-title">প্রোডাক্ট গবেষণা</h2>
     </div>
     <div class="tools-grid" style="margin-bottom:56px">
-      <div class="card tool-card" onclick="openModal('modal-pr')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(0,245,212,.15),rgba(59,130,246,.1));border:1px solid rgba(0,245,212,.2)">🏆</div>
-        <h3>Product Research</h3>
-        <p>Demand scoring, competition analysis, winning product detection।</p>
-        <div class="tool-card-tags"><span class="tag tag-mint">Demand</span><span class="tag tag-green">Win Rate</span><span class="tag tag-violet">Saturation</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
-      <div class="card tool-card" onclick="openModal('modal-tt')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(236,72,153,.15),rgba(124,58,237,.1));border:1px solid rgba(236,72,153,.2)">🎵</div>
-        <h3>TikTok Viral Finder</h3>
-        <p>TikTok Shop-এ trending viral ecommerce products detect করুন।</p>
-        <div class="tool-card-tags"><span class="tag tag-pink">Viral</span><span class="tag tag-violet">Hashtags</span><span class="tag tag-amber">Sales</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
-      <div class="card tool-card" onclick="openModal('modal-ca')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(236,72,153,.1));border:1px solid rgba(245,158,11,.18)">🔭</div>
-        <h3>Competitor Analysis</h3>
-        <p>Competitor spy করুন, market gap খুঁজুন, win strategy তৈরি করুন।</p>
-        <div class="tool-card-tags"><span class="tag tag-amber">Revenue</span><span class="tag tag-red">Weaknesses</span><span class="tag tag-green">Gaps</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
-      <div class="card tool-card" onclick="openModal('modal-mr')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(0,245,212,.1),rgba(34,197,94,.1));border:1px solid rgba(0,245,212,.18)">📊</div>
-        <h3>Market Research Report</h3>
-        <p>Demand, size, forecast ও action plan সহ পূর্ণাঙ্গ market report।</p>
-        <div class="tool-card-tags"><span class="tag tag-mint">Report</span><span class="tag tag-green">Forecast</span><span class="tag tag-blue">Plan</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
-      <div class="card tool-card" onclick="openModal('modal-sf')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(59,130,246,.1));border:1px solid rgba(124,58,237,.2)">🏭</div>
-        <h3>Supplier Finder</h3>
-        <p>Verified supplier খুঁজুন + outreach email তৈরি করুন।</p>
-        <div class="tool-card-tags"><span class="tag tag-violet">Alibaba</span><span class="tag tag-blue">Verified</span><span class="tag tag-green">Outreach</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
+      <div class="card tool-card" onclick="openModal('modal-pr')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(0,245,212,.15),rgba(59,130,246,.1));border:1px solid rgba(0,245,212,.2)">🏆</div><h3>Product Research</h3><p>Demand scoring, competition analysis, winning product detection।</p><div class="tool-card-tags"><span class="tag tag-mint">Demand</span><span class="tag tag-green">Win Rate</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
+      <div class="card tool-card" onclick="openModal('modal-tt')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(236,72,153,.15),rgba(124,58,237,.1));border:1px solid rgba(236,72,153,.2)">🎵</div><h3>TikTok Viral Finder</h3><p>TikTok Shop-এ trending viral products detect করুন।</p><div class="tool-card-tags"><span class="tag tag-pink">Viral</span><span class="tag tag-amber">Sales</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
+      <div class="card tool-card" onclick="openModal('modal-ca')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(236,72,153,.1));border:1px solid rgba(245,158,11,.18)">🔭</div><h3>Competitor Analysis</h3><p>Competitor spy করুন, market gap খুঁজুন, win strategy।</p><div class="tool-card-tags"><span class="tag tag-amber">Revenue</span><span class="tag tag-green">Gaps</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
+      <div class="card tool-card" onclick="openModal('modal-mr')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(0,245,212,.1),rgba(34,197,94,.1));border:1px solid rgba(0,245,212,.18)">📊</div><h3>Market Research Report</h3><p>Demand, size, forecast ও action plan সহ পূর্ণাঙ্গ report।</p><div class="tool-card-tags"><span class="tag tag-mint">Report</span><span class="tag tag-blue">Plan</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
+      <div class="card tool-card" onclick="openModal('modal-sf')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(59,130,246,.1));border:1px solid rgba(124,58,237,.2)">🏭</div><h3>Supplier Finder</h3><p>Verified supplier খুঁজুন + outreach email তৈরি করুন।</p><div class="tool-card-tags"><span class="tag tag-violet">Alibaba</span><span class="tag tag-green">Outreach</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
     </div>
 
     <!-- Marketing & Strategy -->
@@ -213,37 +131,12 @@
       <div class="section-label">📣 Marketing & Strategy</div>
       <h2 class="section-title">অ্যাডভান্সড মার্কেটিং</h2>
     </div>
-    <div class="tools-grid" style="margin-bottom:56px">
-      <div class="card tool-card" onclick="openModal('modal-ac')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(236,72,153,.1));border:1px solid rgba(245,158,11,.2)">🎨</div>
-        <h3>Ad Creative Generator</h3>
-        <p>TikTok hooks, Facebook ads, angles ও full scripts তৈরি করুন।</p>
-        <div class="tool-card-tags"><span class="tag tag-amber">TikTok</span><span class="tag tag-blue">Facebook</span><span class="tag tag-mint">Hooks</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
-      <div class="card tool-card" onclick="openModal('modal-af')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(0,245,212,.1));border:1px solid rgba(59,130,246,.2)">📐</div>
-        <h3>Ad Funnel Generator</h3>
-        <p>Customer journey অনুযায়ী Awareness → Consideration → Conversion funnel তৈরি।</p>
-        <div class="tool-card-tags"><span class="tag tag-blue">Awareness</span><span class="tag tag-violet">Conversion</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
-      <div class="card tool-card" onclick="openModal('modal-pd')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,245,212,.1));border:1px solid rgba(34,197,94,.2)">✍️</div>
-        <h3>Product Description</h3>
-        <p>SEO, bullets ও emotional hooks সহ high-converting product copy।</p>
-        <div class="tool-card-tags"><span class="tag tag-green">SEO</span><span class="tag tag-mint">Bullets</span><span class="tag tag-blue">Emotion</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
-      <div class="card tool-card" onclick="openModal('modal-con')">
-        <div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(236,72,153,.1));border:1px solid rgba(124,58,237,.2)">🏗️</div>
-        <h3>Concept Architect</h3>
-        <p>নতুন ব্যবসার আইডিয়া বা marketing campaign-এর সম্পূর্ণ blueprint তৈরি।</p>
-        <div class="tool-card-tags"><span class="tag tag-violet">Blueprint</span><span class="tag tag-pink">Strategy</span></div>
-        <button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button>
-      </div>
+    <div class="tools-grid">
+      <div class="card tool-card" onclick="openModal('modal-ac')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(245,158,11,.15),rgba(236,72,153,.1));border:1px solid rgba(245,158,11,.2)">🎨</div><h3>Ad Creative Generator</h3><p>TikTok hooks, Facebook ads, angles ও scripts।</p><div class="tool-card-tags"><span class="tag tag-amber">TikTok</span><span class="tag tag-blue">Facebook</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
+      <div class="card tool-card" onclick="openModal('modal-af')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(59,130,246,.15),rgba(0,245,212,.1));border:1px solid rgba(59,130,246,.2)">📐</div><h3>Ad Funnel Generator</h3><p>Awareness → Consideration → Conversion funnel তৈরি।</p><div class="tool-card-tags"><span class="tag tag-blue">Funnel</span><span class="tag tag-violet">Strategy</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
+      <div class="card tool-card" onclick="openModal('modal-pd')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(34,197,94,.12),rgba(0,245,212,.1));border:1px solid rgba(34,197,94,.2)">✍️</div><h3>Product Description</h3><p>SEO, bullets ও emotional hooks সহ high-converting copy।</p><div class="tool-card-tags"><span class="tag tag-green">SEO</span><span class="tag tag-mint">Bullets</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
+      <div class="card tool-card" onclick="openModal('modal-con')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(124,58,237,.15),rgba(236,72,153,.1));border:1px solid rgba(124,58,237,.2)">🏗️</div><h3>Concept Architect</h3><p>নতুন ব্যবসার আইডিয়ার সম্পূর্ণ blueprint তৈরি।</p><div class="tool-card-tags"><span class="tag tag-violet">Blueprint</span><span class="tag tag-pink">Strategy</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
     </div>
-
   </div>
 </section>
 
@@ -253,334 +146,128 @@
     <div class="section-header">
       <div class="section-label">💎 মূল্য</div>
       <h2 class="section-title">সহজ ও স্বচ্ছ মূল্য</h2>
-      <p class="section-sub">ফ্রিতে শুরু করুন। Pro-তে scale করুন।</p>
     </div>
     <div class="pricing-grid">
       <div class="card pricing-card">
         <div class="tag tag-mint" style="margin-bottom:20px">ফ্রি</div>
-        <div class="price-amt">৳০</div>
-        <div class="price-period">চিরকাল বিনামূল্যে</div>
+        <div class="price-amt">৳০</div><div class="price-period">চিরকাল</div>
         <div class="price-divider"></div>
         <div class="price-feat"><span class="price-feat-icon yes">✓</span>দিনে ৩টি ব্যবহার</div>
         <div class="price-feat"><span class="price-feat-icon yes">✓</span>সব ২০+ Tools (সীমিত)</div>
-        <div class="price-feat"><span class="price-feat-icon no">✗</span>Winning Products (প্রথম ১০ লক)</div>
-        <div class="price-feat"><span class="price-feat-icon no">✗</span>পূর্ণ Product Details লক</div>
+        <div class="price-feat"><span class="price-feat-icon no">✗</span>Premium Products লক</div>
+        <div class="price-feat"><span class="price-feat-icon no">✗</span>Free Product details লক</div>
         <button class="btn btn-secondary btn-full" style="margin-top:28px" onclick="document.getElementById('tools').scrollIntoView({behavior:'smooth'})">ফ্রিতে শুরু করুন</button>
       </div>
       <div class="card pricing-card featured">
         <div class="price-ribbon">সবচেয়ে জনপ্রিয়</div>
         <div class="tag tag-mint" style="margin-bottom:20px">Pro</div>
-        <div class="price-amt">৳১৯৯</div>
-        <div class="price-period">প্রতি মাসে</div>
+        <div class="price-amt">৳১৯৯</div><div class="price-period">প্রতি মাসে</div>
         <div class="price-divider"></div>
         <div class="price-feat"><span class="price-feat-icon yes">✓</span>Unlimited ব্যবহার</div>
         <div class="price-feat"><span class="price-feat-icon yes">✓</span>সব ২০+ Tools</div>
         <div class="price-feat"><span class="price-feat-icon yes">✓</span>সব Winning Products unlock</div>
         <div class="price-feat"><span class="price-feat-icon yes">✓</span>পূর্ণ Ad Strategy দেখুন</div>
         <div class="price-feat"><span class="price-feat-icon yes">✓</span>Priority Support</div>
-        <button class="btn btn-primary btn-full" style="margin-top:28px" onclick="showUpgradeModal()">🚀 Pro নিন</button>
+        <button class="btn btn-primary btn-full" style="margin-top:28px" onclick="showPaymentModal()">🚀 bKash-এ Payment করুন</button>
       </div>
       <div class="card pricing-card">
         <div class="tag tag-violet" style="margin-bottom:20px">Agency</div>
-        <div class="price-amt">৳৪৯৯</div>
-        <div class="price-period">প্রতি মাসে</div>
+        <div class="price-amt">৳৪৯৯</div><div class="price-period">প্রতি মাসে</div>
         <div class="price-divider"></div>
         <div class="price-feat"><span class="price-feat-icon yes">✓</span>Pro-র সব সুবিধা</div>
         <div class="price-feat"><span class="price-feat-icon yes">✓</span>৫টি Team Seat</div>
         <div class="price-feat"><span class="price-feat-icon yes">✓</span>White-label Reports</div>
         <div class="price-feat"><span class="price-feat-icon yes">✓</span>Client Management</div>
         <div class="price-feat"><span class="price-feat-icon yes">✓</span>Dedicated Support</div>
-        <button class="btn btn-secondary btn-full" style="margin-top:28px" onclick="window.location.href='help.html'">Sales-এ যোগাযোগ</button>
+        <button class="btn btn-secondary btn-full" style="margin-top:28px" onclick="window.location.href='help.html'">যোগাযোগ করুন</button>
       </div>
     </div>
   </div>
 </section>
 
 <!-- ============ ALL TOOL MODALS ============ -->
-
 <!-- Post Generator -->
-<div class="modal-overlay hidden" id="modal-pg">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">✍️ Post Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Product Name</label><input class="form-control" id="pg-product" placeholder="e.g., Posture Corrector Pro"></div>
-    <div class="form-group"><label class="form-label">মূল বৈশিষ্ট্য (optional)</label><input class="form-control" id="pg-features" placeholder="e.g., পিঠের ব্যথা কমায়, সহজে পরা যায়"></div>
-    <div class="form-group"><label class="form-label">ভাষা</label><select class="form-control" id="pg-lang"><option>Bengali</option><option>English</option><option>Both Bengali and English</option></select></div>
-    <button class="btn btn-primary btn-full" onclick="runPostGenerator()">✍️ Post তৈরি করুন</button>
-    <div id="pg-result" class="result-area mt-2"></div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modal-pg"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">✍️ Post Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div class="form-group"><label class="form-label">Product Name</label><input class="form-control" id="pg-product" placeholder="e.g., Posture Corrector Pro"></div><div class="form-group"><label class="form-label">মূল বৈশিষ্ট্য (optional)</label><input class="form-control" id="pg-features" placeholder="e.g., পিঠের ব্যথা কমায়"></div><div class="form-group"><label class="form-label">ভাষা</label><select class="form-control" id="pg-lang"><option>Bengali</option><option>English</option><option>Both Bengali and English</option></select></div><button class="btn btn-primary btn-full" onclick="runPostGenerator()">✍️ Post তৈরি করুন</button><div id="pg-result" class="result-area mt-2"></div></div></div>
 
 <!-- Viral Post -->
-<div class="modal-overlay hidden" id="modal-vp">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">🔥 Viral Post Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Topic / Product</label><input class="form-control" id="vp-topic" placeholder="e.g., LED Face Mask, ওজন কমানোর টিপস"></div>
-    <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">Platform</label><select class="form-control" id="vp-platform"><option>Facebook</option><option>Instagram</option><option>TikTok</option><option>YouTube</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Target Audience</label><input class="form-control" id="vp-target" placeholder="e.g., গৃহিণী, উদ্যোক্তা"></div>
-    </div>
-    <button class="btn btn-primary btn-full" onclick="runViralPost()">🔥 Viral Post তৈরি করুন</button>
-    <div id="vp-result" class="result-area mt-2"></div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modal-vp"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">🔥 Viral Post Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div class="form-group"><label class="form-label">Topic / Product</label><input class="form-control" id="vp-topic" placeholder="e.g., LED Face Mask, ওজন কমানোর টিপস"></div><div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label">Platform</label><select class="form-control" id="vp-platform"><option>Facebook</option><option>Instagram</option><option>TikTok</option></select></div><div class="form-group" style="flex:1"><label class="form-label">Target Audience</label><input class="form-control" id="vp-target" placeholder="e.g., গৃহিণী, উদ্যোক্তা"></div></div><button class="btn btn-primary btn-full" onclick="runViralPost()">🔥 Viral Post তৈরি করুন</button><div id="vp-result" class="result-area mt-2"></div></div></div>
 
-<!-- Promotional Post -->
-<div class="modal-overlay hidden" id="modal-pp">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">🎁 Promotional Post Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Product Name</label><input class="form-control" id="pp-product" placeholder="e.g., Jade Facial Roller"></div>
-    <div class="form-group"><label class="form-label">অফার / ডিসকাউন্ট</label><input class="form-control" id="pp-offer" placeholder="e.g., ৩০% ছাড়, Buy 1 Get 1 Free"></div>
-    <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">অফারের মেয়াদ</label><input class="form-control" id="pp-duration" placeholder="e.g., ৪৮ ঘণ্টা, ৩ দিন"></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Platform</label><select class="form-control" id="pp-platform"><option>Facebook</option><option>Instagram</option><option>WhatsApp</option></select></div>
-    </div>
-    <button class="btn btn-primary btn-full" onclick="runPromoPost()">🎁 Promo Post তৈরি করুন</button>
-    <div id="pp-result" class="result-area mt-2"></div>
-  </div>
-</div>
+<!-- Promo Post -->
+<div class="modal-overlay hidden" id="modal-pp"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">🎁 Promotional Post Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div class="form-group"><label class="form-label">Product Name</label><input class="form-control" id="pp-product" placeholder="e.g., Jade Facial Roller"></div><div class="form-group"><label class="form-label">অফার / ডিসকাউন্ট</label><input class="form-control" id="pp-offer" placeholder="e.g., ৩০% ছাড়, Buy 1 Get 1"></div><div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label">মেয়াদ</label><input class="form-control" id="pp-duration" placeholder="e.g., ৪৮ ঘণ্টা"></div><div class="form-group" style="flex:1"><label class="form-label">Platform</label><select class="form-control" id="pp-platform"><option>Facebook</option><option>Instagram</option><option>WhatsApp</option></select></div></div><button class="btn btn-primary btn-full" onclick="runPromoPost()">🎁 Promo Post তৈরি করুন</button><div id="pp-result" class="result-area mt-2"></div></div></div>
 
 <!-- Ad Copy -->
-<div class="modal-overlay hidden" id="modal-adc">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">📢 Ad Copy Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Product Name</label><input class="form-control" id="adc-product" placeholder="e.g., Wireless Earbuds Pro"></div>
-    <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">লক্ষ্য</label><select class="form-control" id="adc-goal"><option>Sales</option><option>Lead Generation</option><option>Brand Awareness</option><option>App Installs</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Audience</label><input class="form-control" id="adc-audience" placeholder="e.g., adults 25-45"></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Budget</label><select class="form-control" id="adc-budget"><option>Small (৳৫০০-২০০০/day)</option><option>Medium (৳২০০০-৫০০০/day)</option><option>Large (৳৫০০০+/day)</option></select></div>
-    </div>
-    <button class="btn btn-primary btn-full" onclick="runAdCopy()">📢 Ad Copy তৈরি করুন</button>
-    <div id="adc-result" class="result-area mt-2"></div>
-  </div>
-</div>
-
-<!-- Ad Creative -->
-<div class="modal-overlay hidden" id="modal-ac">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">🎨 Ad Creative Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Product Name</label><input class="form-control" id="ac-product" placeholder="e.g., Jade Facial Roller"></div>
-    <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">Platform</label><select class="form-control" id="ac-platform"><option>TikTok & Facebook</option><option>TikTok Only</option><option>Facebook Only</option><option>Instagram</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Target Audience</label><input class="form-control" id="ac-audience" placeholder="e.g., women 25-45"></div>
-    </div>
-    <div class="form-group"><label class="form-label">Unique Selling Point (USP)</label><input class="form-control" id="ac-usp" placeholder="e.g., reduces puffiness in 5 minutes"></div>
-    <button class="btn btn-primary btn-full" onclick="runAdCreative()">🎨 Ad Creative তৈরি করুন</button>
-    <div id="ac-result" class="result-area mt-2"></div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modal-adc"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">📢 Ad Copy Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div class="form-group"><label class="form-label">Product Name</label><input class="form-control" id="adc-product" placeholder="e.g., Wireless Earbuds Pro"></div><div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label">লক্ষ্য</label><select class="form-control" id="adc-goal"><option>Sales</option><option>Lead Generation</option><option>Brand Awareness</option></select></div><div class="form-group" style="flex:1"><label class="form-label">Audience</label><input class="form-control" id="adc-audience" placeholder="e.g., adults 25-45"></div><div class="form-group" style="flex:1"><label class="form-label">Budget</label><select class="form-control" id="adc-budget"><option>Small (৳৫০০-২০০০/day)</option><option>Medium (৳২০০০-৫০০০/day)</option><option>Large (৳৫০০০+/day)</option></select></div></div><button class="btn btn-primary btn-full" onclick="runAdCopy()">📢 Ad Copy তৈরি করুন</button><div id="adc-result" class="result-area mt-2"></div></div></div>
 
 <!-- Ad Script -->
-<div class="modal-overlay hidden" id="modal-as">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">🎬 Ad Script Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Product</label><input class="form-control" id="as-product" placeholder="e.g., Magnetic Phone Mount for Car"></div>
-    <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">Platform</label><select class="form-control" id="as-platform"><option>TikTok</option><option>Instagram Reels</option><option>YouTube Shorts</option><option>Facebook Video</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Duration</label><select class="form-control" id="as-duration"><option>15 seconds</option><option>30 seconds</option><option>60 seconds</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Style</label><select class="form-control" id="as-style"><option>UGC/Authentic</option><option>Educational</option><option>Storytelling</option><option>Before/After</option></select></div>
-    </div>
-    <button class="btn btn-primary btn-full" onclick="runAdScript()">🎬 Script লিখুন</button>
-    <div id="as-result" class="result-area mt-2"></div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modal-as"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">🎬 Ad Script Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div class="form-group"><label class="form-label">Product</label><input class="form-control" id="as-product" placeholder="e.g., Magnetic Phone Mount"></div><div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label">Platform</label><select class="form-control" id="as-platform"><option>TikTok</option><option>Instagram Reels</option><option>YouTube Shorts</option><option>Facebook Video</option></select></div><div class="form-group" style="flex:1"><label class="form-label">Duration</label><select class="form-control" id="as-duration"><option>15 seconds</option><option>30 seconds</option><option>60 seconds</option></select></div><div class="form-group" style="flex:1"><label class="form-label">Style</label><select class="form-control" id="as-style"><option>UGC/Authentic</option><option>Educational</option><option>Storytelling</option><option>Before/After</option></select></div></div><button class="btn btn-primary btn-full" onclick="runAdScript()">🎬 Script লিখুন</button><div id="as-result" class="result-area mt-2"></div></div></div>
 
 <!-- Video Script -->
-<div class="modal-overlay hidden" id="modal-vs">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">🎥 Video Script Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Video Topic</label><input class="form-control" id="vs-topic" placeholder="e.g., Top 5 TikTok Products 2025, কীভাবে dropshipping শুরু করবেন"></div>
-    <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">Duration</label><select class="form-control" id="vs-duration"><option>1-2 minutes</option><option>3-5 minutes</option><option>5-10 minutes</option><option>10+ minutes</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Style</label><select class="form-control" id="vs-style"><option>Educational</option><option>Entertainment</option><option>Product Review</option><option>Tutorial</option><option>Story</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Platform</label><select class="form-control" id="vs-platform"><option>YouTube</option><option>Facebook</option><option>TikTok</option></select></div>
-    </div>
-    <button class="btn btn-primary btn-full" onclick="runVideoScript()">🎥 Script তৈরি করুন</button>
-    <div id="vs-result" class="result-area mt-2"></div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modal-vs"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">🎥 Video Script Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div class="form-group"><label class="form-label">Video Topic</label><input class="form-control" id="vs-topic" placeholder="e.g., Top 5 TikTok Products 2025"></div><div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label">Duration</label><select class="form-control" id="vs-duration"><option>1-2 minutes</option><option>3-5 minutes</option><option>5-10 minutes</option></select></div><div class="form-group" style="flex:1"><label class="form-label">Style</label><select class="form-control" id="vs-style"><option>Educational</option><option>Entertainment</option><option>Product Review</option><option>Tutorial</option></select></div><div class="form-group" style="flex:1"><label class="form-label">Platform</label><select class="form-control" id="vs-platform"><option>YouTube</option><option>Facebook</option><option>TikTok</option></select></div></div><button class="btn btn-primary btn-full" onclick="runVideoScript()">🎥 Script তৈরি করুন</button><div id="vs-result" class="result-area mt-2"></div></div></div>
 
 <!-- Video Prompt -->
-<div class="modal-overlay hidden" id="modal-vpr">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">🤖 Video Prompt Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Product / Scene বর্ণনা</label><input class="form-control" id="vpr-scene" placeholder="e.g., A luxury perfume bottle on marble surface, morning light"></div>
-    <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">Style</label><select class="form-control" id="vpr-style"><option>Cinematic</option><option>Commercial</option><option>Documentary</option><option>Aesthetic</option><option>Fast-paced</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Duration</label><select class="form-control" id="vpr-duration"><option>5 seconds</option><option>10 seconds</option><option>15 seconds</option><option>30 seconds</option></select></div>
-    </div>
-    <button class="btn btn-primary btn-full" onclick="runVideoPrompt()">🤖 Prompt তৈরি করুন</button>
-    <div id="vpr-result" class="result-area mt-2"></div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modal-vpr"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">🤖 Video Prompt Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div class="form-group"><label class="form-label">Product / Scene বর্ণনা</label><input class="form-control" id="vpr-scene" placeholder="e.g., A luxury perfume bottle on marble surface"></div><div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label">Style</label><select class="form-control" id="vpr-style"><option>Cinematic</option><option>Commercial</option><option>Aesthetic</option><option>Fast-paced</option></select></div><div class="form-group" style="flex:1"><label class="form-label">Duration</label><select class="form-control" id="vpr-duration"><option>5 seconds</option><option>10 seconds</option><option>15 seconds</option><option>30 seconds</option></select></div></div><button class="btn btn-primary btn-full" onclick="runVideoPrompt()">🤖 Prompt তৈরি করুন</button><div id="vpr-result" class="result-area mt-2"></div></div></div>
 
 <!-- Storyboard -->
-<div class="modal-overlay hidden" id="modal-sb">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">🎞️ Storyboard Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Product / Topic</label><input class="form-control" id="sb-topic" placeholder="e.g., Posture Corrector product showcase"></div>
-    <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">Video Type</label><select class="form-control" id="sb-type"><option>Product Showcase</option><option>How-to Tutorial</option><option>Brand Story</option><option>Testimonial</option><option>Ad Video</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Duration</label><select class="form-control" id="sb-duration"><option>15 seconds</option><option>30 seconds</option><option>60 seconds</option><option>2-3 minutes</option></select></div>
-    </div>
-    <button class="btn btn-primary btn-full" onclick="runStoryboard()">🎞️ Storyboard তৈরি করুন</button>
-    <div id="sb-result" class="result-area mt-2"></div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modal-sb"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">🎞️ Storyboard Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div class="form-group"><label class="form-label">Product / Topic</label><input class="form-control" id="sb-topic" placeholder="e.g., Posture Corrector product showcase"></div><div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label">Video Type</label><select class="form-control" id="sb-type"><option>Product Showcase</option><option>How-to Tutorial</option><option>Brand Story</option><option>Ad Video</option></select></div><div class="form-group" style="flex:1"><label class="form-label">Duration</label><select class="form-control" id="sb-duration"><option>15 seconds</option><option>30 seconds</option><option>60 seconds</option><option>2-3 minutes</option></select></div></div><button class="btn btn-primary btn-full" onclick="runStoryboard()">🎞️ Storyboard তৈরি করুন</button><div id="sb-result" class="result-area mt-2"></div></div></div>
 
 <!-- Subtitle Translator -->
-<div class="modal-overlay hidden" id="modal-st">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">🌐 Subtitle Translator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Subtitle / Caption Text পেস্ট করুন</label><textarea class="form-control" id="st-text" rows="5" placeholder="এখানে subtitle বা caption পেস্ট করুন..."></textarea></div>
-    <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">মূল ভাষা</label><select class="form-control" id="st-from"><option>English</option><option>Bengali</option><option>Hindi</option><option>Arabic</option><option>Chinese</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">অনুবাদ করুন</label><select class="form-control" id="st-to"><option>Bengali</option><option>English</option><option>Hindi</option><option>Arabic</option><option>French</option><option>German</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Style</label><select class="form-control" id="st-style"><option>Natural/Conversational</option><option>Formal</option><option>Casual/Youth</option></select></div>
-    </div>
-    <button class="btn btn-primary btn-full" onclick="runSubtitleTranslator()">🌐 অনুবাদ করুন</button>
-    <div id="st-result" class="result-area mt-2"></div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modal-st"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">🌐 Subtitle Translator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div class="form-group"><label class="form-label">Subtitle / Caption পেস্ট করুন</label><textarea class="form-control" id="st-text" rows="5" placeholder="এখানে subtitle পেস্ট করুন..."></textarea></div><div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label">মূল ভাষা</label><select class="form-control" id="st-from"><option>English</option><option>Bengali</option><option>Hindi</option><option>Arabic</option></select></div><div class="form-group" style="flex:1"><label class="form-label">অনুবাদ করুন</label><select class="form-control" id="st-to"><option>Bengali</option><option>English</option><option>Hindi</option><option>Arabic</option></select></div><div class="form-group" style="flex:1"><label class="form-label">Style</label><select class="form-control" id="st-style"><option>Natural/Conversational</option><option>Formal</option><option>Casual/Youth</option></select></div></div><button class="btn btn-primary btn-full" onclick="runSubtitleTranslator()">🌐 অনুবাদ করুন</button><div id="st-result" class="result-area mt-2"></div></div></div>
 
 <!-- Product Research -->
-<div class="modal-overlay hidden" id="modal-pr">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">🏆 Product Research</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Product Name / Keyword</label><input class="form-control" id="pr-product" placeholder="e.g., posture corrector, LED face mask"></div>
-    <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">Category</label><select class="form-control" id="pr-category"><option>Health & Beauty</option><option>Electronics</option><option>Home & Garden</option><option>Sports & Fitness</option><option>Baby & Kids</option><option>Pet Products</option><option>Kitchen</option><option>Fashion</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Target Market</label><select class="form-control" id="pr-market"><option>US</option><option>UK</option><option>Canada</option><option>Australia</option><option>Bangladesh</option><option>Global</option></select></div>
-    </div>
-    <button class="btn btn-primary btn-full" onclick="runProductResearch()">🔬 Analyze করুন</button>
-    <div id="pr-result" class="result-area mt-2"></div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modal-pr"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">🏆 Product Research</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div class="form-group"><label class="form-label">Product Name / Keyword</label><input class="form-control" id="pr-product" placeholder="e.g., posture corrector"></div><div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label">Category</label><select class="form-control" id="pr-category"><option>Health & Beauty</option><option>Electronics</option><option>Home & Garden</option><option>Sports & Fitness</option><option>Kitchen</option><option>Fashion</option></select></div><div class="form-group" style="flex:1"><label class="form-label">Market</label><select class="form-control" id="pr-market"><option>US</option><option>UK</option><option>Bangladesh</option><option>Global</option></select></div></div><button class="btn btn-primary btn-full" onclick="runProductResearch()">🔬 Analyze করুন</button><div id="pr-result" class="result-area mt-2"></div></div></div>
 
 <!-- TikTok Finder -->
-<div class="modal-overlay hidden" id="modal-tt">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">🎵 TikTok Viral Finder</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">Niche / Category</label><input class="form-control" id="tt-niche" placeholder="e.g., beauty, kitchen gadgets"></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Budget</label><select class="form-control" id="tt-budget"><option>৳৫০,০০০-১,০০,০০০</option><option>৳১,০০,০০০-৩,০০,০০০</option><option>৳৩,০০,০০০+</option></select></div>
-    </div>
-    <div class="form-group"><label class="form-label">Target Market</label><select class="form-control" id="tt-market"><option>US</option><option>UK</option><option>Global</option><option>Southeast Asia</option></select></div>
-    <button class="btn btn-primary btn-full" onclick="runTikTokFinder()">🎵 Viral Products খুঁজুন</button>
-    <div id="tt-result" class="result-area mt-2"></div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modal-tt"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">🎵 TikTok Viral Finder</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label">Niche</label><input class="form-control" id="tt-niche" placeholder="e.g., beauty, kitchen gadgets"></div><div class="form-group" style="flex:1"><label class="form-label">Budget</label><select class="form-control" id="tt-budget"><option>Small</option><option>Medium</option><option>Large</option></select></div></div><div class="form-group"><label class="form-label">Market</label><select class="form-control" id="tt-market"><option>US</option><option>UK</option><option>Global</option></select></div><button class="btn btn-primary btn-full" onclick="runTikTokFinder()">🎵 Viral Products খুঁজুন</button><div id="tt-result" class="result-area mt-2"></div></div></div>
 
 <!-- Competitor -->
-<div class="modal-overlay hidden" id="modal-ca">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">🔭 Competitor Analysis</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Your Product / Niche</label><input class="form-control" id="ca-product" placeholder="e.g., ergonomic desk mat"></div>
-    <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">Known Competitors (optional)</label><input class="form-control" id="ca-competitors" placeholder="e.g., Anker, Logitech"></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Platform</label><select class="form-control" id="ca-platform"><option>Amazon</option><option>Etsy</option><option>Direct-to-Consumer</option><option>General</option></select></div>
-    </div>
-    <button class="btn btn-primary btn-full" onclick="runCompetitor()">🔭 Analyze করুন</button>
-    <div id="ca-result" class="result-area mt-2"></div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modal-ca"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">🔭 Competitor Analysis</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div class="form-group"><label class="form-label">Product / Niche</label><input class="form-control" id="ca-product" placeholder="e.g., ergonomic desk mat"></div><div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label">Competitors (optional)</label><input class="form-control" id="ca-competitors" placeholder="e.g., Anker, Logitech"></div><div class="form-group" style="flex:1"><label class="form-label">Platform</label><select class="form-control" id="ca-platform"><option>Amazon</option><option>Etsy</option><option>General</option></select></div></div><button class="btn btn-primary btn-full" onclick="runCompetitor()">🔭 Analyze করুন</button><div id="ca-result" class="result-area mt-2"></div></div></div>
 
 <!-- Market Report -->
-<div class="modal-overlay hidden" id="modal-mr">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">📊 Market Research Report</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Product / Niche</label><input class="form-control" id="mr-product" placeholder="e.g., sustainable baby toys, home gym equipment"></div>
-    <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">Target Market</label><select class="form-control" id="mr-market"><option>US</option><option>UK</option><option>Bangladesh</option><option>Global</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Investment Budget</label><select class="form-control" id="mr-budget"><option>৳৫০,০০০-২,০০,০০০</option><option>৳২,০০,০০০-৫,০০,০০০</option><option>৳৫,০০,০০০+</option></select></div>
-    </div>
-    <button class="btn btn-primary btn-full" onclick="runMarketReport()">📊 Full Report তৈরি করুন</button>
-    <div id="mr-result" class="result-area mt-2"></div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modal-mr"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">📊 Market Research Report</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div class="form-group"><label class="form-label">Product / Niche</label><input class="form-control" id="mr-product" placeholder="e.g., sustainable baby toys"></div><div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label">Market</label><select class="form-control" id="mr-market"><option>US</option><option>UK</option><option>Bangladesh</option><option>Global</option></select></div><div class="form-group" style="flex:1"><label class="form-label">Budget</label><select class="form-control" id="mr-budget"><option>Small</option><option>Medium</option><option>Large</option></select></div></div><button class="btn btn-primary btn-full" onclick="runMarketReport()">📊 Report তৈরি করুন</button><div id="mr-result" class="result-area mt-2"></div></div></div>
 
 <!-- Supplier -->
-<div class="modal-overlay hidden" id="modal-sf">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">🏭 Supplier Finder</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Product to Source</label><input class="form-control" id="sf-product" placeholder="e.g., stainless steel water bottle"></div>
-    <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">MOQ Budget</label><select class="form-control" id="sf-budget"><option>৳২০,০০০-৫০,০০০</option><option>৳৫০,০০০-১,০০,০০০</option><option>৳১,০০,০০০+</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Quality Level</label><select class="form-control" id="sf-quality"><option>Medium (standard)</option><option>High (premium)</option><option>Budget (low cost)</option><option>OEM/Custom</option></select></div>
-    </div>
-    <button class="btn btn-primary btn-full" onclick="runSupplier()">🏭 Supplier খুঁজুন</button>
-    <div id="sf-result" class="result-area mt-2"></div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modal-sf"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">🏭 Supplier Finder</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div class="form-group"><label class="form-label">Product to Source</label><input class="form-control" id="sf-product" placeholder="e.g., stainless steel water bottle"></div><div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label">MOQ Budget</label><select class="form-control" id="sf-budget"><option>Small (৳২০,০০০-৫০,০০০)</option><option>Medium (৳৫০,০০০-১,০০,০০০)</option><option>Large (৳১,০০,০০০+)</option></select></div><div class="form-group" style="flex:1"><label class="form-label">Quality</label><select class="form-control" id="sf-quality"><option>Medium</option><option>High</option><option>Budget</option><option>OEM/Custom</option></select></div></div><button class="btn btn-primary btn-full" onclick="runSupplier()">🏭 Supplier খুঁজুন</button><div id="sf-result" class="result-area mt-2"></div></div></div>
 
 <!-- Product Description -->
-<div class="modal-overlay hidden" id="modal-pd">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">✍️ Product Description</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Product Name</label><input class="form-control" id="pd-product" placeholder="e.g., Bamboo Cutting Board Set"></div>
-    <div class="form-group"><label class="form-label">Key Features</label><input class="form-control" id="pd-features" placeholder="e.g., eco-friendly, knife-safe, dishwasher-safe"></div>
-    <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">Target Buyer</label><input class="form-control" id="pd-buyer" placeholder="e.g., home chefs"></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Tone</label><select class="form-control" id="pd-tone"><option>Professional yet friendly</option><option>Luxury/Premium</option><option>Fun & Playful</option><option>Emotional</option></select></div>
-    </div>
-    <button class="btn btn-primary btn-full" onclick="runProductDesc()">✍️ Description তৈরি করুন</button>
-    <div id="pd-result" class="result-area mt-2"></div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modal-pd"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">✍️ Product Description</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div class="form-group"><label class="form-label">Product Name</label><input class="form-control" id="pd-product" placeholder="e.g., Bamboo Cutting Board Set"></div><div class="form-group"><label class="form-label">Key Features</label><input class="form-control" id="pd-features" placeholder="e.g., eco-friendly, knife-safe"></div><div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label">Target Buyer</label><input class="form-control" id="pd-buyer" placeholder="e.g., home chefs"></div><div class="form-group" style="flex:1"><label class="form-label">Tone</label><select class="form-control" id="pd-tone"><option>Professional yet friendly</option><option>Luxury/Premium</option><option>Fun & Playful</option><option>Emotional</option></select></div></div><button class="btn btn-primary btn-full" onclick="runProductDesc()">✍️ Description তৈরি করুন</button><div id="pd-result" class="result-area mt-2"></div></div></div>
+
+<!-- Ad Creative -->
+<div class="modal-overlay hidden" id="modal-ac"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">🎨 Ad Creative Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div class="form-group"><label class="form-label">Product Name</label><input class="form-control" id="ac-product" placeholder="e.g., Jade Facial Roller"></div><div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label">Platform</label><select class="form-control" id="ac-platform"><option>TikTok & Facebook</option><option>TikTok Only</option><option>Facebook Only</option></select></div><div class="form-group" style="flex:1"><label class="form-label">Audience</label><input class="form-control" id="ac-audience" placeholder="e.g., women 25-45"></div></div><div class="form-group"><label class="form-label">USP</label><input class="form-control" id="ac-usp" placeholder="e.g., reduces puffiness in 5 minutes"></div><button class="btn btn-primary btn-full" onclick="runAdCreative()">🎨 Ad Creative তৈরি করুন</button><div id="ac-result" class="result-area mt-2"></div></div></div>
 
 <!-- Ad Funnel -->
-<div class="modal-overlay hidden" id="modal-af">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">📐 Ad Funnel Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Product</label><input class="form-control" id="af-product" placeholder="e.g., Posture Corrector Pro"></div>
-    <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">Budget</label><select class="form-control" id="af-budget"><option>Small (৳৫০,০০০/mo)</option><option>Medium (৳২,০০,০০০/mo)</option><option>Large (৳৫,০০,০০০+/mo)</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Goal</label><select class="form-control" id="af-goal"><option>Sales</option><option>Lead Generation</option><option>Brand Awareness</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Timeline</label><select class="form-control" id="af-timeline"><option>30 days</option><option>60 days</option><option>90 days</option></select></div>
-    </div>
-    <button class="btn btn-primary btn-full" onclick="runAdFunnel()">📐 Funnel তৈরি করুন</button>
-    <div id="af-result" class="result-area mt-2"></div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modal-af"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">📐 Ad Funnel Generator</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div class="form-group"><label class="form-label">Product</label><input class="form-control" id="af-product" placeholder="e.g., Posture Corrector Pro"></div><div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label">Budget</label><select class="form-control" id="af-budget"><option>Small</option><option>Medium</option><option>Large</option></select></div><div class="form-group" style="flex:1"><label class="form-label">Goal</label><select class="form-control" id="af-goal"><option>Sales</option><option>Lead Generation</option><option>Brand Awareness</option></select></div><div class="form-group" style="flex:1"><label class="form-label">Timeline</label><select class="form-control" id="af-timeline"><option>30 days</option><option>60 days</option><option>90 days</option></select></div></div><button class="btn btn-primary btn-full" onclick="runAdFunnel()">📐 Funnel তৈরি করুন</button><div id="af-result" class="result-area mt-2"></div></div></div>
 
 <!-- Concept Architect -->
-<div class="modal-overlay hidden" id="modal-con">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title">🏗️ Concept Architect</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Business Idea / Product</label><textarea class="form-control" id="con-idea" rows="3" placeholder="আপনার ব্যবসার আইডিয়া বা marketing campaign বর্ণনা করুন..."></textarea></div>
-    <div style="display:flex;gap:12px">
-      <div class="form-group" style="flex:1"><label class="form-label">Industry</label><select class="form-control" id="con-industry"><option>Ecommerce</option><option>Fashion</option><option>Food & Beverage</option><option>Technology</option><option>Health & Wellness</option><option>Education</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Budget</label><select class="form-control" id="con-budget"><option>Startup (৳০-১,০০,০০০)</option><option>Small (৳১-৫ লক্ষ)</option><option>Medium (৳৫-২০ লক্ষ)</option><option>Large (৳২০ লক্ষ+)</option></select></div>
-      <div class="form-group" style="flex:1"><label class="form-label">Goal</label><select class="form-control" id="con-goal"><option>Launch</option><option>Scale</option><option>Pivot</option><option>Campaign</option></select></div>
-    </div>
-    <button class="btn btn-primary btn-full" onclick="runConceptArchitect()">🏗️ Blueprint তৈরি করুন</button>
-    <div id="con-result" class="result-area mt-2"></div>
-  </div>
-</div>
+<div class="modal-overlay hidden" id="modal-con"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title">🏗️ Concept Architect</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div class="form-group"><label class="form-label">Business Idea / Product</label><textarea class="form-control" id="con-idea" rows="3" placeholder="আপনার ব্যবসার আইডিয়া বর্ণনা করুন..."></textarea></div><div style="display:flex;gap:12px"><div class="form-group" style="flex:1"><label class="form-label">Industry</label><select class="form-control" id="con-industry"><option>Ecommerce</option><option>Fashion</option><option>Food</option><option>Technology</option><option>Health</option><option>Education</option></select></div><div class="form-group" style="flex:1"><label class="form-label">Budget</label><select class="form-control" id="con-budget"><option>Startup</option><option>Small</option><option>Medium</option><option>Large</option></select></div><div class="form-group" style="flex:1"><label class="form-label">Goal</label><select class="form-control" id="con-goal"><option>Launch</option><option>Scale</option><option>Campaign</option></select></div></div><button class="btn btn-primary btn-full" onclick="runConceptArchitect()">🏗️ Blueprint তৈরি করুন</button><div id="con-result" class="result-area mt-2"></div></div></div>
 
 <!-- Product Detail Modal -->
-<div class="modal-overlay hidden" id="productDetailModal">
-  <div class="modal-box modal-box-lg">
-    <div class="modal-header"><div class="modal-title" id="productDetailTitle">Product Details</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div id="productDetailContent"></div>
+<div class="modal-overlay hidden" id="productDetailModal"><div class="modal-box modal-box-lg"><div class="modal-header"><div class="modal-title" id="productDetailTitle">Product Details</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div><div id="productDetailContent"></div></div></div>
+
+<!-- ══ PAYMENT MODAL ══ -->
+<div class="modal-overlay hidden" id="paymentModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title">💳 Pro Membership নিন</div>
+      <button class="modal-close" onclick="Modal.hideAll()">✕</button>
+    </div>
+    <div id="paymentContent"><!-- Rendered by JS --></div>
+    <div style="text-align:center;margin-top:16px;padding-top:14px;border-top:1px solid var(--border)">
+      <span style="font-size:.82rem;color:var(--text2)">ইতোমধ্যে Payment করেছেন? </span>
+      <button class="btn btn-sm btn-secondary" onclick="showProLoginModal()">🔑 Login করুন</button>
+    </div>
   </div>
 </div>
 
-<!-- Upgrade Modal -->
-<div class="modal-overlay hidden" id="upgradeModal">
+<!-- ══ PRO LOGIN MODAL ══ -->
+<div class="modal-overlay hidden" id="proLoginModal">
   <div class="modal-box">
-    <div class="modal-header"><div class="modal-title">🚀 Pro-তে Upgrade করুন</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div style="text-align:center;padding:10px 0 22px">
-      <div style="font-size:3rem;font-weight:900;font-family:var(--font-h);color:#fff">৳১৯৯<span style="font-size:1rem;color:var(--text2)">/মাস</span></div>
-      <div style="font-size:.84rem;color:var(--text2);margin-top:4px">বা ৳১,৯৯৯/বছর — সাশ্রয় করুন</div>
-    </div>
-    <div class="price-feat"><span class="price-feat-icon yes">✓</span>Unlimited ব্যবহার</div>
-    <div class="price-feat"><span class="price-feat-icon yes">✓</span>সব ২০+ tools</div>
-    <div class="price-feat"><span class="price-feat-icon yes">✓</span>সব winning products unlock</div>
-    <div class="price-feat"><span class="price-feat-icon yes">✓</span>পূর্ণ ad strategy দেখুন</div>
-    <div class="price-feat"><span class="price-feat-icon yes">✓</span>Priority support</div>
-    <div style="margin-top:24px">
-      <button class="btn btn-primary btn-full" onclick="Modal.hideAll();Toast.info('Payment-এর পরে Help page থেকে support-এ যোগাযোগ করুন।')">🚀 এখনই Upgrade করুন</button>
-      <p style="text-align:center;font-size:.78rem;color:var(--text2);margin-top:12px">Payment পরে <a href="help.html" style="color:var(--a1)">support-এ যোগাযোগ</a> করে activate করুন।</p>
+    <div class="modal-header"><div class="modal-title">🔑 Pro Login</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
+    <p style="font-size:.87rem;color:var(--text2);margin-bottom:18px">Admin যে email-এ Pro activate করেছেন সেটা দিয়ে login করুন।</p>
+    <div class="form-group"><label class="form-label">Email Address</label><input class="form-control" id="pro-login-email" type="email" placeholder="আপনার email" onkeydown="if(event.key==='Enter')proLogin()"></div>
+    <button class="btn btn-primary btn-full" onclick="proLogin()">🔑 Login করুন</button>
+    <div style="text-align:center;margin-top:12px"><button class="btn btn-ghost btn-sm" onclick="Modal.hideAll();showPaymentModal()">নতুন Payment করুন →</button></div>
+    <div id="proLogoutSection" style="display:none;margin-top:16px;padding-top:14px;border-top:1px solid var(--border);text-align:center">
+      <button class="btn btn-danger btn-sm" onclick="proLogout();Modal.hideAll()">🚪 Logout</button>
     </div>
   </div>
 </div>
@@ -599,8 +286,13 @@
 <script src="assets/js/app.js"></script>
 <script>
 function openModal(id){ Modal.hideAll(); Modal.show(id); }
+function showProLoginModal(){
+  Modal.hideAll(); Modal.show('proLoginModal');
+  const proSection=document.getElementById('proLogoutSection');
+  if(proSection) proSection.style.display=Store.isPro()?'block':'none';
+}
 
-function filterProducts(cat, btn){
+function filterProducts(cat,btn){
   document.querySelectorAll('#catFilters .btn').forEach(b=>b.className='btn btn-sm btn-secondary');
   btn.className='btn btn-sm btn-primary';
   const all=Store.getProducts();
@@ -612,32 +304,23 @@ function filterProducts(cat, btn){
 function renderGrid(products){
   const container=document.getElementById('winningProductsGrid');
   if(!products||!products.length){
-    container.innerHTML=`<div class="card" style="padding:40px;text-align:center;grid-column:1/-1"><div style="font-size:3rem;margin-bottom:14px">📦</div><p>এই category-তে এখনো কোনো product নেই।</p></div>`;
+    container.innerHTML=`<div class="card" style="padding:40px;text-align:center;grid-column:1/-1"><div style="font-size:3rem;margin-bottom:14px">📦</div><p>এখনো কোনো product নেই।</p></div>`;
     return;
   }
   const isPro=Store.isPro();
-  const premiumProducts=products.filter(p=>p.premium);
-  const freeProducts=products.filter(p=>!p.premium);
-  const sorted=[...premiumProducts,...freeProducts];
-
+  const sorted=[...products.filter(p=>p.premium),...products.filter(p=>!p.premium)];
   container.innerHTML=sorted.map((p,i)=>{
     const isPremiumSlot=i<10&&p.premium;
     const locked=!isPro&&isPremiumSlot;
     const sc=p.score||0;
     const sc_c=sc>=80?'var(--a1)':sc>=60?'var(--a3)':'#f87171';
-
     if(locked){
-      return `<div class="card product-locked-full" onclick="showUpgradeModal()" style="cursor:pointer;min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;border:1px solid rgba(245,158,11,0.2);background:rgba(0,0,0,0.5);position:relative;border-radius:var(--radius)">
-        <div style="width:64px;height:64px;border-radius:50%;background:rgba(245,158,11,0.12);border:2px solid rgba(245,158,11,0.3);display:flex;align-items:center;justify-content:center;font-size:1.8rem">🔒</div>
-        <div style="text-align:center">
-          <div style="font-family:var(--font-h);font-weight:800;color:#fff;font-size:.95rem;margin-bottom:6px">Premium Product</div>
-          <div style="font-size:.82rem;color:var(--text2);margin-bottom:14px">শুধুমাত্র Pro সদস্যরা দেখতে পাবেন</div>
-          <button class="btn btn-sm btn-amber">🚀 Unlock করুন</button>
-        </div>
+      return `<div class="card product-locked-full" onclick="showPaymentModal()" style="cursor:pointer;min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;border:1px solid rgba(245,158,11,.2);background:rgba(0,0,0,.5);position:relative;border-radius:var(--radius)">
+        <div style="width:64px;height:64px;border-radius:50%;background:rgba(245,158,11,.12);border:2px solid rgba(245,158,11,.3);display:flex;align-items:center;justify-content:center;font-size:1.8rem">🔒</div>
+        <div style="text-align:center"><div style="font-family:var(--font-h);font-weight:800;color:#fff;font-size:.95rem;margin-bottom:6px">Premium Product</div><div style="font-size:.82rem;color:var(--text2);margin-bottom:14px">শুধুমাত্র Pro সদস্যরা দেখতে পাবেন</div><button class="btn btn-sm btn-amber">🚀 ৳১৯৯/মাসে Unlock করুন</button></div>
         <div style="position:absolute;top:12px;right:12px"><span class="tag tag-amber">⭐ Premium</span></div>
       </div>`;
     }
-
     return `<div class="card product-card" onclick="openProductDetail(${p.id})" style="cursor:pointer">
       ${p.image?`<img class="product-card-img" src="${p.image}" alt="${p.name}" onerror="this.style.display='none';this.nextSibling.style.display='flex'">`:''}
       <div class="product-card-img-ph" style="${p.image?'display:none':''}">🏆</div>
@@ -664,60 +347,47 @@ function renderGrid(products){
 function openProductDetail(id){
   const p=Store.getProducts().find(x=>x.id===id); if(!p)return;
   const isPro=Store.isPro();
-  const isFreeProduct=!p.premium;
-  const hideInfo=isFreeProduct&&!isPro;
+  const hideInfo=!p.premium&&!isPro;
   document.getElementById('productDetailTitle').textContent=p.name;
   if(hideInfo){
     document.getElementById('productDetailContent').innerHTML=`
       <div style="display:grid;gap:16px">
-        ${p.image
-          ?`<img src="${p.image}" style="width:100%;max-height:300px;object-fit:cover;border-radius:var(--radius-sm)" onerror="this.style.display='none'">`
-          :`<div style="height:200px;background:linear-gradient(135deg,rgba(0,245,212,.1),rgba(124,58,237,.1));border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:4rem">🏆</div>`
-        }
+        ${p.image?`<img src="${p.image}" style="width:100%;max-height:300px;object-fit:cover;border-radius:var(--radius-sm)" onerror="this.style.display='none'">`:`<div style="height:200px;background:linear-gradient(135deg,rgba(0,245,212,.1),rgba(124,58,237,.1));border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:4rem">🏆</div>`}
         <div style="text-align:center;padding:24px 20px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:var(--radius-sm)">
           <div style="font-size:2rem;margin-bottom:10px">🔓</div>
           <div style="font-family:var(--font-h);font-size:1rem;font-weight:800;color:#fff;margin-bottom:8px">সম্পূর্ণ তথ্য দেখতে Pro নিন</div>
-          <div style="font-size:.85rem;color:var(--text2);margin-bottom:16px">Ad strategy, supplier info, captions, hashtags — সব দেখতে Pro membership নিন।</div>
-          <button class="btn btn-primary" onclick="Modal.hideAll();showUpgradeModal()">🚀 মাত্র ৳১৯৯/মাসে Pro নিন</button>
+          <div style="font-size:.85rem;color:var(--text2);margin-bottom:16px">Ad strategy, supplier info, captions — সব দেখতে Pro membership নিন।</div>
+          <button class="btn btn-primary" onclick="Modal.hideAll();showPaymentModal()">🚀 মাত্র ৳১৯৯/মাসে Pro নিন</button>
         </div>
       </div>`;
-    Modal.show('productDetailModal');
-    return;
+    Modal.show('productDetailModal'); return;
   }
-  const R_local={
-    copyBox:(text,label)=>{
-      const id='cb_'+Math.random().toString(36).slice(2);
-      return `<div class="copy-box"><div id="${id}" class="copy-box-inner">${text||''}</div><button class="copy-btn" onclick="copyText(document.getElementById('${id}').textContent,this)">${label||'Copy'}</button></div>`;
-    },
+  const Rl={
+    copyBox:(text,label)=>{ const cid='cb_'+Math.random().toString(36).slice(2); return `<div class="copy-box"><div id="${cid}" class="copy-box-inner">${text||''}</div><button class="copy-btn" onclick="copyText(document.getElementById('${cid}').textContent,this)">${label||'Copy'}</button></div>`; },
     list:(items,icon='→')=>`<ul style="list-style:none;padding:0">${(items||[]).map(i=>`<li style="padding:5px 0;font-size:.86rem;color:var(--text2);display:flex;gap:8px"><span style="color:var(--a1);flex-shrink:0">${icon}</span>${i}</li>`).join('')}</ul>`,
   };
-  let adsHTML='<p style="color:var(--text2);font-size:.88rem">কোনো ad details দেওয়া হয়নি।</p>';
+  let adsHTML='<p style="color:var(--text2);font-size:.88rem">কোনো ad details নেই।</p>';
   if(p.facebookAd||p.tiktokAd||p.adBudget){
     adsHTML=`<div class="tabs" style="margin-top:0">
       ${p.facebookAd?`<button class="tab-btn active" onclick="switchTab('pd','fb',this)">📘 Facebook</button>`:''}
       ${p.tiktokAd?`<button class="tab-btn ${!p.facebookAd?'active':''}" onclick="switchTab('pd','tt',this)">🎵 TikTok</button>`:''}
       ${p.adBudget?`<button class="tab-btn" onclick="switchTab('pd','budget',this)">💰 Budget</button>`:''}
     </div>
-    ${p.facebookAd?`<div id="pd-tab-fb">${R_local.copyBox(p.facebookAd,'📋 Copy')}</div>`:''}
-    ${p.tiktokAd?`<div id="pd-tab-tt" class="${p.facebookAd?'hidden':''}">${R_local.copyBox(p.tiktokAd,'📋 Copy')}</div>`:''}
+    ${p.facebookAd?`<div id="pd-tab-fb">${Rl.copyBox(p.facebookAd,'📋 Copy')}</div>`:''}
+    ${p.tiktokAd?`<div id="pd-tab-tt" class="${p.facebookAd?'hidden':''}">${Rl.copyBox(p.tiktokAd,'📋 Copy')}</div>`:''}
     ${p.adBudget?`<div id="pd-tab-budget" class="hidden"><div class="alert alert-info">💰 ${p.adBudget}</div></div>`:''}`;
   }
-  document.getElementById('productDetailContent').innerHTML=`
-    <div style="display:grid;gap:18px">
-      ${p.image?`<img src="${p.image}" style="width:100%;max-height:260px;object-fit:cover;border-radius:var(--radius-sm)" onerror="this.style.display='none'">`:''}
-      <div>
-        ${p.score?`<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><div class="score-ring" style="background:rgba(0,0,0,.28);border:3px solid ${p.score>=75?'var(--a1)':p.score>=50?'var(--a3)':'#f87171'};color:${p.score>=75?'var(--a1)':p.score>=50?'var(--a3)':'#f87171'}">${p.score}</div><div><strong style="color:#fff">Product Score</strong></div></div>`:''}
-        ${p.category?`<span class="tag tag-mint" style="margin-right:6px">${p.category}</span>`:''}
-        ${p.price?`<span class="tag tag-amber">${p.price}</span>`:''}
-      </div>
-      ${p.description?`<div><strong style="font-size:.85rem;color:var(--text2)">📝 বিবরণ</strong><p style="font-size:.88rem;margin-top:8px;line-height:1.65">${p.description}</p></div>`:''}
-      ${p.whereToFind?`<div><strong style="font-size:.85rem;color:var(--text2)">🏪 কোথায় পাবেন</strong><div class="alert alert-info" style="margin-top:8px">${p.whereToFind}</div></div>`:''}
-      ${(p.sellingPoints&&p.sellingPoints.length)?`<div><strong style="font-size:.85rem;color:var(--text2)">⭐ মূল বৈশিষ্ট্য</strong>${R_local.list(p.sellingPoints,'⭐')}</div>`:''}
-      <div><strong style="font-size:.85rem;color:var(--text2)">📣 Ad Strategy</strong><div style="margin-top:12px">${adsHTML}</div></div>
-      ${p.caption?`<div><strong style="font-size:.85rem;color:var(--text2)">💬 Caption</strong>${R_local.copyBox(p.caption,'Copy')}</div>`:''}
-      ${p.hashtags?`<div><strong style="font-size:.85rem;color:var(--text2)">🏷️ Hashtags</strong>${R_local.copyBox(p.hashtags,'Copy')}</div>`:''}
-      ${p.notes?`<div><strong style="font-size:.85rem;color:var(--text2)">📌 অতিরিক্ত Notes</strong><p style="font-size:.88rem;margin-top:8px;color:var(--text2)">${p.notes}</p></div>`:''}
-    </div>`;
+  document.getElementById('productDetailContent').innerHTML=`<div style="display:grid;gap:18px">
+    ${p.image?`<img src="${p.image}" style="width:100%;max-height:260px;object-fit:cover;border-radius:var(--radius-sm)" onerror="this.style.display='none'">`:''}
+    <div>${p.score?`<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><div class="score-ring" style="background:rgba(0,0,0,.28);border:3px solid ${p.score>=75?'var(--a1)':p.score>=50?'var(--a3)':'#f87171'};color:${p.score>=75?'var(--a1)':p.score>=50?'var(--a3)':'#f87171'}">${p.score}</div><strong style="color:#fff">Product Score</strong></div>`:''} ${p.category?`<span class="tag tag-mint" style="margin-right:6px">${p.category}</span>`:''} ${p.price?`<span class="tag tag-amber">${p.price}</span>`:''}</div>
+    ${p.description?`<div><strong style="font-size:.85rem;color:var(--text2)">📝 বিবরণ</strong><p style="font-size:.88rem;margin-top:8px;line-height:1.65">${p.description}</p></div>`:''}
+    ${p.whereToFind?`<div><strong style="font-size:.85rem;color:var(--text2)">🏪 কোথায় পাবেন</strong><div class="alert alert-info" style="margin-top:8px">${p.whereToFind}</div></div>`:''}
+    ${(p.sellingPoints&&p.sellingPoints.length)?`<div><strong style="font-size:.85rem;color:var(--text2)">⭐ মূল বৈশিষ্ট্য</strong>${Rl.list(p.sellingPoints,'⭐')}</div>`:''}
+    <div><strong style="font-size:.85rem;color:var(--text2)">📣 Ad Strategy</strong><div style="margin-top:12px">${adsHTML}</div></div>
+    ${p.caption?`<div><strong style="font-size:.85rem;color:var(--text2)">💬 Caption</strong>${Rl.copyBox(p.caption,'Copy')}</div>`:''}
+    ${p.hashtags?`<div><strong style="font-size:.85rem;color:var(--text2)">🏷️ Hashtags</strong>${Rl.copyBox(p.hashtags,'Copy')}</div>`:''}
+    ${p.notes?`<div><strong style="font-size:.85rem;color:var(--text2)">📌 Notes</strong><p style="font-size:.88rem;margin-top:8px;color:var(--text2)">${p.notes}</p></div>`:''}
+  </div>`;
   Modal.show('productDetailModal');
 }
 
@@ -727,10 +397,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const sorted=[...all.filter(p=>p.premium),...all.filter(p=>!p.premium)];
   renderGrid(sorted);
   document.getElementById('supportBody').innerHTML=supportBodyHTML();
-  if(Store.isPro()){
-    document.getElementById('proStatus').style.display='inline-flex';
-    document.getElementById('upgradeBtn').style.display='none';
-  }
+  updateUsageDisplay();
 });
 </script>
 </body>
