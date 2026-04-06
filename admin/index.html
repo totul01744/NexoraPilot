@@ -5,6 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin Panel — EcomSpark</title>
 <link rel="stylesheet" href="../assets/css/style.css">
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -17,11 +21,15 @@
       <div style="font-size:.8rem;color:var(--text2);margin-top:3px">EcomSpark Control Center</div>
     </div>
     <div class="form-group">
+      <label class="form-label">Admin Email</label>
+      <input type="email" class="form-control" id="adminEmail" placeholder="admin@email.com" onkeydown="if(event.key==='Enter')adminLogin()">
+    </div>
+    <div class="form-group">
       <label class="form-label">Admin Password</label>
       <input type="password" class="form-control" id="adminPass" placeholder="Password দিন" onkeydown="if(event.key==='Enter')adminLogin()">
     </div>
-    <div id="loginErr" class="hidden mb-3"><div class="alert alert-error">❌ ভুল password।</div></div>
-    <button class="btn btn-primary btn-full" onclick="adminLogin()">🔐 Login করুন</button>
+    <div id="loginErr" class="hidden mb-3"><div class="alert alert-error">❌ ভুল email বা password।</div></div>
+    <button class="btn btn-primary btn-full" id="loginBtn" onclick="adminLogin()">🔐 Login করুন</button>
     <p style="text-align:center;margin-top:14px;font-size:.78rem"><a href="../index.html" style="color:var(--text2)">← EcomSpark-এ ফিরুন</a></p>
   </div>
 </div>
@@ -42,9 +50,11 @@
       <button class="sidebar-link" data-page="banners" onclick="showPage('banners',this)"><span class="s-icon">🖼️</span> Banners</button>
 
       <div class="sidebar-section">Users</div>
+      <button class="sidebar-link" data-page="payments" onclick="showPage('payments',this)"><span class="s-icon">💳</span> Payments <span class="s-badge" id="sb-pay">0</span></button>
       <button class="sidebar-link" data-page="help" onclick="showPage('help',this)"><span class="s-icon">🆘</span> Help Requests <span class="s-badge" id="sb-help">0</span></button>
       <button class="sidebar-link" data-page="agency" onclick="showPage('agency',this)"><span class="s-icon">🚀</span> Upgrade Inquiries <span class="s-badge" id="sb-agency">0</span></button>
       <button class="sidebar-link" data-page="users" onclick="showPage('users',this)"><span class="s-icon">👥</span> Pro Users</button>
+      <button class="sidebar-link" data-page="allUsers" onclick="showPage('allUsers',this)"><span class="s-icon">👤</span> সব Registered Users</button>
 
       <div class="sidebar-section">System</div>
       <button class="sidebar-link" data-page="apikey" onclick="showPage('apikey',this)"><span class="s-icon">🔑</span> System API Key</button>
@@ -58,7 +68,6 @@
   </aside>
 
   <main class="main-content">
-
     <!-- DASHBOARD -->
     <div id="page-dashboard">
       <div class="admin-header">
@@ -68,666 +77,248 @@
           <a href="../index.html" target="_blank" class="btn btn-sm btn-secondary">🌐 Site দেখুন</a>
         </div>
       </div>
-
-      <!-- API Key Status Alert -->
-      <div id="apiKeyAlert" class="hidden" style="margin-bottom:20px">
-        <div class="alert alert-warning" style="gap:12px">
-          <span>⚠️</span>
-          <div>
-            <strong>System API Key সেট করা নেই!</strong><br>
-            <span style="font-size:.85rem">Tools কাজ করবে না। নিচের বাটনে ক্লিক করে key সেট করুন।</span>
-            <button class="btn btn-sm btn-amber" style="margin-left:12px" onclick="showPage('apikey',document.querySelector('[data-page=apikey]'))">🔑 Key সেট করুন</button>
-          </div>
-        </div>
-      </div>
-
       <div class="stats-grid">
         <div class="stat-card"><div class="stat-num mint" id="s-prod">0</div><div class="stat-label">Winning Products</div></div>
-        <div class="stat-card"><div class="stat-num" id="s-help">0</div><div class="stat-label">Help Requests</div><div class="stat-change" style="color:var(--a3)" id="s-hp">০টি pending</div></div>
+        <div class="stat-card"><div class="stat-num" id="s-help">0</div><div class="stat-label">Pending Help</div></div>
         <div class="stat-card"><div class="stat-num violet" id="s-agency">0</div><div class="stat-label">Upgrade Inquiries</div></div>
+        <div class="stat-card"><div class="stat-num amber" id="s-pay">0</div><div class="stat-label">Pending Payments</div></div>
         <div class="stat-card"><div class="stat-num" id="s-users">0</div><div class="stat-label">Pro Users</div></div>
-        <div class="stat-card"><div class="stat-num amber" id="s-gen">0</div><div class="stat-label">Total Generations</div></div>
+        <div class="stat-card"><div class="stat-num mint" id="s-allUsers">0</div><div class="stat-label">Total Users</div></div>
       </div>
       <div class="table-card">
-        <div class="table-header"><div class="table-title">🆘 সাম্প্রতিক Help Requests</div><button class="btn btn-sm btn-secondary" onclick="showPage('help',document.querySelector('[data-page=help]'))">সব দেখুন</button></div>
-        <div id="recentHelp"></div>
-      </div>
-      <div class="table-card">
-        <div class="table-header"><div class="table-title">🚀 সাম্প্রতিক Upgrade Inquiries</div><button class="btn btn-sm btn-secondary" onclick="showPage('agency',document.querySelector('[data-page=agency]'))">সব দেখুন</button></div>
-        <div id="recentAgency"></div>
+        <div class="table-header"><div class="table-title">💳 সাম্প্রতিক Payments</div></div>
+        <div id="recentPayments"></div>
       </div>
     </div>
 
-    <!-- ======= API KEY PAGE ======= -->
-    <div id="page-apikey" class="hidden">
-      <div class="admin-header">
-        <div><div class="page-title">🔑 System API Key</div><div class="page-subtitle">সব user-দের জন্য একটি key — আপনি সেট করুন, সবাই ব্যবহার করবে</div></div>
-      </div>
-
-      <!-- Current Status -->
-      <div class="card" style="padding:26px;margin-bottom:20px" id="apiKeyStatusCard">
-        <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
-          <div id="apiKeyStatusIcon" style="width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">❓</div>
-          <div>
-            <div id="apiKeyStatusTitle" style="font-family:var(--font-h);font-weight:800;color:#fff">Status চেক করছে...</div>
-            <div id="apiKeyStatusDesc" style="font-size:.83rem;color:var(--text2);margin-top:3px"></div>
-          </div>
-        </div>
-        <div id="apiKeyCurrentDisplay" style="display:none">
-          <div style="background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-family:monospace;font-size:.85rem;color:var(--a1)" id="apiKeyMasked"></div>
-        </div>
-      </div>
-
-      <!-- Set/Update Key -->
-      <div class="settings-section">
-        <h3>🔑 Gemini API Key সেট করুন</h3>
-        <div style="background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.15);border-radius:10px;padding:14px;margin-bottom:18px;font-size:.86rem">
-          <strong style="color:var(--a1)">📋 Gemini API Key পাওয়ার নিয়ম:</strong>
-          <ol style="margin-top:8px;padding-left:18px;color:var(--text2);display:grid;gap:4px">
-            <li><a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--a1)">aistudio.google.com/apikey</a> এ যান</li>
-            <li>Google account দিয়ে login করুন</li>
-            <li>"Create API Key" ক্লিক করুন</li>
-            <li>Key copy করুন এবং নিচে paste করুন</li>
-          </ol>
-          <div style="margin-top:10px;padding:8px 12px;background:rgba(245,158,11,.1);border-radius:8px;font-size:.83rem;color:var(--a3)">✅ Gemini API সম্পূর্ণ <strong>বিনামূল্যে</strong> — কোনো credit card লাগে না!</div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Gemini API Key</label>
-          <input type="password" class="form-control" id="adminApiKeyInput" placeholder="AIzaSy...">
-          <div style="font-size:.78rem;color:var(--text2);margin-top:5px">এই key সব user-দের জন্য কাজ করবে। তারা কখনো এটা দেখতে পাবে না।</div>
-        </div>
-        <div style="display:flex;gap:10px">
-          <button class="btn btn-primary" onclick="saveAdminApiKey()">🔑 Key Save করুন</button>
-          <button class="btn btn-danger btn-sm" onclick="removeAdminApiKey()">🗑️ Key মুছুন</button>
-        </div>
-      </div>
-
-      <!-- Test Key -->
-      <div class="settings-section">
-        <h3>🧪 Key Test করুন</h3>
-        <p style="font-size:.85rem;color:var(--text2);margin-bottom:14px">Key সঠিকভাবে কাজ করছে কিনা যাচাই করুন।</p>
-        <button class="btn btn-secondary" onclick="testApiKey()" id="testBtn">🧪 Connection Test করুন</button>
-        <div id="testResult" style="margin-top:14px"></div>
-      </div>
-
-      <!-- Daily Limit -->
-      <div class="settings-section">
-        <h3>⚙️ Usage Settings</h3>
-        <div class="toggle-row">
-          <label>Free users-দের daily limit (৩ টি)</label>
-          <button class="toggle-switch on" onclick="this.classList.toggle('on')"></button>
-        </div>
-        <div class="toggle-row">
-          <label>Pro users-দের unlimited access</label>
-          <button class="toggle-switch on" onclick="this.classList.toggle('on')"></button>
-        </div>
-      </div>
-    </div>
-
-    <!-- WINNING PRODUCTS -->
+    <!-- PRODUCTS PAGE -->
     <div id="page-products" class="hidden">
       <div class="admin-header">
-        <div><div class="page-title">🏆 Winning Products</div><div class="page-subtitle">Homepage-এ দেখানো products পরিচালনা করুন</div></div>
-        <div style="display:flex;gap:8px">
-          <button class="btn btn-sm btn-secondary" onclick="addSampleProducts()">📦 Sample Data</button>
-          <button class="btn btn-primary" onclick="openProductForm()">+ Product যোগ করুন</button>
-        </div>
+        <div><div class="page-title">🏆 Winning Products</div></div>
+        <button class="btn btn-primary" onclick="openProductForm()">+ Product যোগ করুন</button>
       </div>
       <div class="table-card"><div id="productsTable"></div></div>
     </div>
 
-    <!-- BANNERS -->
-    <div id="page-banners" class="hidden">
-      <div class="admin-header">
-        <div><div class="page-title">🖼️ Banner Management</div><div class="page-subtitle">Homepage-এর banner slider নিয়ন্ত্রণ করুন</div></div>
-        <button class="btn btn-primary" onclick="openBannerForm()">+ Banner যোগ করুন</button>
-      </div>
-      <div id="bannersGrid" style="display:grid;gap:16px"></div>
+    <!-- ALL USERS PAGE -->
+    <div id="page-allUsers" class="hidden">
+      <div class="admin-header"><div><div class="page-title">👤 সব Registered Users</div></div></div>
+      <div class="table-card"><div id="allUsersTable"></div></div>
     </div>
 
-    <!-- HELP REQUESTS -->
-    <div id="page-help" class="hidden">
-      <div class="admin-header">
-        <div><div class="page-title">🆘 Help Requests</div><div class="page-subtitle">সব user support tickets</div></div>
-        <div style="display:flex;gap:8px;align-items:center">
-          <select class="form-control" id="helpFilter" onchange="renderHelpTable()" style="width:auto;padding:7px 12px;font-size:.82rem">
-            <option value="all">সব</option><option value="pending">Pending</option><option value="replied">Replied</option><option value="closed">Closed</option>
-          </select>
-          <button class="btn btn-sm btn-secondary" onclick="exportCSV('help')">⬇️ CSV</button>
-        </div>
-      </div>
-      <div class="table-card"><div id="helpTable"></div></div>
-    </div>
-
-    <!-- AGENCY -->
-    <div id="page-agency" class="hidden">
-      <div class="admin-header">
-        <div><div class="page-title">🚀 Upgrade Inquiries</div><div class="page-subtitle">Pro/Agency হতে আগ্রহী users</div></div>
-        <button class="btn btn-sm btn-secondary" onclick="exportCSV('agency')">⬇️ CSV</button>
-      </div>
-      <div class="table-card"><div id="agencyTable"></div></div>
-    </div>
-
-    <!-- PRO USERS -->
-    <div id="page-users" class="hidden">
-      <div class="admin-header">
-        <div><div class="page-title">👥 Pro User Management</div></div>
-        <button class="btn btn-primary" onclick="Modal.show('addUserModal')">+ Pro User যোগ করুন</button>
-      </div>
-      <div class="table-card"><div id="usersTable"></div></div>
-    </div>
-
-    <!-- ANALYTICS -->
-    <div id="page-analytics" class="hidden">
-      <div class="admin-header"><div><div class="page-title">📈 Analytics</div></div></div>
-      <div class="stats-grid" id="analyticsStats"></div>
-      <div class="table-card">
-        <div class="table-header"><div class="table-title">🔬 Tool Usage</div></div>
-        <div id="toolUsage" style="padding:20px"></div>
-      </div>
-      <div class="table-card">
-        <div class="table-header"><div class="table-title">📋 Recent Events</div></div>
-        <div id="eventsTable"></div>
+    <!-- API KEY PAGE -->
+    <div id="page-apikey" class="hidden">
+      <div class="admin-header"><div><div class="page-title">🔑 System API Key</div></div></div>
+      <div class="card" style="padding:20px">
+        <div class="form-group"><label class="form-label">Gemini API Key</label><input class="form-control" id="adminApiKeyInput" type="password" placeholder="AIzaSy..."></div>
+        <button class="btn btn-primary" onclick="saveAdminApiKey()">Save Key</button>
       </div>
     </div>
 
-    <!-- SETTINGS -->
+    <!-- SETTINGS PAGE -->
     <div id="page-settings" class="hidden">
       <div class="admin-header"><div><div class="page-title">⚙️ Settings</div></div></div>
-      <div class="settings-section">
-        <h3>🔐 Admin Password পরিবর্তন</h3>
-        <div class="form-group"><label class="form-label">নতুন Password</label><input class="form-control" type="password" id="newPass" placeholder="সর্বনিম্ন ৬ অক্ষর"></div>
-        <div class="form-group"><label class="form-label">Confirm Password</label><input class="form-control" type="password" id="confPass" placeholder="আবার লিখুন"></div>
-        <button class="btn btn-primary btn-sm" onclick="changePass()">🔐 Update করুন</button>
-      </div>
-      <div class="settings-section">
-        <h3 style="color:#f87171">💣 Danger Zone</h3>
-        <p style="font-size:.85rem;color:var(--text2);margin-bottom:14px">সব data permanently মুছুন।</p>
-        <button class="btn btn-danger btn-sm" onclick="clearAll()">🗑️ সব Data মুছুন</button>
+      <div class="card" style="padding:20px">
+        <div class="form-group"><label class="form-label">bKash Number</label><input class="form-control" id="bkashInput" placeholder="01XXXXXXXXX"></div>
+        <button class="btn btn-primary" onclick="saveBkash()">Save bKash</button>
       </div>
     </div>
-
   </main>
 </div>
 
-<!-- PRODUCT FORM MODAL -->
+<!-- MODALS -->
 <div class="modal-overlay hidden" id="productFormModal">
-  <div class="modal-box modal-box-lg" style="max-width:700px">
-    <div class="modal-header">
-      <div class="modal-title" id="productFormTitle">➕ Product যোগ করুন</div>
-      <button class="modal-close" onclick="Modal.hideAll()">✕</button>
+  <div class="modal-box" style="max-width:800px">
+    <div class="modal-header"><div class="modal-title">Product Form</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
+    <div style="padding:20px;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="form-group"><label class="form-label">Product Name *</label><input class="form-control" id="pf-name"></div>
+      <div class="form-group"><label class="form-label">Category</label><input class="form-control" id="pf-cat"></div>
+      <div class="form-group"><label class="form-label">Score (0-100)</label><input class="form-control" id="pf-score" type="number"></div>
+      <div class="form-group"><label class="form-label">Price Range</label><input class="form-control" id="pf-price"></div>
+      <div class="form-group"><label class="form-label">Image URL</label><input class="form-control" id="pf-img"></div>
+      <div class="form-group"><label class="form-label">Type</label><select class="form-control" id="pf-premium"><option value="false">Free</option><option value="true">Premium</option></select></div>
+      <div class="form-group" style="grid-column:1/-1"><label class="form-label">Short Description</label><input class="form-control" id="pf-short"></div>
+      <div class="form-group" style="grid-column:1/-1"><label class="form-label">Full Description</label><textarea class="form-control" id="pf-desc" rows="3"></textarea></div>
+      <div class="form-group" style="grid-column:1/-1"><label class="form-label">Facebook Ad Copy</label><textarea class="form-control" id="pf-facebook" rows="3"></textarea></div>
+      <div class="form-group" style="grid-column:1/-1"><label class="form-label">TikTok Ad Copy</label><textarea class="form-control" id="pf-tiktok" rows="3"></textarea></div>
+      <button class="btn btn-primary btn-full" style="grid-column:1/-1" onclick="saveProduct()">Save Product</button>
     </div>
-    <div class="product-form-grid">
-      <div class="form-group"><label class="form-label">Product Name *</label><input class="form-control" id="pf-name" placeholder="e.g., Posture Corrector Pro"></div>
-      <div class="form-group"><label class="form-label">Category</label>
-        <select class="form-control" id="pf-cat">
-          <option>Health & Beauty</option><option>Electronics</option><option>Home & Garden</option>
-          <option>Sports & Fitness</option><option>Baby & Kids</option><option>Pet Products</option>
-          <option>Kitchen</option><option>Fashion</option><option>Other</option>
-        </select>
-      </div>
-      <div class="form-group"><label class="form-label">Image URL</label><input class="form-control" id="pf-img" placeholder="https://...image.jpg"></div>
-      <div class="form-group"><label class="form-label">মূল্য পরিসর</label><input class="form-control" id="pf-price" placeholder="e.g., ৳২,৫০০-৪,৫০০"></div>
-      <div class="form-group"><label class="form-label">Product Score (১-১০০)</label><input class="form-control" id="pf-score" type="number" min="1" max="100" placeholder="85"></div>
-      <div class="form-group"><label class="form-label">Premium Only?</label>
-        <select class="form-control" id="pf-premium"><option value="true">হ্যাঁ — শুধু Premium Users</option><option value="false">না — সবার জন্য</option></select>
-      </div>
-    </div>
-    <div class="form-group"><label class="form-label">Short Description (card-এ দেখাবে)</label><input class="form-control" id="pf-short" placeholder="১-২ বাক্যে সংক্ষিপ্ত বিবরণ"></div>
-    <div class="form-group"><label class="form-label">Full Description</label><textarea class="form-control" id="pf-desc" rows="3" placeholder="বিস্তারিত বিবরণ..."></textarea></div>
-    <div class="form-group"><label class="form-label">কোথায় পাওয়া যাবে</label><input class="form-control" id="pf-where" placeholder="e.g., AliExpress, Alibaba, DHgate"></div>
-    <div class="form-group"><label class="form-label">Key Selling Points (প্রতিটি নতুন লাইনে)</label><textarea class="form-control" id="pf-points" rows="3" placeholder="১০ দিনে পিঠের ব্যথা কমে&#10;সব শরীরের জন্য&#10;Doctor recommended"></textarea></div>
-    <div class="form-group"><label class="form-label">🎵 TikTok Ad Strategy</label><textarea class="form-control" id="pf-tiktok" rows="3" placeholder="TikTok-এ কীভাবে ad দেবেন, content angle..."></textarea></div>
-    <div class="form-group"><label class="form-label">📘 Facebook Ad Strategy</label><textarea class="form-control" id="pf-facebook" rows="3" placeholder="Facebook-এ ad strategy, targeting, budget..."></textarea></div>
-    <div class="form-group"><label class="form-label">💰 Ad Budget Recommendation</label><input class="form-control" id="pf-budget" placeholder="e.g., দিনে ৳২,০০০ দিয়ে শুরু করুন"></div>
-    <div class="form-group"><label class="form-label">💬 Caption Template</label><textarea class="form-control" id="pf-caption" rows="2" placeholder="Social media caption..."></textarea></div>
-    <div class="form-group"><label class="form-label">🏷️ Hashtags</label><input class="form-control" id="pf-tags" placeholder="#posturecorrector #backpain"></div>
-    <div class="form-group"><label class="form-label">📌 Additional Notes</label><textarea class="form-control" id="pf-notes" rows="2" placeholder="Extra tips..."></textarea></div>
-    <div style="display:flex;gap:10px;margin-top:4px">
-      <button class="btn btn-primary" style="flex:1" onclick="saveProduct()">💾 Save করুন</button>
-      <button class="btn btn-secondary" onclick="Modal.hideAll()">বাতিল</button>
-    </div>
-  </div>
-</div>
-
-<!-- BANNER FORM MODAL -->
-<div class="modal-overlay hidden" id="bannerFormModal">
-  <div class="modal-box">
-    <div class="modal-header"><div class="modal-title" id="bannerFormTitle">🖼️ Banner যোগ করুন</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">Title *</label><input class="form-control" id="bn-title" placeholder="e.g., 🚀 Winning Products খুঁজুন"></div>
-    <div class="form-group"><label class="form-label">Subtitle</label><input class="form-control" id="bn-sub" placeholder="Banner বিবরণ..."></div>
-    <div class="form-group"><label class="form-label">CTA Button Text</label><input class="form-control" id="bn-cta" placeholder="শুরু করুন"></div>
-    <div class="form-group"><label class="form-label">CTA Link</label><input class="form-control" id="bn-link" placeholder="#tools বা https://..."></div>
-    <div class="form-group"><label class="form-label">Background Gradient</label><input class="form-control" id="bn-bg" placeholder="linear-gradient(135deg,#00f5d4,#7c3aed)"></div>
-    <div class="form-group"><label class="form-label">Active?</label><select class="form-control" id="bn-active"><option value="true">হ্যাঁ</option><option value="false">না</option></select></div>
-    <div style="display:flex;gap:10px">
-      <button class="btn btn-primary" style="flex:1" onclick="saveBanner()">💾 Save</button>
-      <button class="btn btn-secondary" onclick="Modal.hideAll()">বাতিল</button>
-    </div>
-  </div>
-</div>
-
-<!-- DETAIL MODAL -->
-<div class="modal-overlay hidden" id="detailModal">
-  <div class="modal-box" style="max-width:580px">
-    <div class="modal-header"><div class="modal-title" id="detailTitle">Details</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div id="detailContent"></div>
-  </div>
-</div>
-
-<!-- ADD USER MODAL -->
-<div class="modal-overlay hidden" id="addUserModal">
-  <div class="modal-box">
-    <div class="modal-header"><div class="modal-title">👥 Pro User যোগ করুন</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
-    <div class="form-group"><label class="form-label">নাম</label><input class="form-control" id="nu-name" placeholder="User-এর নাম"></div>
-    <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="nu-email" type="email" placeholder="user@example.com"></div>
-    <div class="form-group"><label class="form-label">Plan</label><select class="form-control" id="nu-plan"><option>Pro Monthly</option><option>Pro Annual</option><option>Agency</option></select></div>
-    <button class="btn btn-primary btn-full" onclick="addUser()">✅ User যোগ করুন</button>
   </div>
 </div>
 
 <script src="../assets/js/app.js"></script>
 <script>
-/* ===== AUTH ===== */
-function adminLogin(){
-  const p=document.getElementById('adminPass').value;
-  const stored=Store.D().adminPassword||CONFIG.ADMIN_KEY;
-  if(p===stored){
-    Store.set('es_admin_auth',true);
-    document.getElementById('loginScreen').classList.add('hidden');
-    document.getElementById('adminApp').classList.remove('hidden');
-    initAdmin();
+/* ── Admin Logic ── */
+async function adminLogin() {
+  const email = document.getElementById('adminEmail').value.trim();
+  const pass = document.getElementById('adminPass').value;
+  const res = await loginUser(email, pass);
+  if(res.success) {
+    /* Wait for auth state to propagate */
+    setTimeout(async () => {
+      if(FB.isPro() || currentUserData?.plan === 'admin') {
+        document.getElementById('loginScreen').classList.add('hidden');
+        document.getElementById('adminApp').classList.remove('hidden');
+        initAdmin();
+      } else {
+        Toast.error('আপনি Admin নন।');
+        auth.signOut();
+      }
+    }, 1000);
   } else {
-    document.getElementById('loginErr').classList.remove('hidden');
-    document.getElementById('adminPass').value='';
+    Toast.error(res.error);
   }
 }
-function adminLogout(){ Store.rm('es_admin_auth'); location.reload(); }
 
-function initAdmin(){
-  const st=Store.stats();
-  document.getElementById('dashDate').textContent=new Date().toLocaleString('bn-BD');
-  document.getElementById('s-prod').textContent=st.products;
-  document.getElementById('s-help').textContent=st.help;
-  document.getElementById('s-hp').textContent=`${st.helpPending}টি pending`;
-  document.getElementById('s-agency').textContent=st.agency;
-  document.getElementById('s-users').textContent=st.proUsers;
-  document.getElementById('s-gen').textContent=st.totalGen;
-  document.getElementById('sb-help').textContent=st.helpPending;
-  document.getElementById('sb-agency').textContent=st.agencyNew;
-  // API key alert
-  if(!Store.getApiKey()){
-    document.getElementById('apiKeyAlert').classList.remove('hidden');
-  }
-  renderRecentHelp(); renderRecentAgency();
+function adminLogout() {
+  auth.signOut();
+  location.reload();
 }
 
-/* ===== PAGE ROUTING ===== */
-function showPage(name,btn){
-  document.querySelectorAll('[id^="page-"]').forEach(p=>p.classList.add('hidden'));
-  document.getElementById('page-'+name)?.classList.remove('hidden');
-  document.querySelectorAll('.sidebar-link').forEach(l=>l.classList.remove('active'));
-  btn?.classList.add('active');
-  if(name==='products') renderProductsTable();
-  if(name==='banners') renderBanners();
-  if(name==='help') renderHelpTable();
-  if(name==='agency') renderAgencyTable();
-  if(name==='users') renderUsersTable();
-  if(name==='analytics') renderAnalytics();
-  if(name==='apikey') renderApiKeyStatus();
+async function initAdmin() {
+  const stats = await FB.getStats();
+  document.getElementById('s-prod').textContent = stats.products;
+  document.getElementById('s-help').textContent = stats.helpPending;
+  document.getElementById('s-agency').textContent = stats.agency;
+  document.getElementById('s-pay').textContent = stats.paymentsPending;
+  document.getElementById('s-users').textContent = stats.proUsers;
+  document.getElementById('s-allUsers').textContent = stats.allUsers;
+  
+  document.getElementById('sb-pay').textContent = stats.paymentsPending;
+  document.getElementById('sb-help').textContent = stats.helpPending;
+  document.getElementById('sb-agency').textContent = stats.agency;
+
+  renderRecentPayments();
 }
 
-function fd(iso){ try{return new Date(iso).toLocaleDateString('bn-BD',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}catch{return '—'} }
+function showPage(page, btn) {
+  document.querySelectorAll('main > div').forEach(d => d.classList.add('hidden'));
+  document.getElementById('page-' + page).classList.remove('hidden');
+  document.querySelectorAll('.sidebar-link').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  
+  if(page === 'products') renderProductsTable();
+  if(page === 'allUsers') renderAllUsers();
+  if(page === 'apikey') document.getElementById('adminApiKeyInput').value = Store.getApiKey();
+  if(page === 'settings') document.getElementById('bkashInput').value = Store.getBkashNumber();
+}
 
-/* ===== API KEY MANAGEMENT ===== */
-function renderApiKeyStatus(){
-  const key=Store.getApiKey();
-  const icon=document.getElementById('apiKeyStatusIcon');
-  const title=document.getElementById('apiKeyStatusTitle');
-  const desc=document.getElementById('apiKeyStatusDesc');
-  const display=document.getElementById('apiKeyCurrentDisplay');
-  const masked=document.getElementById('apiKeyMasked');
-  if(key){
-    icon.style.background='rgba(0,245,212,.15)'; icon.textContent='✅';
-    title.textContent='System Key সক্রিয়';
-    desc.textContent='সব tools কাজ করছে। User-রা এই key দেখতে পাচ্ছে না।';
-    display.style.display='block';
-    masked.textContent=key.substring(0,8)+'...'+key.substring(key.length-4);
+/* ── Products ── */
+let editingProductId = null;
+async function renderProductsTable() {
+  const products = await FB.getProducts();
+  const table = document.getElementById('productsTable');
+  table.innerHTML = `<table><thead><tr><th>Product</th><th>Category</th><th>Score</th><th>Type</th><th>Actions</th></tr></thead><tbody>
+    ${products.map(p => `<tr>
+      <td>${p.name}</td>
+      <td>${p.category}</td>
+      <td>${p.score}</td>
+      <td>${p.premium ? '⭐ Premium' : 'Free'}</td>
+      <td>
+        <button class="btn btn-sm btn-secondary" onclick="openProductForm('${p.id}')">Edit</button>
+        <button class="btn btn-sm btn-danger" onclick="deleteProduct('${p.id}')">Del</button>
+      </td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+
+function openProductForm(id = null) {
+  editingProductId = id;
+  if(id) {
+    /* Load product data and fill form */
   } else {
-    icon.style.background='rgba(245,158,11,.12)'; icon.textContent='⚠️';
-    title.textContent='System Key সেট নেই!';
-    desc.textContent='Tools কাজ করবে না। নিচে Gemini API key দিন।';
-    display.style.display='none';
+    /* Clear form */
   }
-}
-
-function saveAdminApiKey(){
-  const key=document.getElementById('adminApiKeyInput')?.value?.trim();
-  if(!key||key.length<10){ Toast.error('সঠিক API Key দিন'); return; }
-  Store.setApiKey(key);
-  document.getElementById('adminApiKeyInput').value='';
-  renderApiKeyStatus();
-  document.getElementById('apiKeyAlert').classList.add('hidden');
-  Toast.success('System API Key সেভ হয়েছে! ✅ এখন সব tools কাজ করবে।');
-}
-
-function removeAdminApiKey(){
-  if(!confirm('System API Key মুছবেন? সব tools বন্ধ হয়ে যাবে!'))return;
-  Store.setApiKey('');
-  renderApiKeyStatus();
-  Toast.warning('API Key মুছা হয়েছে।');
-}
-
-async function testApiKey(){
-  const key=Store.getApiKey();
-  const btn=document.getElementById('testBtn');
-  const result=document.getElementById('testResult');
-  if(!key){ result.innerHTML='<div class="alert alert-error">❌ কোনো key সেট নেই।</div>'; return; }
-  btn.disabled=true; btn.textContent='⏳ Test করা হচ্ছে...';
-  result.innerHTML='<div class="alert alert-info">🔄 Connection check করা হচ্ছে...</div>';
-  try{
-    const url=`${CONFIG.GEMINI_URL}?key=${key}`;
-    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:'Say "OK" only'}]}],generationConfig:{maxOutputTokens:5}})});
-    if(res.ok){
-      result.innerHTML='<div class="alert alert-success">✅ Connection সফল! Key সঠিকভাবে কাজ করছে।</div>';
-    } else {
-      const err=await res.json().catch(()=>({}));
-      result.innerHTML=`<div class="alert alert-error">❌ Error: ${err.error?.message||'Invalid key'}</div>`;
-    }
-  } catch(e){
-    result.innerHTML=`<div class="alert alert-error">❌ Connection failed: ${e.message}</div>`;
-  }
-  btn.disabled=false; btn.textContent='🧪 Connection Test করুন';
-}
-
-/* ===== PRODUCTS ===== */
-let editingProductId=null;
-
-function openProductForm(id=null){
-  editingProductId=id;
-  const p=id?Store.getProducts().find(x=>x.id===id):null;
-  document.getElementById('productFormTitle').textContent=id?'✏️ Product সম্পাদনা':'➕ Product যোগ করুন';
-  [['pf-name',p?.name||''],['pf-img',p?.image||''],['pf-price',p?.price||''],
-   ['pf-score',p?.score||''],['pf-premium',p?.premium!==false?'true':'false'],
-   ['pf-short',p?.shortDesc||''],['pf-desc',p?.description||''],
-   ['pf-where',p?.whereToFind||''],['pf-points',(p?.sellingPoints||[]).join('\n')],
-   ['pf-tiktok',p?.tiktokAd||''],['pf-facebook',p?.facebookAd||''],
-   ['pf-budget',p?.adBudget||''],['pf-caption',p?.caption||''],
-   ['pf-tags',p?.hashtags||''],['pf-notes',p?.notes||''],
-  ].forEach(([id,val])=>{ const el=document.getElementById(id); if(el)el.value=val; });
-  const catEl=document.getElementById('pf-cat');
-  if(catEl&&p?.category)catEl.value=p.category;
   Modal.show('productFormModal');
 }
 
-function saveProduct(){
-  const name=document.getElementById('pf-name')?.value?.trim();
-  if(!name){ Toast.error('Product name দিন'); return; }
-  const pts=document.getElementById('pf-points')?.value||'';
-  const data={
-    name,category:document.getElementById('pf-cat')?.value,
-    image:document.getElementById('pf-img')?.value?.trim(),
-    price:document.getElementById('pf-price')?.value?.trim(),
-    score:parseInt(document.getElementById('pf-score')?.value)||0,
-    premium:document.getElementById('pf-premium')?.value==='true',
-    shortDesc:document.getElementById('pf-short')?.value?.trim(),
-    description:document.getElementById('pf-desc')?.value?.trim(),
-    whereToFind:document.getElementById('pf-where')?.value?.trim(),
-    sellingPoints:pts.split('\n').map(s=>s.trim()).filter(Boolean),
-    tiktokAd:document.getElementById('pf-tiktok')?.value?.trim(),
-    facebookAd:document.getElementById('pf-facebook')?.value?.trim(),
-    adBudget:document.getElementById('pf-budget')?.value?.trim(),
-    caption:document.getElementById('pf-caption')?.value?.trim(),
-    hashtags:document.getElementById('pf-tags')?.value?.trim(),
-    notes:document.getElementById('pf-notes')?.value?.trim(),
+async function saveProduct() {
+  const data = {
+    name: document.getElementById('pf-name').value,
+    category: document.getElementById('pf-cat').value,
+    score: parseInt(document.getElementById('pf-score').value),
+    price: document.getElementById('pf-price').value,
+    image: document.getElementById('pf-img').value,
+    premium: document.getElementById('pf-premium').value === 'true',
+    shortDesc: document.getElementById('pf-short').value,
+    description: document.getElementById('pf-desc').value,
+    facebookAd: document.getElementById('pf-facebook').value,
+    tiktokAd: document.getElementById('pf-tiktok').value,
   };
-  if(editingProductId){ Store.updateProduct(editingProductId,data); Toast.success('Product update হয়েছে! ✅'); }
-  else { Store.addProduct(data); Toast.success('Product যোগ হয়েছে! ✅'); }
-  Modal.hideAll(); renderProductsTable(); initAdmin();
+  if(editingProductId) await FB.updateProduct(editingProductId, data);
+  else await FB.addProduct(data);
+  Modal.hideAll();
+  renderProductsTable();
+  initAdmin();
 }
 
-function renderProductsTable(){
-  const products=Store.getProducts();
-  if(!products.length){
-    document.getElementById('productsTable').innerHTML=`<div style="padding:30px;text-align:center;color:var(--text2)"><p>এখনো কোনো product নেই।</p></div>`;
-    return;
-  }
-  document.getElementById('productsTable').innerHTML=`<table>
-    <thead><tr><th>Product</th><th>Category</th><th>Score</th><th>Type</th><th>Date</th><th>Actions</th></tr></thead>
-    <tbody>${products.map(p=>`<tr>
-      <td><div style="display:flex;align-items:center;gap:10px">
-        ${p.image?`<img src="${p.image}" style="width:40px;height:40px;border-radius:8px;object-fit:cover" onerror="this.style.display='none'">`:'<div style="width:40px;height:40px;border-radius:8px;background:rgba(0,245,212,.1);display:flex;align-items:center;justify-content:center">🏆</div>'}
-        <div><div style="font-weight:800;color:#fff">${p.name}</div><div style="font-size:.77rem;color:var(--text2)">${p.shortDesc?.substring(0,40)||''}…</div></div>
-      </div></td>
-      <td><span class="tag tag-mint">${p.category||'—'}</span></td>
-      <td><span style="font-weight:900;color:${p.score>=80?'var(--a1)':p.score>=60?'var(--a3)':'#f87171'}">${p.score||'—'}</span></td>
-      <td><span class="tag ${p.premium?'tag-amber':'tag-green'}">${p.premium?'⭐ Premium':'Free'}</span></td>
-      <td style="font-size:.79rem;color:var(--text2)">${fd(p.date)}</td>
-      <td>
-        <button class="action-btn" onclick="openProductForm(${p.id})">✏️ Edit</button>
-        <button class="action-btn" style="color:#f87171;margin-left:4px" onclick="delProduct(${p.id})">🗑️</button>
-      </td>
-    </tr>`).join('')}</tbody>
-  </table>`;
-}
-
-function delProduct(id){ if(!confirm('মুছবেন?'))return; Store.deleteProduct(id); renderProductsTable(); initAdmin(); Toast.success('Deleted'); }
-
-function addSampleProducts(){
-  const samples=[
-    {name:'Posture Corrector Pro',category:'Health & Beauty',score:88,premium:true,price:'৳২,৫০০-৪,৫০০',shortDesc:'Back support brace — TikTok ও Amazon-এ বিশাল চাহিদা',description:'TikTok-এর #১ trending health product। পিঠের ব্যথা কমায়।',whereToFind:'AliExpress — "adjustable posture brace" সার্চ করুন',sellingPoints:['১০ দিনে পিঠের ব্যথা কমে','সব শরীরের জন্য','Doctor recommended'],tiktokAd:'Hook: "আমি এই ৳৮০০ brace দিয়ে পিঠের ব্যথা ঠিক করেছি"\nAngle: Before/After transformation\nদিনে ৩ বার post করুন',facebookAd:'Headline: পিঠের ব্যথার সহজ সমাধান\nTargeting: ৩০-৫৫ বছর, health interest\nBudget: দিনে ৳২,০০০',adBudget:'TikTok-এ দিনে ৳১,৫০০ দিয়ে শুরু করুন',caption:'এটা জীবন বদলে দিয়েছে 😱 মাত্র ১০ দিনে! #PostureCorrector',hashtags:'#posturecorrector #backpain #healthhack',notes:'১৮+ মাস ধরে trending। Return rate খুব কম।'},
-    {name:'LED Face Mask',category:'Health & Beauty',score:85,premium:true,price:'৳৩,০০০-৬,০০০',shortDesc:'৭ রঙের LED therapy mask — viral TikTok beauty product',description:'Professional LED light therapy mask অ্যান্টি-এজিং ও acne treatment-এর জন্য।',whereToFind:'Alibaba — minimum 50 units, OEM available',sellingPoints:['৭টি LED mode','Anti-aging & acne','ঘরে বসেই spa'],tiktokAd:'Hook: "৩০ দিন এটা ব্যবহার করে ত্বক বদলে গেছে"\nBefore/after content',facebookAd:'Headline: ঘরে বসে Spa\nAudience: ২৫-৪৫ মহিলা',adBudget:'Facebook ৳৩,০০০/দিন, TikTok ৳২,০০০/দিন',caption:'৩০ দিনে change ✨ #skincare #glowup',hashtags:'#LEDmask #skincare #antiaging',notes:'Premium positioning ভালো।'},
-    {name:'Portable Blender',category:'Kitchen',score:79,premium:false,price:'৳১,৫০০-৩,৫০০',shortDesc:'USB rechargeable mini blender — চলতে চলতে smoothie বানান',description:'Compact USB-C rechargeable personal blender।',whereToFind:'AliExpress — bulk ৪০০ টাকা/unit',sellingPoints:['USB-C rechargeable','Self-cleaning','BPA-free'],tiktokAd:'Lifestyle content — gym, travel, office',facebookAd:'Target: fitness & busy moms',adBudget:'দিনে ৳১,০০০-২,০০০',caption:'Gym smoothie on the go 🥤 #fitness',hashtags:'#portableblender #fitness',notes:'Bundle with protein powder.'},
-  ];
-  samples.forEach(s=>Store.addProduct(s));
-  renderProductsTable(); initAdmin(); Toast.success('Sample products যোগ হয়েছে! ✅');
-}
-
-/* ===== BANNERS ===== */
-let editingBannerId=null;
-
-function openBannerForm(id=null){
-  editingBannerId=id;
-  const b=id!==null?Store.getBanners().find(x=>x.id===id):null;
-  document.getElementById('bn-title').value=b?.title||'';
-  document.getElementById('bn-sub').value=b?.subtitle||'';
-  document.getElementById('bn-cta').value=b?.cta||'শুরু করুন';
-  document.getElementById('bn-link').value=b?.link||'#';
-  document.getElementById('bn-bg').value=b?.bg||'linear-gradient(135deg,#00f5d4,#7c3aed)';
-  document.getElementById('bn-active').value=b?.active!==false?'true':'false';
-  Modal.show('bannerFormModal');
-}
-
-function saveBanner(){
-  const title=document.getElementById('bn-title')?.value?.trim();
-  if(!title){ Toast.error('Title দিন'); return; }
-  const banners=Store.getBanners();
-  const data={title,subtitle:document.getElementById('bn-sub')?.value?.trim(),cta:document.getElementById('bn-cta')?.value?.trim()||'শুরু করুন',link:document.getElementById('bn-link')?.value?.trim()||'#',bg:document.getElementById('bn-bg')?.value?.trim()||'linear-gradient(135deg,#00f5d4,#7c3aed)',active:document.getElementById('bn-active')?.value==='true'};
-  if(editingBannerId!==null){ const i=banners.findIndex(b=>b.id===editingBannerId); if(i!==-1)banners[i]={...banners[i],...data}; }
-  else { data.id=Date.now(); banners.push(data); }
-  Store.setBanners(banners); Modal.hideAll(); renderBanners(); Toast.success('Banner save! ✅');
-}
-
-function renderBanners(){
-  const banners=Store.getBanners();
-  document.getElementById('bannersGrid').innerHTML=banners.map(b=>`
-    <div class="card" style="padding:20px;border-left:4px solid ${b.active?'var(--a1)':'var(--border)'}">
-      <div style="display:flex;align-items:center;gap:14px">
-        <div style="width:80px;height:50px;border-radius:8px;background:${b.bg};flex-shrink:0"></div>
-        <div style="flex:1"><strong style="color:#fff">${b.title}</strong><p style="font-size:.82rem;margin:2px 0">${b.subtitle||''}</p><div style="display:flex;gap:6px;margin-top:6px"><span class="tag ${b.active?'tag-mint':'tag-red'}">${b.active?'Active':'Hidden'}</span></div></div>
-        <div style="display:flex;gap:6px"><button class="action-btn" onclick="openBannerForm(${b.id})">✏️</button><button class="action-btn" style="color:#f87171" onclick="delBanner(${b.id})">🗑️</button></div>
-      </div>
-    </div>`).join('');
-}
-
-function delBanner(id){ if(!confirm('মুছবেন?'))return; Store.setBanners(Store.getBanners().filter(x=>x.id!==id)); renderBanners(); }
-
-/* ===== HELP TABLE ===== */
-function renderRecentHelp(){ document.getElementById('recentHelp').innerHTML=buildHelpHTML(Store.getHelp().slice(0,5),true); }
-function renderHelpTable(){ const f=document.getElementById('helpFilter')?.value||'all'; let r=Store.getHelp(); if(f!=='all')r=r.filter(x=>x.status===f); document.getElementById('helpTable').innerHTML=buildHelpHTML(r,false); }
-function buildHelpHTML(rows,compact){
-  if(!rows.length)return`<div style="padding:28px;text-align:center;color:var(--text2)">কোনো request নেই।</div>`;
-  return`<table><thead><tr><th>নাম</th><th>Email</th>${compact?'':'<th>বিষয়</th>'}<th>বার্তা</th><th>তারিখ</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-    ${rows.map(r=>`<tr>
-      <td><strong>${r.name}</strong></td><td style="color:var(--text2)">${r.email}</td>
-      ${compact?'':'<td><span class="tag tag-mint">'+r.category+'</span></td>'}
-      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">${r.message?.substring(0,70)}…</td>
-      <td style="font-size:.79rem;color:var(--text2)">${fd(r.date)}</td>
-      <td><span class="status-pill status-${r.status}">${r.status}</span></td>
-      <td><button class="action-btn" onclick="viewHelp(${r.id})">দেখুন</button><button class="action-btn" onclick="updH(${r.id},'replied')" style="margin-left:4px">✅</button><button class="action-btn" onclick="updH(${r.id},'closed')" style="margin-left:4px;color:#f87171">✕</button></td>
-    </tr>`).join('')}
-  </tbody></table>`;
-}
-function updH(id,s){ Store.updHelp(id,{status:s}); renderHelpTable(); renderRecentHelp(); initAdmin(); Toast.success(`Status → ${s}`); }
-function viewHelp(id){
-  const r=Store.getHelp().find(x=>x.id===id); if(!r)return;
-  document.getElementById('detailTitle').textContent=`🆘 ${r.name}`;
-  document.getElementById('detailContent').innerHTML=`
-    <div style="display:grid;gap:12px">
-      <div style="display:flex;gap:14px;flex-wrap:wrap">
-        <div><div style="font-size:.72rem;color:var(--text2)">নাম</div><strong>${r.name}</strong></div>
-        <div><div style="font-size:.72rem;color:var(--text2)">Email</div><strong>${r.email}</strong></div>
-        <div><div style="font-size:.72rem;color:var(--text2)">বিষয়</div><span class="tag tag-mint">${r.category||'General'}</span></div>
-      </div>
-      <div style="background:rgba(0,245,212,.04);border:1px solid rgba(0,245,212,.15);border-radius:10px;padding:14px;font-size:.88rem;line-height:1.7">${r.message}</div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-success btn-sm" onclick="updH(${r.id},'replied');Modal.hideAll()">✅ Replied</button>
-        <button class="btn btn-secondary btn-sm" onclick="copyText('${r.email}',this)">📋 Email Copy</button>
-        <button class="btn btn-danger btn-sm" onclick="updH(${r.id},'closed');Modal.hideAll()">✕ Close</button>
-      </div>
-    </div>`;
-  Modal.show('detailModal');
-}
-
-/* ===== AGENCY TABLE ===== */
-function renderRecentAgency(){ document.getElementById('recentAgency').innerHTML=buildAgencyHTML(Store.getAgency().slice(0,5),true); }
-function renderAgencyTable(){ document.getElementById('agencyTable').innerHTML=buildAgencyHTML(Store.getAgency(),false); }
-function buildAgencyHTML(rows,compact){
-  if(!rows.length)return`<div style="padding:28px;text-align:center;color:var(--text2)">কোনো inquiry নেই।</div>`;
-  return`<table><thead><tr><th>নাম</th><th>Email</th><th>Plan</th>${compact?'':'<th>Revenue</th>'}<th>তারিখ</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-    ${rows.map(r=>`<tr>
-      <td><strong>${r.name}</strong></td><td style="color:var(--text2)">${r.email}</td>
-      <td><span class="tag tag-violet">${r.plan}</span></td>
-      ${compact?'':'<td style="color:var(--a1);font-size:.83rem">'+r.revenue+'</td>'}
-      <td style="font-size:.79rem;color:var(--text2)">${fd(r.date)}</td>
-      <td><span class="status-pill status-${r.status}">${r.status}</span></td>
-      <td><button class="action-btn" onclick="viewAgency(${r.id})">দেখুন</button><button class="action-btn" style="margin-left:4px" onclick="activatePro('${r.name}','${r.email}','${r.plan}')">⭐</button></td>
-    </tr>`).join('')}
-  </tbody></table>`;
-}
-function viewAgency(id){
-  const r=Store.getAgency().find(x=>x.id===id); if(!r)return;
-  document.getElementById('detailTitle').textContent=`🚀 ${r.name}`;
-  document.getElementById('detailContent').innerHTML=`
-    <div style="display:grid;gap:12px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div><div style="font-size:.72rem;color:var(--text2)">নাম</div><strong>${r.name}</strong></div>
-        <div><div style="font-size:.72rem;color:var(--text2)">Email</div><strong>${r.email}</strong></div>
-        <div><div style="font-size:.72rem;color:var(--text2)">Plan</div><span class="tag tag-violet">${r.plan}</span></div>
-        <div><div style="font-size:.72rem;color:var(--text2)">Revenue</div><strong style="color:var(--a1)">${r.revenue}</strong></div>
-      </div>
-      ${r.message?`<div style="background:rgba(124,58,237,.05);border:1px solid rgba(124,58,237,.15);border-radius:10px;padding:14px;font-size:.88rem">${r.message}</div>`:''}
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-primary btn-sm" onclick="activatePro('${r.name}','${r.email}','${r.plan}')">⭐ Pro Activate</button>
-        <button class="btn btn-secondary btn-sm" onclick="copyText('${r.email}',this)">📋 Email Copy</button>
-      </div>
-    </div>`;
-  Modal.show('detailModal');
-}
-function activatePro(name,email,plan){
-  const d=Store.D(); if(!d.proUsers)d.proUsers=[];
-  if(d.proUsers.find(u=>u.email===email)){ Toast.warning('ইতোমধ্যে আছে'); return; }
-  d.proUsers.push({id:Date.now(),name,email,plan,date:new Date().toISOString()});
-  Store.SD(d); Modal.hideAll(); renderUsersTable(); initAdmin(); Toast.success(`✅ ${name} এখন Pro!`);
-}
-
-/* ===== PRO USERS ===== */
-function renderUsersTable(){
-  const users=Store.getProUsers();
-  if(!users.length){ document.getElementById('usersTable').innerHTML=`<div style="padding:28px;text-align:center;color:var(--text2)">কোনো Pro user নেই।</div>`; return; }
-  document.getElementById('usersTable').innerHTML=`<table><thead><tr><th>নাম</th><th>Email</th><th>Plan</th><th>যোগ হয়েছে</th><th>Actions</th></tr></thead><tbody>
-    ${users.map(u=>`<tr>
-      <td><strong>${u.name}</strong></td><td style="color:var(--text2)">${u.email}</td>
-      <td><span class="tag tag-mint">${u.plan}</span></td>
-      <td style="font-size:.79rem;color:var(--text2)">${fd(u.date)}</td>
-      <td><button class="action-btn" style="color:#f87171" onclick="removeUser(${u.id})">Remove</button></td>
-    </tr>`).join('')}
-  </tbody></table>`;
-}
-function addUser(){
-  const name=document.getElementById('nu-name')?.value?.trim();
-  const email=document.getElementById('nu-email')?.value?.trim();
-  const plan=document.getElementById('nu-plan')?.value;
-  if(!name||!email){ Toast.error('নাম ও email দিন'); return; }
-  const d=Store.D(); if(!d.proUsers)d.proUsers=[];
-  d.proUsers.push({id:Date.now(),name,email,plan,date:new Date().toISOString()});
-  Store.SD(d); Modal.hideAll(); renderUsersTable(); initAdmin(); Toast.success(`${name} যোগ হয়েছে!`);
-}
-function removeUser(id){ if(!confirm('সরাবেন?'))return; const d=Store.D(); d.proUsers=(d.proUsers||[]).filter(u=>u.id!==id); Store.SD(d); renderUsersTable(); initAdmin(); }
-
-/* ===== ANALYTICS ===== */
-function renderAnalytics(){
-  const d=Store.D(); const events=d.events||[];
-  const tc={};
-  events.forEach(e=>{ tc[e.ev]=(tc[e.ev]||0)+1; });
-  const labels={product_research:'🏆 Product Research',tiktok:'🎵 TikTok',ad_creative:'🎨 Ad Creative',ad_script:'🎬 Ad Script',product_desc:'✍️ Product Desc',supplier:'🏭 Supplier',competitor:'🔭 Competitor',market_report:'📊 Market Report',post_generator:'✍️ Post Gen',viral_post:'🔥 Viral Post',promo_post:'🎁 Promo Post',ad_copy:'📢 Ad Copy',video_script:'🎥 Video Script',video_prompt:'🤖 Video Prompt',storyboard:'🎞️ Storyboard',subtitle_translator:'🌐 Subtitle',ad_funnel:'📐 Ad Funnel',concept_architect:'🏗️ Concept',help:'🆘 Help',agency:'🚀 Agency',support_chat:'💬 Support'};
-  document.getElementById('analyticsStats').innerHTML=`
-    <div class="stat-card"><div class="stat-num mint">${events.length}</div><div class="stat-label">Total Events</div></div>
-    <div class="stat-card"><div class="stat-num">${Object.keys(tc).length}</div><div class="stat-label">Tool Types</div></div>
-    <div class="stat-card"><div class="stat-num amber">${d.usage?.total||0}</div><div class="stat-label">Total Generations</div></div>`;
-  const sorted=Object.entries(tc).sort((a,b)=>b[1]-a[1]);
-  const maxV=sorted[0]?.[1]||1;
-  document.getElementById('toolUsage').innerHTML=sorted.length?sorted.map(([k,v])=>`
-    <div style="display:flex;align-items:center;gap:12px;padding:8px 0;border-bottom:1px solid var(--border)">
-      <span style="width:190px;font-size:.84rem">${labels[k]||k}</span>
-      <div style="flex:1;background:rgba(255,255,255,.05);border-radius:4px;height:8px;overflow:hidden"><div style="width:${(v/maxV*100).toFixed(0)}%;height:100%;background:linear-gradient(90deg,var(--a1),var(--a2));border-radius:4px"></div></div>
-      <span style="width:30px;text-align:right;font-weight:800;color:var(--a1);font-size:.84rem">${v}</span>
-    </div>`).join(''):'<p style="color:var(--text2)">কোনো data নেই।</p>';
-  const recent=events.slice(-30).reverse();
-  document.getElementById('eventsTable').innerHTML=recent.length?`<table><thead><tr><th>Event</th><th>Data</th><th>Time</th></tr></thead><tbody>
-    ${recent.map(e=>`<tr>
-      <td><span class="tag tag-mint">${labels[e.ev]||e.ev}</span></td>
-      <td style="color:var(--text2);font-size:.81rem">${JSON.stringify(e.data||{}).substring(0,60)}</td>
-      <td style="font-size:.78rem;color:var(--text2)">${new Date(e.t).toLocaleString()}</td>
-    </tr>`).join('')}
-  </tbody></table>`:`<div style="padding:20px;color:var(--text2)">কোনো event নেই।</div>`;
-}
-
-/* ===== SETTINGS ===== */
-function changePass(){
-  const np=document.getElementById('newPass').value;
-  const cp=document.getElementById('confPass').value;
-  if(!np||np.length<6){ Toast.error('৬+ অক্ষরের password দিন'); return; }
-  if(np!==cp){ Toast.error('Password মিলছে না'); return; }
-  const d=Store.D(); d.adminPassword=np; Store.SD(d);
-  Toast.success('Password update হয়েছে! ✅');
-  document.getElementById('newPass').value=''; document.getElementById('confPass').value='';
-}
-function clearAll(){
-  if(!confirm('সব data মুছবেন?'))return;
-  if(!confirm('শেষ সুযোগ — নিশ্চিত?'))return;
-  localStorage.removeItem(CONFIG.SK); Toast.success('মুছা হয়েছে');
-  setTimeout(()=>location.reload(),1500);
-}
-function exportCSV(type){
-  const data=type==='help'?Store.getHelp():Store.getAgency();
-  if(!data.length){ Toast.warning('কোনো data নেই'); return; }
-  const h=Object.keys(data[0]).join(',');
-  const rows=data.map(r=>Object.values(r).map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
-  const csv=[h,...rows].join('\n');
-  const b=new Blob([csv],{type:'text/csv'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`ecomspark-${type}.csv`; a.click();
-  Toast.success('CSV export হয়েছে!');
-}
-
-/* ===== INIT ===== */
-document.addEventListener('DOMContentLoaded',()=>{
-  Toast.init();
-  if(Store.isAdmin()){
-    document.getElementById('loginScreen').classList.add('hidden');
-    document.getElementById('adminApp').classList.remove('hidden');
+async function deleteProduct(id) {
+  if(confirm('মুছবেন?')) {
+    await FB.deleteProduct(id);
+    renderProductsTable();
     initAdmin();
   }
+}
+
+/* ── Users ── */
+async function renderAllUsers() {
+  const snap = await db.collection('users').orderBy('createdAt','desc').get();
+  const users = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  document.getElementById('allUsersTable').innerHTML = `<table><thead><tr><th>নাম</th><th>Email</th><th>WhatsApp</th><th>FB</th><th>Plan</th><th>Actions</th></tr></thead><tbody>
+    ${users.map(u => `<tr>
+      <td>${u.name}</td>
+      <td>${u.email}</td>
+      <td>${u.whatsapp || '—'}</td>
+      <td>${u.fbUser || '—'}</td>
+      <td>${u.plan}</td>
+      <td><button class="btn btn-sm btn-amber" onclick="makePro('${u.id}')">Make Pro</button></td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+
+async function makePro(uid) {
+  await db.collection('users').doc(uid).update({ isPro: true, plan: 'Pro Monthly' });
+  renderAllUsers();
+}
+
+/* ── Settings ── */
+function saveAdminApiKey() {
+  const key = document.getElementById('adminApiKeyInput').value.trim();
+  Store.setApiKey(key);
+  Toast.success('API Key saved!');
+}
+
+function saveBkash() {
+  const n = document.getElementById('bkashInput').value.trim();
+  Store.setBkashNumber(n);
+  Toast.success('bKash number saved!');
+}
+
+async function renderRecentPayments() {
+  const payments = await FB.getPayments();
+  document.getElementById('recentPayments').innerHTML = `<table><thead><tr><th>User</th><th>Plan</th><th>TxnID</th><th>Status</th></tr></thead><tbody>
+    ${payments.slice(0,5).map(p => `<tr>
+      <td>${p.email}</td>
+      <td>${p.plan}</td>
+      <td>${p.txnId}</td>
+      <td>${p.status}</td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+
+/* ── Init ── */
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    if(auth?.currentUser) {
+      db.collection('users').doc(auth.currentUser.uid).get().then(doc => {
+        if(doc.exists && doc.data().plan === 'admin') {
+          document.getElementById('loginScreen').classList.add('hidden');
+          document.getElementById('adminApp').classList.remove('hidden');
+          initAdmin();
+        }
+      });
+    }
+  }, 1500);
 });
 </script>
 </body>

@@ -13,15 +13,15 @@
 <body>
 <header class="header">
   <div class="header-inner">
-    <a href="index.html" class="logo"><div class="logo-icon">⚡</div>EcomSpark</a>
+    <a href="index.html" class="logo"><div class="logo-icon">🚀</div>NexoraPilot</a>
     <nav class="nav" id="mainNav">
       <a class="nav-link" href="index.html">🏠 Home</a>
       <a class="nav-link" href="index.html#winning">🏆 Products</a>
       <a class="nav-link" href="index.html#tools">🛠️ Tools</a>
       <a class="nav-link active" href="help.html">💬 Support</a>
       <div class="usage-pill" style="margin-left:6px"><span class="glow-dot mint"></span><span class="usage-display">3/3</span> বাকি</div>
+      <div id="headerUserDisplay" style="display:flex;align-items:center;gap:8px;margin-left:8px"></div>
     </nav>
-    <div id="headerUserDisplay" style="display:flex;align-items:center;gap:8px;margin-left:8px"></div>
     <button class="hamburger" onclick="document.getElementById('mainNav').classList.toggle('open')">☰</button>
   </div>
 </header>
@@ -89,29 +89,6 @@
       <h3 style="margin-bottom:20px">❓ সাধারণ প্রশ্নোত্তর</h3>
       <div id="faqList"></div>
     </div>
-
-    <!-- How it works -->
-    <div class="card" style="padding:28px">
-      <h3 style="margin-bottom:18px">⚙️ কীভাবে ব্যবহার করবেন</h3>
-      <div style="display:grid;gap:14px">
-        <div style="display:flex;gap:14px;align-items:flex-start">
-          <div style="width:30px;height:30px;border-radius:50%;background:rgba(0,245,212,.12);border:1px solid rgba(0,245,212,.25);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.84rem;color:var(--a1);flex-shrink:0">1</div>
-          <div><strong style="color:#fff">Account তৈরি করুন</strong><p style="font-size:.84rem;margin-top:2px">উপরে Login/Register করুন। Email, নাম, ঠিকানা ও নম্বর দিয়ে account করুন।</p></div>
-        </div>
-        <div style="display:flex;gap:14px;align-items:flex-start">
-          <div style="width:30px;height:30px;border-radius:50%;background:rgba(0,245,212,.12);border:1px solid rgba(0,245,212,.25);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.84rem;color:var(--a1);flex-shrink:0">2</div>
-          <div><strong style="color:#fff">Tools-এ যান</strong><p style="font-size:.84rem;margin-top:2px">Homepage-এ যেকোনো tool-এ ক্লিক করুন।</p></div>
-        </div>
-        <div style="display:flex;gap:14px;align-items:flex-start">
-          <div style="width:30px;height:30px;border-radius:50%;background:rgba(0,245,212,.12);border:1px solid rgba(0,245,212,.25);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.84rem;color:var(--a1);flex-shrink:0">3</div>
-          <div><strong style="color:#fff">ফলাফল পান</strong><p style="font-size:.84rem;margin-top:2px">কয়েক সেকেন্ডের মধ্যে সম্পূর্ণ বিশ্লেষণ পাবেন।</p></div>
-        </div>
-        <div style="display:flex;gap:14px;align-items:flex-start">
-          <div style="width:30px;height:30px;border-radius:50%;background:rgba(0,245,212,.12);border:1px solid rgba(0,245,212,.3);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.84rem;color:var(--a1);flex-shrink:0">✓</div>
-          <div><strong style="color:var(--a1)">Free plan = দিনে ৩ বার। Pro = unlimited।</strong></div>
-        </div>
-      </div>
-    </div>
   </div>
 </section>
 
@@ -141,7 +118,8 @@
       <div class="form-group"><label class="form-label">পূর্ণ নাম *</label><input class="form-control" id="regName" placeholder="আপনার নাম"></div>
       <div class="form-group"><label class="form-label">ঠিকানা *</label><input class="form-control" id="regAddress" placeholder="জেলা, বিভাগ"></div>
       <div class="form-group"><label class="form-label">মোবাইল নম্বর *</label><input class="form-control" id="regPhone" type="tel" placeholder="01XXXXXXXXX"></div>
-      <div class="form-group"><label class="form-label">Facebook Page / Website (optional)</label><input class="form-control" id="regFbLink" placeholder="https://facebook.com/yourpage"></div>
+      <div class="form-group"><label class="form-label">WhatsApp নম্বর (optional)</label><input class="form-control" id="regWhatsapp" type="tel" placeholder="01XXXXXXXXX"></div>
+      <div class="form-group"><label class="form-label">Facebook Username (optional)</label><input class="form-control" id="regFbUser" placeholder="your.username"></div>
       <div class="form-group"><label class="form-label">Email *</label><input class="form-control" id="regEmail" type="email" placeholder="you@example.com"></div>
       <div class="form-group"><label class="form-label">পাসওয়ার্ড * (৬+ অক্ষর)</label><input class="form-control" id="regPass" type="password" placeholder="পাসওয়ার্ড"></div>
       <div class="form-group"><label class="form-label">পাসওয়ার্ড নিশ্চিত করুন *</label><input class="form-control" id="regPass2" type="password" placeholder="আবার দিন"></div>
@@ -187,46 +165,34 @@ function toggleFaq(i){
 }
 
 async function submitHelp(){
-  const name  = document.getElementById('helpName').value.trim();
-  const email = document.getElementById('helpEmail').value.trim();
-  const cat   = document.getElementById('helpCat').value;
-  const msg   = document.getElementById('helpMsg').value.trim();
+  const name=document.getElementById('helpName').value.trim();
+  const email=document.getElementById('helpEmail').value.trim();
+  const cat=document.getElementById('helpCat').value;
+  const msg=document.getElementById('helpMsg').value.trim();
   if(!name||!email||!msg){ Toast.error('সব তথ্য পূরণ করুন'); return; }
-  try {
-    await FB.addHelp({name,email,category:cat,message:msg});
-    await FB.logEvent('help',{name,email,cat});
-    document.getElementById('helpName').value='';
-    document.getElementById('helpEmail').value='';
-    document.getElementById('helpMsg').value='';
-    Toast.success('Request পাঠানো হয়েছে! ২৪ ঘণ্টার মধ্যে reply পাবেন ✅');
-  } catch(e){ Toast.error('সমস্যা হয়েছে। আবার চেষ্টা করুন।'); }
+  await FB.addHelp({name,email,category:cat,message:msg});
+  Toast.success('Request পাঠানো হয়েছে! ✅');
+  document.getElementById('helpMsg').value='';
 }
 
 async function submitAgency(){
-  const name  = document.getElementById('agName').value.trim();
-  const email = document.getElementById('agEmail').value.trim();
-  const plan  = document.getElementById('agPlan').value;
-  const msg   = document.getElementById('agMsg').value.trim();
+  const name=document.getElementById('agName').value.trim();
+  const email=document.getElementById('agEmail').value.trim();
+  const plan=document.getElementById('agPlan').value;
+  const msg=document.getElementById('agMsg').value.trim();
   if(!name||!email){ Toast.error('নাম ও email দিন'); return; }
-  try {
-    await FB.addAgency({name,email,plan,revenue:'N/A',message:msg});
-    await FB.logEvent('agency',{name,email,plan});
-    document.getElementById('agName').value='';
-    document.getElementById('agEmail').value='';
-    document.getElementById('agMsg').value='';
-    Toast.success('Inquiry পাঠানো হয়েছে! ১২ ঘণ্টার মধ্যে যোগাযোগ হবে 🚀');
-  } catch(e){ Toast.error('সমস্যা হয়েছে। আবার চেষ্টা করুন।'); }
+  await FB.addAgency({name,email,plan,message:msg});
+  Toast.success('Inquiry পাঠানো হয়েছে! ✅');
+  document.getElementById('agMsg').value='';
 }
 
-/* Pre-fill forms if user is logged in */
 function onAuthStateReady(user){
   if(user && currentUserData){
-    document.getElementById('helpName').value  = currentUserData.name||'';
-    document.getElementById('helpEmail').value = user.email||'';
-    document.getElementById('agName').value    = currentUserData.name||'';
-    document.getElementById('agEmail').value   = user.email||'';
+    document.getElementById('helpName').value = currentUserData.name||'';
+    document.getElementById('helpEmail').value = currentUserData.email||'';
+    document.getElementById('agName').value = currentUserData.name||'';
+    document.getElementById('agEmail').value = currentUserData.email||'';
   }
-  updateUsageDisplay();
 }
 </script>
 </body>
