@@ -30,7 +30,10 @@
         <span class="usage-display">3/3</span> বাকি
       </div>
       <button class="btn btn-sm btn-amber" id="upgradeBtn" onclick="showPaymentModal()" style="margin-left:6px">🚀 Pro নিন</button>
-      <div id="headerUserDisplay" style="display:flex;align-items:center;gap:8px;margin-left:8px"></div>
+      <div id="authArea" style="display:inline-flex;gap:4px;margin-left:4px">
+        <button class="btn btn-sm btn-secondary" onclick="showProLoginModal()" id="loginBtnNav">🔑 Login</button>
+        <button class="btn btn-sm btn-secondary hidden" onclick="FB.logout()" id="logoutBtnNav">🚪 Logout</button>
+      </div>
     </nav>
     <button class="hamburger" onclick="document.getElementById('mainNav').classList.toggle('open')">☰</button>
   </div>
@@ -45,11 +48,6 @@
     <div style="display:flex;gap:14px;justify-content:center;flex-wrap:wrap">
       <a href="#winning" class="btn btn-primary btn-lg">🏆 Winning Products</a>
       <a href="#tools" class="btn btn-outline btn-lg">🛠️ Tools দেখুন</a>
-    </div>
-    <div class="hero-stats">
-      <div class="hero-stat"><div class="hero-stat-num mint">20+</div><div class="hero-stat-label">Smart Tools</div></div>
-      <div class="hero-stat"><div class="hero-stat-num">0%</div><div class="hero-stat-label">Shopify দরকার নেই</div></div>
-      <div class="hero-stat"><div class="hero-stat-num violet">∞</div><div class="hero-stat-label">Pro Access</div></div>
     </div>
   </div>
 </section>
@@ -67,18 +65,6 @@
       <h2 class="section-title">Winning Products</h2>
       <p class="section-sub">প্রতিটি প্রোডাক্টের সম্পূর্ণ অ্যাড স্ট্র্যাটেজি, সরবরাহকারী তথ্যসহ। Premium সদস্যরা সব দেখতে পাবেন।</p>
     </div>
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:26px;flex-wrap:wrap">
-      <div style="display:flex;gap:6px;flex-wrap:wrap" id="catFilters">
-        <button class="btn btn-sm btn-primary" onclick="filterProducts('all',this)">সব</button>
-        <button class="btn btn-sm btn-secondary" onclick="filterProducts('Health & Beauty',this)">Health</button>
-        <button class="btn btn-sm btn-secondary" onclick="filterProducts('Electronics',this)">Electronics</button>
-        <button class="btn btn-sm btn-secondary" onclick="filterProducts('Home',this)">Home</button>
-        <button class="btn btn-sm btn-secondary" onclick="filterProducts('Fitness',this)">Fitness</button>
-        <button class="btn btn-sm btn-secondary" onclick="filterProducts('Pet',this)">Pet</button>
-        <button class="btn btn-sm btn-secondary" onclick="filterProducts('Kitchen',this)">Kitchen</button>
-        <button class="btn btn-sm btn-secondary" onclick="filterProducts('Fashion',this)">Fashion</button>
-      </div>
-    </div>
     <div class="product-grid" id="winningProductsGrid">
       <div class="card" style="padding:40px;text-align:center;grid-column:1/-1"><div style="font-size:3rem;margin-bottom:14px">📦</div><p>লোড হচ্ছে...</p></div>
     </div>
@@ -88,16 +74,14 @@
 <!-- TOOLS SECTION -->
 <section id="tools" style="padding:64px 0;background:rgba(0,0,0,.2)">
   <div class="container">
-    <!-- Tools Grid (Truncated for brevity, same as original) -->
     <div class="section-header" style="margin-bottom:30px">
-      <div class="section-label">🔬 Research Tools</div>
-      <h2 class="section-title">প্রোডাক্ট গবেষণা</h2>
+      <div class="section-label">🛠️ All Tools</div>
+      <h2 class="section-title">স্মার্ট ই-কমার্স টুলস</h2>
     </div>
-    <div class="tools-grid" style="margin-bottom:56px">
-      <div class="card tool-card" onclick="openModal('modal-pr')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(0,245,212,.15),rgba(59,130,246,.1));border:1px solid rgba(0,245,212,.2)">🏆</div><h3>Product Research</h3><p>Demand scoring, competition analysis, winning product detection।</p><div class="tool-card-tags"><span class="tag tag-mint">Demand</span><span class="tag tag-green">Win Rate</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
-      <div class="card tool-card" onclick="openModal('modal-tt')"><div class="tool-card-icon" style="background:linear-gradient(135deg,rgba(236,72,153,.15),rgba(124,58,237,.1));border:1px solid rgba(236,72,153,.2)">🎵</div><h3>TikTok Viral Finder</h3><p>TikTok Shop-এ trending viral products detect করুন।</p><div class="tool-card-tags"><span class="tag tag-pink">Viral</span><span class="tag tag-amber">Sales</span></div><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
+    <div class="tools-grid">
+      <div class="card tool-card" onclick="openModal('modal-pr')"><h3>🏆 Product Research</h3><p>Winning product detection।</p><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
+      <div class="card tool-card" onclick="openModal('modal-tt')"><h3>🎵 TikTok Viral Finder</h3><p>Trending products detect করুন।</p><button class="btn btn-primary btn-full btn-sm">শুরু করুন →</button></div>
     </div>
-    <!-- ... other tools ... -->
   </div>
 </section>
 
@@ -114,12 +98,9 @@
 
     <!-- Login Form -->
     <div id="authLoginForm" style="padding-top:8px">
-      <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="loginEmail" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
-      <div class="form-group"><label class="form-label">পাসওয়ার্ড</label><input class="form-control" id="loginPass" type="password" placeholder="পাসওয়ার্ড" onkeydown="if(event.key==='Enter')doLogin()"></div>
-      <button class="btn btn-primary btn-full" id="loginBtn" onclick="doLogin()">🔐 Login করুন</button>
-      <div style="text-align:center;margin-top:12px">
-        <button style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:.82rem" onclick="document.getElementById('authLoginForm').classList.add('hidden');document.getElementById('authForgotForm').classList.remove('hidden')">পাসওয়ার্ড ভুলে গেছেন?</button>
-      </div>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="loginEmail" type="email" placeholder="you@example.com"></div>
+      <div class="form-group"><label class="form-label">পাসওয়ার্ড</label><input class="form-control" id="loginPass" type="password" placeholder="পাসওয়ার্ড"></div>
+      <button class="btn btn-primary btn-full" onclick="doLogin()">🔐 Login করুন</button>
     </div>
 
     <!-- Register Form -->
@@ -127,159 +108,66 @@
       <div class="form-group"><label class="form-label">পূর্ণ নাম *</label><input class="form-control" id="regName" placeholder="আপনার নাম"></div>
       <div class="form-group"><label class="form-label">ঠিকানা *</label><input class="form-control" id="regAddress" placeholder="জেলা, বিভাগ"></div>
       <div class="form-group"><label class="form-label">মোবাইল নম্বর *</label><input class="form-control" id="regPhone" type="tel" placeholder="01XXXXXXXXX"></div>
-      <div class="form-group"><label class="form-label">WhatsApp নম্বর (optional)</label><input class="form-control" id="regWhatsapp" type="tel" placeholder="01XXXXXXXXX"></div>
-      <div class="form-group"><label class="form-label">Facebook Username (optional)</label><input class="form-control" id="regFbUser" placeholder="your.username"></div>
+      <div class="form-group"><label class="form-label">WhatsApp নম্বর (Optional)</label><input class="form-control" id="regWhatsapp" type="tel" placeholder="01XXXXXXXXX"></div>
+      <div class="form-group"><label class="form-label">Facebook Username / Page (optional)</label><input class="form-control" id="regFbLink" placeholder="username or link"></div>
       <div class="form-group"><label class="form-label">Email *</label><input class="form-control" id="regEmail" type="email" placeholder="you@example.com"></div>
       <div class="form-group"><label class="form-label">পাসওয়ার্ড * (৬+ অক্ষর)</label><input class="form-control" id="regPass" type="password" placeholder="পাসওয়ার্ড"></div>
-      <div class="form-group"><label class="form-label">পাসওয়ার্ড নিশ্চিত করুন *</label><input class="form-control" id="regPass2" type="password" placeholder="আবার দিন"></div>
-      <button class="btn btn-primary btn-full" id="regBtn" onclick="doRegister()">✅ Account তৈরি করুন</button>
+      <button class="btn btn-primary btn-full" onclick="doRegister()">✅ Account তৈরি করুন</button>
     </div>
-
-    <!-- Forgot Password Form -->
-    <div id="authForgotForm" class="hidden" style="padding-top:8px">
-      <p style="font-size:.85rem;color:var(--text2);margin-bottom:14px">আপনার email দিন, password reset link পাঠানো হবে।</p>
-      <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="forgotEmail" type="email" placeholder="you@example.com"></div>
-      <button class="btn btn-primary btn-full" onclick="doForgotPassword()">📧 Reset Link পাঠান</button>
-      <div style="text-align:center;margin-top:10px">
-        <button style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:.82rem" onclick="document.getElementById('authForgotForm').classList.add('hidden');document.getElementById('authLoginForm').classList.remove('hidden')">← Login-এ ফিরুন</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- PAYMENT MODAL -->
-<div class="modal-overlay hidden" id="paymentModal">
-  <div class="modal-box" style="max-width:480px">
-    <div class="modal-header">
-      <div class="modal-title">🚀 Upgrade to Pro</div>
-      <button class="modal-close" onclick="Modal.hideAll()">✕</button>
-    </div>
-    <div id="paymentContent" style="padding-top:10px"></div>
-  </div>
-</div>
-
-<!-- PRODUCT DETAIL MODAL -->
-<div class="modal-overlay hidden" id="productDetailModal">
-  <div class="modal-box" style="max-width:700px">
-    <div class="modal-header">
-      <div class="modal-title" id="productDetailTitle">Product Details</div>
-      <button class="modal-close" onclick="Modal.hideAll()">✕</button>
-    </div>
-    <div id="productDetailContent" style="padding-top:10px"></div>
   </div>
 </div>
 
 <script src="assets/js/app.js"></script>
 <script>
-/* ── Page Specific Logic ── */
-async function renderProducts() {
-  const container = document.getElementById('winningProductsGrid');
-  container.innerHTML = '<div class="card" style="padding:40px;text-align:center;grid-column:1/-1"><p>লোড হচ্ছে...</p></div>';
-  const products = await FB.getProducts();
-  window._allProducts = products;
-  renderGrid(products);
+function switchAuthTab(tab) {
+  const isLogin = tab === 'login';
+  document.getElementById('authTabLogin').classList.toggle('active', isLogin);
+  document.getElementById('authTabReg').classList.toggle('active', !isLogin);
+  document.getElementById('authLoginForm').classList.toggle('hidden', !isLogin);
+  document.getElementById('authRegForm').classList.toggle('hidden', isLogin);
 }
 
-function renderGrid(products) {
-  const container = document.getElementById('winningProductsGrid');
-  if(!products || !products.length) {
-    container.innerHTML = '<div class="card" style="padding:40px;text-align:center;grid-column:1/-1"><p>এখনো কোনো product নেই।</p></div>';
+function onAuthStateReady(user) {
+  const loginBtn = document.getElementById('loginBtnNav');
+  const logoutBtn = document.getElementById('logoutBtnNav');
+  if(user) {
+    loginBtn.classList.add('hidden');
+    logoutBtn.classList.remove('hidden');
+    if(FB.isPro()) document.getElementById('proBadge').style.display = 'inline-block';
+  } else {
+    loginBtn.classList.remove('hidden');
+    logoutBtn.classList.add('hidden');
+    document.getElementById('proBadge').style.display = 'none';
+  }
+  loadProducts();
+}
+
+async function loadProducts() {
+  const products = await FB.getProducts();
+  const grid = document.getElementById('winningProductsGrid');
+  if(!products.length) {
+    grid.innerHTML = '<div class="card" style="padding:40px;text-align:center;grid-column:1/-1"><p>কোনো প্রোডাক্ট পাওয়া যায়নি।</p></div>';
     return;
   }
-  const isPro = FB.isPro();
-  container.innerHTML = products.map(p => {
-    const locked = !isPro && p.premium;
-    const sc = p.score || 0;
-    const sc_c = sc >= 80 ? 'var(--a1)' : sc >= 60 ? 'var(--a3)' : '#f87171';
-    
-    if(locked) {
-      return `<div class="card product-locked-full" onclick="showPaymentModal()" style="cursor:pointer;min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;border:1px solid rgba(245,158,11,.2);background:rgba(0,0,0,.5);position:relative;border-radius:var(--radius)">
-        <div style="width:64px;height:64px;border-radius:50%;background:rgba(245,158,11,.12);border:2px solid rgba(245,158,11,.3);display:flex;align-items:center;justify-content:center;font-size:1.8rem">🔒</div>
-        <div style="text-align:center"><div style="font-family:var(--font-h);font-weight:800;color:#fff;font-size:.95rem;margin-bottom:6px">Premium Product</div><div style="font-size:.82rem;color:var(--text2);margin-bottom:14px">শুধুমাত্র Pro সদস্যরা দেখতে পাবেন</div><button class="btn btn-sm btn-amber">🚀 ৳১৯৯/মাসে Unlock করুন</button></div>
-        <div style="position:absolute;top:12px;right:12px"><span class="tag tag-amber">⭐ Premium</span></div>
-      </div>`;
-    }
-
-    return `<div class="card product-card" onclick="openProductDetail('${p.id}')" style="cursor:pointer">
-      ${p.image ? `<img class="product-card-img" src="${p.image}" alt="${p.name}" onerror="this.style.display='none';this.nextSibling.style.display='flex'">` : ''}
-      <div class="product-card-img-ph" style="${p.image ? 'display:none' : ''}">🏆</div>
+  grid.innerHTML = products.map(p => `
+    <div class="card product-card">
       <div class="product-card-body">
-        <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:8px">
-          <div class="product-card-title">${p.name}</div>
-          ${sc ? `<div style="width:38px;height:38px;border-radius:50%;border:2px solid ${sc_c};color:${sc_c};display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.85rem;flex-shrink:0">${sc}</div>` : ''}
+        <h3>${p.name}</h3>
+        <p>${p.shortDesc || ''}</p>
+        <div style="margin-top:10px">
+          <span class="tag tag-mint">${p.category}</span>
+          ${p.premium ? '<span class="tag tag-amber">⭐ Premium</span>' : ''}
         </div>
-        <p class="product-card-desc">${p.shortDesc || ''}</p>
-        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">
-          ${p.category ? `<span class="tag tag-mint">${p.category}</span>` : ''}
-          ${p.premium ? `<span class="tag tag-amber">⭐ Premium</span>` : ''}
-        </div>
-        <div style="display:flex;align-items:center;justify-content:space-between">
-          <span style="font-size:.8rem;color:var(--text2)">${p.price || ''}</span>
-          <button class="btn btn-sm btn-primary">বিস্তারিত দেখুন →</button>
-        </div>
+        <button class="btn btn-sm btn-primary" style="margin-top:10px" onclick="openProductDetail('${p.id}')">বিস্তারিত দেখুন</button>
       </div>
-    </div>`;
-  }).join('');
+    </div>
+  `).join('');
 }
 
 function openProductDetail(id) {
-  const p = window._allProducts?.find(x => x.id === id);
-  if(!p) return;
-  const isPro = FB.isPro();
-  document.getElementById('productDetailTitle').textContent = p.name;
-  
-  const Rl = {
-    copyBox: (text, label) => { 
-      const cid = 'cb_' + Math.random().toString(36).slice(2); 
-      return `<div class="copy-box"><div id="${cid}" class="copy-box-inner">${text || ''}</div><button class="copy-btn" onclick="copyText(document.getElementById('${cid}').textContent,this)">${label || 'Copy'}</button></div>`; 
-    },
-    list: (items, icon = '→') => `<ul style="list-style:none;padding:0">${(items || []).map(i => `<li style="padding:5px 0;font-size:.86rem;color:var(--text2);display:flex;gap:8px"><span style="color:var(--a1);flex-shrink:0">${icon}</span>${i}</li>`).join('')}</ul>`,
-  };
-
-  let adsHTML = '<p style="color:var(--text2);font-size:.88rem">কোনো ad details নেই।</p>';
-  if(p.facebookAd || p.tiktokAd || p.adBudget) {
-    adsHTML = `<div class="tabs" style="margin-top:0">
-      ${p.facebookAd ? `<button class="tab-btn active" onclick="switchTab('pd','fb',this)">📘 Facebook</button>` : ''}
-      ${p.tiktokAd ? `<button class="tab-btn ${!p.facebookAd ? 'active' : ''}" onclick="switchTab('pd','tt',this)">🎵 TikTok</button>` : ''}
-      ${p.adBudget ? `<button class="tab-btn" onclick="switchTab('pd','budget',this)">💰 Budget</button>` : ''}
-    </div>
-    ${p.facebookAd ? `<div id="pd-tab-fb">${Rl.copyBox(p.facebookAd, '📋 Copy')}</div>` : ''}
-    ${p.tiktokAd ? `<div id="pd-tab-tt" class="${p.facebookAd ? 'hidden' : ''}">${Rl.copyBox(p.tiktokAd, '📋 Copy')}</div>` : ''}
-    ${p.adBudget ? `<div id="pd-tab-budget" class="hidden"><div class="alert alert-info">💰 ${p.adBudget}</div></div>` : ''}`;
-  }
-
-  document.getElementById('productDetailContent').innerHTML = `<div style="display:grid;gap:18px">
-    ${p.image ? `<img src="${p.image}" style="width:100%;max-height:260px;object-fit:cover;border-radius:var(--radius-sm)" onerror="this.style.display='none'">` : ''}
-    <div>${p.score ? `<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px"><div class="score-ring" style="background:rgba(0,0,0,.28);border:3px solid ${p.score >= 75 ? 'var(--a1)' : p.score >= 50 ? 'var(--a3)' : '#f87171'};color:${p.score >= 75 ? 'var(--a1)' : p.score >= 50 ? 'var(--a3)' : '#f87171'}">${p.score}</div><strong style="color:#fff">Product Score</strong></div>` : ''} ${p.category ? `<span class="tag tag-mint" style="margin-right:6px">${p.category}</span>` : ''} ${p.price ? `<span class="tag tag-amber">${p.price}</span>` : ''}</div>
-    ${p.description ? `<div><strong style="font-size:.85rem;color:var(--text2)">📝 বিবরণ</strong><p style="font-size:.88rem;margin-top:8px;line-height:1.65">${p.description}</p></div>` : ''}
-    ${p.whereToFind ? `<div><strong style="font-size:.85rem;color:var(--text2)">🏪 কোথায় পাবেন</strong><div class="alert alert-info" style="margin-top:8px">${p.whereToFind}</div></div>` : ''}
-    ${(p.sellingPoints && p.sellingPoints.length) ? `<div><strong style="font-size:.85rem;color:var(--text2)">⭐ মূল বৈশিষ্ট্য</strong>${Rl.list(p.sellingPoints, '⭐')}</div>` : ''}
-    <div><strong style="font-size:.85rem;color:var(--text2)">📣 Ad Strategy</strong><div style="margin-top:12px">${adsHTML}</div></div>
-    ${p.caption ? `<div><strong style="font-size:.85rem;color:var(--text2)">💬 Caption</strong>${Rl.copyBox(p.caption, 'Copy')}</div>` : ''}
-    ${p.hashtags ? `<div><strong style="font-size:.85rem;color:var(--text2)">🏷️ Hashtags</strong>${Rl.copyBox(p.hashtags, 'Copy')}</div>` : ''}
-    ${p.notes ? `<div><strong style="font-size:.85rem;color:var(--text2)">📌 Notes</strong><p style="font-size:.88rem;margin-top:8px;color:var(--text2)">${p.notes}</p></div>` : ''}
-  </div>`;
-  Modal.show('productDetailModal');
+  if(!currentUser) return Toast.error('আগে লগইন করুন');
+  // Logic for detail modal
 }
-
-async function initBanners() {
-  const container = document.getElementById('bannerSlider');
-  if(!container) return;
-  const banners = Store.getBanners();
-  container.innerHTML = banners.filter(b => b.active).map(b => `
-    <div class="banner-slide" style="background:${b.bg}">
-      <div class="banner-content">
-        <h2 class="banner-title">${b.title}</h2>
-        <p class="banner-sub">${b.subtitle || ''}</p>
-        <a href="${b.link || '#'}" class="btn btn-primary">${b.cta || 'শুরু করুন'}</a>
-      </div>
-    </div>`).join('');
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  initBanners();
-  renderProducts();
-});
 </script>
 </body>
 </html>
