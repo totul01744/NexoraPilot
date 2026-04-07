@@ -1,121 +1,70 @@
-# ⚡ EcomSpark — AI Ecommerce Research Platform
-
-A complete AI-powered ecommerce research SaaS tool. Built with pure HTML, CSS, and JavaScript. No backend required — deploys to Netlify or Vercel in minutes.
-
-## 🚀 Quick Deploy to Netlify
-
-1. **Fork/Upload** this folder to your GitHub repository
-2. Go to [netlify.com](https://netlify.com) → New Site → Import from GitHub
-3. Select your repo → Deploy (no build settings needed)
-4. Your live URL will be: `https://your-site.netlify.app`
-5. **Admin panel**: `https://your-site.netlify.app/admin`
-
-## 🔑 Admin Login
-
-Default password: `ecomspark_admin_2025`
-
-**To change password:**
-1. Go to `/admin`
-2. Login with default password
-3. Go to Settings → Change Admin Password
-
-## ⚙️ Setup (First Time)
-
-### 1. Connect Your Anthropic API Key
-- Click **⚙️ API Key** in the header
-- Get your key from [console.anthropic.com](https://console.anthropic.com)
-- Paste it in (starts with `sk-ant-...`)
-- Your key is stored locally in the browser — never on any server
-
-### 2. Add Winning Products (Admin)
-- Go to `/admin` → Login
-- Click **🏆 Winning Products** → **+ Add Product**
-- Fill in all product details, ad strategies, captions
-- Mark as "Premium Only" to lock for free users
-
-### 3. Customize Banners (Admin)
-- Go to `/admin` → **🖼️ Banners**
-- Edit or add homepage banners
-- Control title, subtitle, CTA button, background color
+# ⚡ EcomSpark v6.0 — Firebase Edition
 
 ## 📁 File Structure
-
 ```
 ecomspark/
-├── index.html          ← Main homepage (all tools + winning products)
-├── help.html           ← Support & upgrade page
-├── netlify.toml        ← Netlify routing config
-├── vercel.json         ← Vercel routing config
+├── index.html           ← User Homepage
+├── help.html            ← Support page
+├── netlify.toml         ← Netlify config
+├── vercel.json          ← Vercel config
+├── firestore.rules      ← Firebase rules (copy to Firebase console)
 ├── admin/
-│   └── index.html      ← Admin panel (password protected)
+│   └── index.html       ← Admin Panel
 └── assets/
-    ├── css/
-    │   └── style.css   ← Complete design system
-    └── js/
-        └── app.js      ← All logic, AI calls, storage
+    ├── css/style.css
+    └── js/app.js
 ```
 
-## 🛠️ Features
+## 🚀 Deploy করার ধাপ
 
-### For Users (Homepage)
-- 🏆 **Winning Products** — Admin-curated products with full ad strategies
-- 🔬 **Product Research** — AI demand/competition scoring
-- 🎵 **TikTok Viral Finder** — Detect trending niches
-- 🎨 **Ad Creative Generator** — TikTok + Facebook ads
-- 🎬 **Ad Script Generator** — Full UGC scripts
-- ✍️ **Product Description** — SEO-optimized copy
-- 🏭 **Supplier Finder** — Alibaba/AliExpress strategy + outreach email
-- 🔍 **SEO Toolkit** — Keywords, title optimizer, meta description
-- 🔭 **Competitor Analysis** — Market gaps & win strategy
-- 🕵️ **Fake Review Detector** — Authenticity scoring
-- 📊 **Market Research Report** — Full AI market reports
-- 💬 **Live Support Chat** — Floating chat button → messages saved to admin
+### ধাপ ১: Firebase Console Setup
+1. console.firebase.google.com এ যান
+2. আপনার project ecomspark-cd4ea select করুন
 
-### For Admin
-- 📊 Dashboard with stats
-- 🏆 Product management (add/edit/delete winning products with full details)
-- 🖼️ Banner management (homepage banners)
-- 🆘 Help requests management (view, reply, close)
-- 🚀 Upgrade inquiries (activate Pro users directly)
-- 👥 Pro user management
-- 📈 Analytics (tool usage, events)
-- ⚙️ Settings (password, toggles)
-- ⬇️ Export CSV for help/agency data
+### ধাপ ২: Authentication চালু করুন
+1. বাঁ দিকে "Authentication" click করুন
+2. "Get started" click করুন
+3. "Email/Password" click করুন
+4. "Enable" toggle ON করুন → "Save"
 
-## 💳 Pricing Tiers
+### ধাপ ৩: Firestore Database তৈরি করুন
+1. বাঁ দিকে "Firestore Database" click করুন
+2. "Create database" click করুন
+3. "Start in test mode" select করুন → Next → Done
 
-| Feature | Free | Pro ($29/mo) | Agency ($99/mo) |
-|---------|------|------|------|
-| AI Tools | 3/day | Unlimited | Unlimited |
-| Winning Products | Public only | All products | All products |
-| Ad Strategies | Locked | Unlocked | Unlocked |
-| Team Seats | 1 | 1 | 5 |
+### ধাপ ৪: Firestore Rules সেট করুন
+1. Firestore এ "Rules" tab click করুন
+2. এই file এর "firestore.rules" এর সব text copy করুন
+3. Rules editor এ paste করুন → "Publish" click করুন
 
-## 🔐 Security Notes
+### ধাপ ৫: Admin Account তৈরি করুন
+1. Authentication → Users → "Add user" click করুন
+2. admin@youremail.com ও একটি strong password দিন → Add
+3. নতুন user এর UID copy করুন (right side এ দেখাবে)
 
-- Admin password stored in localStorage (change after deploy)
-- API key stored in user's browser only
-- No external database — all data in localStorage
-- Suitable for personal/small team use
+### ধাপ ৬: Admin Firestore Document তৈরি করুন
+1. Firestore → "Start collection" → Collection ID: "users" → Next
+2. Document ID: উপরের UID paste করুন
+3. Fields add করুন:
+   - uid (string): same UID
+   - name (string): Admin
+   - email (string): আপনার admin email
+   - plan (string): admin
+   - isPro (boolean): true
+   - banned (boolean): false
+   - createdAt (string): 2025-01-01T00:00:00.000Z
+4. "Save" click করুন
 
-## 🔄 How Data Works
+### ধাপ ৭: Netlify Deploy
+1. netlify.com এ যান → "Add new site" → "Deploy manually"
+2. এই ecomspark folder টা drag & drop করুন
+3. Deploy হবে → আপনার URL পাবেন
 
-All data is stored in **browser localStorage**:
-- Help requests from users → visible in admin panel
-- Products added by admin → shown on homepage
-- Banners configured by admin → shown in homepage slider
-- Usage tracking for analytics
+### ধাপ ৮: Admin এ Login
+1. your-site.netlify.app/admin এ যান
+2. ধাপ ৫ এর email ও password দিয়ে login করুন
 
-> ⚠️ Since this uses localStorage, data is per-browser. For multi-device admin management, all team members must use the same browser/device, OR upgrade to a version with a backend database.
-
-## 🆙 Upgrade Path (Future)
-
-To add a real backend:
-1. Replace `Store.*` calls in `app.js` with API calls
-2. Add a Node.js/Supabase/Firebase backend
-3. Implement real user authentication with JWT
-4. Add payment integration (Stripe)
-
----
-
-Built with ❤️ using Claude AI by Anthropic
+### ধাপ ৯: Gemini API Key সেট করুন
+1. Admin Panel → System API Key page এ যান
+2. aistudio.google.com/apikey থেকে free key নিন
+3. Key paste করুন → Save করুন
