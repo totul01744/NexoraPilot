@@ -1,8 +1,8 @@
-# ⚡ EcomSpark v6.0 — Firebase Edition
+# ⚡ NexoraPilot v6.0 — Firebase Edition
 
 ## 📁 File Structure
 ```
-ecomspark/
+NexoraPilot/
 ├── index.html           ← User Homepage
 ├── help.html            ← Support page
 ├── netlify.toml         ← Netlify config
@@ -19,7 +19,7 @@ ecomspark/
 
 ### ধাপ ১: Firebase Console Setup
 1. console.firebase.google.com এ যান
-2. আপনার project ecomspark-cd4ea select করুন
+2. আপনার project NexoraPilot-cd4ea select করুন
 
 ### ধাপ ২: Authentication চালু করুন
 1. বাঁ দিকে "Authentication" click করুন
@@ -57,7 +57,7 @@ ecomspark/
 
 ### ধাপ ৭: Netlify Deploy
 1. netlify.com এ যান → "Add new site" → "Deploy manually"
-2. এই ecomspark folder টা drag & drop করুন
+2. এই NexoraPilot folder টা drag & drop করুন
 3. Deploy হবে → আপনার URL পাবেন
 
 ### ধাপ ৮: Admin এ Login
