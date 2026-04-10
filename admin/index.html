@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel — NexoraPilot</title>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='22' fill='url(%23g)'/><defs><linearGradient id='g' x1='0' y1='0' x2='1' y2='1'><stop offset='0%25' stop-color='%2300f5d4'/><stop offset='100%25' stop-color='%237c3aed'/></linearGradient></defs><text y='.9em' font-size='70' x='13'>⚡</text></svg>">
+<title>Admin Panel — EcomSpark</title>
 <link rel="stylesheet" href="../assets/css/style.css">
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -19,7 +18,7 @@
     <div style="text-align:center;margin-bottom:30px">
       <div style="width:60px;height:60px;background:linear-gradient(135deg,var(--a1),var(--a2));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 14px;box-shadow:0 0 36px rgba(0,245,212,.4)">⚡</div>
       <div style="font-family:var(--font-h);font-weight:900;font-size:1.3rem;color:#fff">Admin Panel</div>
-      <div style="font-size:.8rem;color:var(--text2);margin-top:3px">NexoraPilot Control Center</div>
+      <div style="font-size:.8rem;color:var(--text2);margin-top:3px">EcomSpark Control Center</div>
     </div>
     <div class="form-group">
       <label class="form-label">Admin Email</label>
@@ -29,9 +28,9 @@
       <label class="form-label">Admin Password</label>
       <input type="password" class="form-control" id="adminPass" placeholder="Password দিন" onkeydown="if(event.key==='Enter')adminLogin()">
     </div>
-    <div id="loginErr" class="hidden mb-3"><div class="alert alert-error">❌ ভুল email বা password।</div></div>
+    <div id="loginErr" class="hidden mb-3"><div class="alert alert-error"><span id="loginErrMsg">❌ ভুল email বা password।</span></div></div>
     <button class="btn btn-primary btn-full" id="loginBtn" onclick="adminLogin()">🔐 Login করুন</button>
-    <p style="text-align:center;margin-top:14px;font-size:.78rem"><a href="../index.html" style="color:var(--text2)">← NexoraPilot-এ ফিরুন</a></p>
+    <p style="text-align:center;margin-top:14px;font-size:.78rem"><a href="../index.html" style="color:var(--text2)">← EcomSpark-এ ফিরুন</a></p>
   </div>
 </div>
 
@@ -40,7 +39,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--a1),var(--a2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;box-shadow:0 0 20px rgba(0,245,212,.3)">⚡</div>
-      <div style="font-family:var(--font-h);font-weight:900;font-size:.88rem;color:#fff;line-height:1.2">NexoraPilot<br><span style="font-size:.62rem;color:var(--a1);text-transform:uppercase;letter-spacing:1px">Admin</span></div>
+      <div style="font-family:var(--font-h);font-weight:900;font-size:.88rem;color:#fff;line-height:1.2">EcomSpark<br><span style="font-size:.62rem;color:var(--a1);text-transform:uppercase;letter-spacing:1px">Admin</span></div>
     </div>
     <div style="padding:10px">
       <div class="sidebar-section">Dashboard</div>
@@ -332,29 +331,72 @@
 <script>
 /* ════════ ADMIN AUTH (Firebase) ════════ */
 async function adminLogin(){
-  const email = document.getElementById('adminEmail').value.trim();
+  const email = document.getElementById('adminEmail').value.trim().toLowerCase();
   const pass  = document.getElementById('adminPass').value;
   if(!email||!pass){ Toast.error('Email ও password দিন'); return; }
   const btn = document.getElementById('loginBtn');
   btn.disabled = true; btn.textContent = '⏳ Login হচ্ছে...';
   document.getElementById('loginErr').classList.add('hidden');
 
+  /* Method 1: Firebase Auth login */
   try {
     await auth.signInWithEmailAndPassword(email, pass);
-    /* Check if user is admin in Firestore */
+
+    /* Check admin — try Firestore first, fallback to stored admin email */
     const uid = auth.currentUser.uid;
-    const doc = await db.collection('users').doc(uid).get();
-    if(!doc.exists || doc.data().plan !== 'admin'){
+    let isAdmin = false;
+
+    /* Check localStorage stored admin emails */
+    const storedAdmins = JSON.parse(localStorage.getItem('es_admin_emails')||'[]');
+    if(storedAdmins.includes(email)) isAdmin = true;
+
+    /* Check Firestore (may fail if rules block it) */
+    if(!isAdmin){
+      try {
+        const snap = await db.collection('users').doc(uid).get();
+        if(snap.exists && snap.data().plan === 'admin') isAdmin = true;
+      } catch(e){ /* Firestore blocked, skip */ }
+    }
+
+    /* First time setup: if no admins registered yet, first login becomes admin */
+    if(!isAdmin && storedAdmins.length === 0){
+      isAdmin = true;
+      storedAdmins.push(email);
+      localStorage.setItem('es_admin_emails', JSON.stringify(storedAdmins));
+      /* Also try to save to Firestore */
+      try {
+        await db.collection('users').doc(uid).set({
+          uid, email, name:'Admin', plan:'admin', isPro:true,
+          banned:false, createdAt: new Date().toISOString()
+        }, {merge:true});
+      } catch(e){}
+    }
+
+    if(!isAdmin){
       await auth.signOut();
       document.getElementById('loginErr').classList.remove('hidden');
+      const errSpan = document.getElementById('loginErrMsg');
+      if(errSpan) errSpan.textContent = '❌ এই account-এ admin access নেই।';
       btn.disabled=false; btn.textContent='🔐 Login করুন';
       return;
     }
+
+    /* Success */
+    localStorage.setItem('es_admin_auth', JSON.stringify({email, uid, t: Date.now()}));
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('adminApp').classList.remove('hidden');
     initAdmin();
+
   } catch(e) {
+    let msg = '❌ ভুল email বা password।';
+    if(e.code === 'auth/user-not-found')   msg = '❌ এই email-এ কোনো account নেই।';
+    if(e.code === 'auth/wrong-password')   msg = '❌ পাসওয়ার্ড ভুল।';
+    if(e.code === 'auth/invalid-credential') msg = '❌ Email বা পাসওয়ার্ড ভুল।';
+    if(e.code === 'auth/too-many-requests') msg = '❌ অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।';
+    if(e.code === 'auth/network-request-failed') msg = '❌ ইন্টারনেট সংযোগ সমস্যা।';
     document.getElementById('loginErr').classList.remove('hidden');
+    const errSpan = document.getElementById('loginErrMsg');
+    if(errSpan) errSpan.textContent = msg;
     btn.disabled=false; btn.textContent='🔐 Login করুন';
   }
 }
@@ -855,9 +897,45 @@ async function renderAnalytics(){
 /* ════════ SETTINGS ════════ */
 function renderSettings(){
   document.getElementById('bkashInput').value = Store.getBkashNumber();
+  const admins = JSON.parse(localStorage.getItem('es_admin_emails')||'[]');
   document.getElementById('adminInfo').innerHTML=`
-    Email: <strong style="color:var(--a1)">${auth?.currentUser?.email||'—'}</strong><br>
-    Firebase UID: <span style="font-family:monospace;color:var(--text2)">${auth?.currentUser?.uid||'—'}</span>`;
+    <div style="margin-bottom:14px">
+      <strong style="color:#fff">Current Admin Email:</strong>
+      <span style="color:var(--a1);margin-left:8px">${auth?.currentUser?.email||'—'}</span>
+    </div>
+    <div style="margin-bottom:14px">
+      <strong style="color:#fff">All Admin Emails:</strong>
+      <div style="margin-top:6px;display:grid;gap:6px">
+        ${admins.map(e=>`<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.15);border-radius:8px;padding:8px 12px">
+          <span style="color:var(--a1);font-size:.85rem">${e}</span>
+          <button class="action-btn" style="color:#f87171" onclick="removeAdminEmail('${e}')">Remove</button>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <input class="form-control" id="newAdminEmail" type="email" placeholder="নতুন admin email যোগ করুন" style="flex:1">
+      <button class="btn btn-primary btn-sm" onclick="addAdminEmail()">+ যোগ করুন</button>
+    </div>
+    <div style="margin-top:12px;padding:10px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;font-size:.82rem;color:var(--a3)">
+      ⚠️ Admin email list এই browser এ localStorage তে save হয়। Netlify deploy করলে নতুন browser এ প্রথম login করলে auto-admin হবে।
+    </div>`;}
+
+function addAdminEmail(){
+  const email = document.getElementById('newAdminEmail')?.value?.trim().toLowerCase();
+  if(!email||!email.includes('@')){ Toast.error('সঠিক email দিন'); return; }
+  const admins = JSON.parse(localStorage.getItem('es_admin_emails')||'[]');
+  if(!admins.includes(email)){ admins.push(email); localStorage.setItem('es_admin_emails', JSON.stringify(admins)); }
+  Toast.success(`${email} admin হিসেবে যোগ হয়েছে।`);
+  renderSettings();
+}
+
+function removeAdminEmail(email){
+  if(!confirm(`${email} admin list থেকে সরাবেন?`))return;
+  let admins = JSON.parse(localStorage.getItem('es_admin_emails')||'[]');
+  admins = admins.filter(e=>e!==email);
+  localStorage.setItem('es_admin_emails', JSON.stringify(admins));
+  Toast.success('Removed।');
+  renderSettings();
 }
 function saveBkash(){
   const n=document.getElementById('bkashInput').value.trim();
@@ -878,7 +956,7 @@ async function exportTableCSV(type){
   const rows=data.map(r=>Object.values(r).map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
   const csv=[h,...rows].join('\n');
   const b=new Blob([csv],{type:'text/csv'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`nexorapilot-${type}.csv`; a.click();
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`ecomspark-${type}.csv`; a.click();
   Toast.success('CSV export হয়েছে!');
 }
 
@@ -886,18 +964,37 @@ async function exportTableCSV(type){
 document.addEventListener('DOMContentLoaded',()=>{
   Toast.init();
   initFirebase();
-  /* Check if already logged in */
-  setTimeout(()=>{
-    if(auth?.currentUser){
-      db.collection('users').doc(auth.currentUser.uid).get().then(doc=>{
-        if(doc.exists && doc.data().plan==='admin'){
-          document.getElementById('loginScreen').classList.add('hidden');
-          document.getElementById('adminApp').classList.remove('hidden');
-          initAdmin();
-        }
-      });
+
+  /* Check if already logged in via Firebase Auth */
+  auth.onAuthStateChanged(async (user) => {
+    if(!user) return; /* Not logged in, stay on login screen */
+
+    const email = user.email?.toLowerCase();
+    const storedAdmins = JSON.parse(localStorage.getItem('es_admin_emails')||'[]');
+    let isAdmin = storedAdmins.includes(email);
+
+    /* Check Firestore */
+    if(!isAdmin){
+      try {
+        const snap = await db.collection('users').doc(user.uid).get();
+        if(snap.exists && snap.data().plan === 'admin') isAdmin = true;
+      } catch(e){}
     }
-  }, 1500);
+
+    /* First time: no admins yet → first authenticated user becomes admin */
+    if(!isAdmin && storedAdmins.length === 0){
+      isAdmin = true;
+      storedAdmins.push(email);
+      localStorage.setItem('es_admin_emails', JSON.stringify(storedAdmins));
+    }
+
+    if(isAdmin){
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('adminApp').classList.remove('hidden');
+      initAdmin();
+    }
+  });
+
   document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o)o.classList.add('hidden'); }));
 });
 </script>

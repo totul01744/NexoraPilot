@@ -1,5 +1,5 @@
 /* ============================================================
-   NexoraPilot — Core Engine v5.0
+   EcomSpark — Core Engine v5.0
    Firebase Auth + Firestore — NO localStorage for user data
    ============================================================ */
 
@@ -7,7 +7,6 @@
 const FB_CONFIG = {
   apiKey: "AIzaSyDgqlhFa_zRj7w1h5YiMPV3ajQUbGGrnEI",
   authDomain: "ecomspark-cd4ea.firebaseapp.com",
-  databaseURL: "https://ecomspark-cd4ea-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "ecomspark-cd4ea",
   storageBucket: "ecomspark-cd4ea.firebasestorage.app",
   messagingSenderId: "877618570666",
@@ -19,7 +18,7 @@ const FB_CONFIG = {
 const CONFIG = {
   GEMINI_URL: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
   FREE_DAILY_LIMIT: 3,
-  ADMIN_EMAIL: 'totul01744@gmail.com', /* Admin Firebase Auth email */
+  ADMIN_EMAIL: 'admin@ecomspark.com', /* Admin Firebase Auth email */
   BKASH_NUMBER: '01859-393487',
 };
 

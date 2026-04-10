@@ -1,0 +1,58 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAdmin() {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.plan == 'admin';
+    }
+
+    // Users: নিজের data নিজে পড়তে/লিখতে পারবে; admin সবার data দেখতে পারবে
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      allow read, write: if isAdmin();
+    }
+
+    // Products: সবাই পড়তে পারবে; শুধু admin লিখবে
+    match /products/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Usage: নিজের usage নিজে read/write; admin সব দেখবে
+    match /usage/{docId} {
+      allow read, write: if request.auth != null &&
+        docId.matches(request.auth.uid + '_.*');
+      allow read: if isAdmin();
+    }
+
+    // Help: যে কেউ create করতে পারবে; admin manage করবে
+    match /help/{id} {
+      allow create: if true;
+      allow read, update: if isAdmin();
+    }
+
+    // Agency: যে কেউ create; admin manage
+    match /agency/{id} {
+      allow create: if true;
+      allow read, update: if isAdmin();
+    }
+
+    // Payments: login user create করতে পারবে; admin manage
+    match /payments/{id} {
+      allow create: if request.auth != null;
+      allow read, update: if isAdmin();
+    }
+
+    // Events: যে কেউ create; admin পড়বে
+    match /events/{id} {
+      allow create: if true;
+      allow read: if isAdmin();
+    }
+
+    // PendingPro: শুধু admin
+    match /pendingPro/{id} {
+      allow read, write: if isAdmin();
+    }
+  }
+}
