@@ -1,0 +1,1013 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin Panel — EcomSpark</title>
+<link rel="stylesheet" href="../assets/css/style.css">
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="loginScreen" class="login-screen">
+  <div class="login-box">
+    <div style="text-align:center;margin-bottom:30px">
+      <div style="width:60px;height:60px;background:linear-gradient(135deg,var(--a1),var(--a2));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 14px;box-shadow:0 0 36px rgba(0,245,212,.4)">⚡</div>
+      <div style="font-family:var(--font-h);font-weight:900;font-size:1.3rem;color:#fff">Admin Panel</div>
+      <div style="font-size:.8rem;color:var(--text2);margin-top:3px">EcomSpark Control Center</div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Admin Email</label>
+      <input type="email" class="form-control" id="adminEmail" placeholder="admin@email.com" onkeydown="if(event.key==='Enter')adminLogin()">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Admin Password</label>
+      <input type="password" class="form-control" id="adminPass" placeholder="Password দিন" onkeydown="if(event.key==='Enter')adminLogin()">
+    </div>
+    <div id="loginErr" class="hidden mb-3"><div class="alert alert-error"><span id="loginErrMsg">❌ ভুল email বা password।</span></div></div>
+    <button class="btn btn-primary btn-full" id="loginBtn" onclick="adminLogin()">🔐 Login করুন</button>
+    <p style="text-align:center;margin-top:14px;font-size:.78rem"><a href="../index.html" style="color:var(--text2)">← EcomSpark-এ ফিরুন</a></p>
+  </div>
+</div>
+
+<!-- ADMIN APP -->
+<div id="adminApp" class="admin-layout hidden">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--a1),var(--a2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;box-shadow:0 0 20px rgba(0,245,212,.3)">⚡</div>
+      <div style="font-family:var(--font-h);font-weight:900;font-size:.88rem;color:#fff;line-height:1.2">EcomSpark<br><span style="font-size:.62rem;color:var(--a1);text-transform:uppercase;letter-spacing:1px">Admin</span></div>
+    </div>
+    <div style="padding:10px">
+      <div class="sidebar-section">Dashboard</div>
+      <button class="sidebar-link active" data-page="dashboard" onclick="showPage('dashboard',this)"><span class="s-icon">📊</span> Overview</button>
+
+      <div class="sidebar-section">Products</div>
+      <button class="sidebar-link" data-page="products" onclick="showPage('products',this)"><span class="s-icon">🏆</span> Winning Products</button>
+      <button class="sidebar-link" data-page="banners" onclick="showPage('banners',this)"><span class="s-icon">🖼️</span> Banners</button>
+
+      <div class="sidebar-section">Users</div>
+      <button class="sidebar-link" data-page="payments" onclick="showPage('payments',this)"><span class="s-icon">💳</span> Payments <span class="s-badge" id="sb-pay">0</span></button>
+      <button class="sidebar-link" data-page="help" onclick="showPage('help',this)"><span class="s-icon">🆘</span> Help Requests <span class="s-badge" id="sb-help">0</span></button>
+      <button class="sidebar-link" data-page="agency" onclick="showPage('agency',this)"><span class="s-icon">🚀</span> Upgrade Inquiries <span class="s-badge" id="sb-agency">0</span></button>
+      <button class="sidebar-link" data-page="users" onclick="showPage('users',this)"><span class="s-icon">👥</span> Pro Users</button>
+      <button class="sidebar-link" data-page="allUsers" onclick="showPage('allUsers',this)"><span class="s-icon">👤</span> সব Registered Users</button>
+
+      <div class="sidebar-section">System</div>
+      <button class="sidebar-link" data-page="apikey" onclick="showPage('apikey',this)"><span class="s-icon">🔑</span> System API Key</button>
+      <button class="sidebar-link" data-page="analytics" onclick="showPage('analytics',this)"><span class="s-icon">📈</span> Analytics</button>
+      <button class="sidebar-link" data-page="settings" onclick="showPage('settings',this)"><span class="s-icon">⚙️</span> Settings</button>
+
+      <div style="position:absolute;bottom:16px;left:10px;right:10px">
+        <button class="sidebar-link" style="color:#f87171" onclick="adminLogout()"><span class="s-icon">🚪</span> Logout</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main-content">
+
+    <!-- DASHBOARD -->
+    <div id="page-dashboard">
+      <div class="admin-header">
+        <div><div class="page-title">📊 Dashboard</div><div class="page-subtitle" id="dashDate"></div></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm btn-secondary" onclick="initAdmin()">🔄 Refresh</button>
+          <a href="../index.html" target="_blank" class="btn btn-sm btn-secondary">🌐 Site দেখুন</a>
+        </div>
+      </div>
+      <div id="apiKeyAlert" class="hidden" style="margin-bottom:20px">
+        <div class="alert alert-warning" style="gap:12px">
+          <span>⚠️</span>
+          <div>
+            <strong>System API Key সেট করা নেই!</strong><br>
+            <span style="font-size:.85rem">Tools কাজ করবে না।</span>
+            <button class="btn btn-sm btn-amber" style="margin-left:12px" onclick="showPage('apikey',document.querySelector('[data-page=apikey]'))">🔑 Key সেট করুন</button>
+          </div>
+        </div>
+      </div>
+      <div class="stats-grid">
+        <div class="stat-card"><div class="stat-num mint" id="s-prod">0</div><div class="stat-label">Winning Products</div></div>
+        <div class="stat-card"><div class="stat-num" id="s-help">0</div><div class="stat-label">Pending Help</div></div>
+        <div class="stat-card"><div class="stat-num violet" id="s-agency">0</div><div class="stat-label">Upgrade Inquiries</div></div>
+        <div class="stat-card"><div class="stat-num amber" id="s-pay">0</div><div class="stat-label">Pending Payments</div></div>
+        <div class="stat-card"><div class="stat-num" id="s-users">0</div><div class="stat-label">Pro Users</div></div>
+        <div class="stat-card"><div class="stat-num mint" id="s-allUsers">0</div><div class="stat-label">Total Users</div></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><div class="table-title">💳 সাম্প্রতিক Payments</div><button class="btn btn-sm btn-secondary" onclick="showPage('payments',document.querySelector('[data-page=payments]'))">সব দেখুন</button></div>
+        <div id="recentPayments"></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><div class="table-title">🆘 সাম্প্রতিক Help Requests</div><button class="btn btn-sm btn-secondary" onclick="showPage('help',document.querySelector('[data-page=help]'))">সব দেখুন</button></div>
+        <div id="recentHelp"></div>
+      </div>
+    </div>
+
+    <!-- API KEY PAGE -->
+    <div id="page-apikey" class="hidden">
+      <div class="admin-header"><div><div class="page-title">🔑 System API Key</div><div class="page-subtitle">সব user-দের জন্য একটি key</div></div></div>
+      <div class="card" style="padding:26px;margin-bottom:20px" id="apiKeyStatusCard">
+        <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px">
+          <div id="apiKeyStatusIcon" style="width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;flex-shrink:0">❓</div>
+          <div>
+            <div id="apiKeyStatusTitle" style="font-family:var(--font-h);font-weight:800;color:#fff">Status চেক করছে...</div>
+            <div id="apiKeyStatusDesc" style="font-size:.83rem;color:var(--text2);margin-top:3px"></div>
+          </div>
+        </div>
+        <div id="apiKeyCurrentDisplay" style="display:none">
+          <div style="background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:10px;padding:12px 16px;font-family:monospace;font-size:.85rem;color:var(--a1)" id="apiKeyMasked"></div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>🔑 Gemini API Key সেট করুন</h3>
+        <div style="background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.15);border-radius:10px;padding:14px;margin-bottom:18px;font-size:.86rem">
+          <strong style="color:var(--a1)">📋 Gemini API Key পাওয়ার নিয়ম:</strong>
+          <ol style="margin-top:8px;padding-left:18px;color:var(--text2);display:grid;gap:4px">
+            <li><a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--a1)">aistudio.google.com/apikey</a> এ যান</li>
+            <li>Google account দিয়ে login করুন</li>
+            <li>"Create API Key" ক্লিক করুন</li>
+            <li>Key copy করুন এবং নিচে paste করুন</li>
+          </ol>
+          <div style="margin-top:10px;padding:8px 12px;background:rgba(245,158,11,.1);border-radius:8px;font-size:.83rem;color:var(--a3)">✅ Gemini API সম্পূর্ণ <strong>বিনামূল্যে</strong></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Gemini API Key</label>
+          <input type="password" class="form-control" id="adminApiKeyInput" placeholder="AIzaSy...">
+        </div>
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-primary" onclick="saveAdminApiKey()">🔑 Key Save করুন</button>
+          <button class="btn btn-danger btn-sm" onclick="removeAdminApiKey()">🗑️ Key মুছুন</button>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>🧪 Key Test করুন</h3>
+        <button class="btn btn-secondary" onclick="testApiKey()" id="testBtn">🧪 Connection Test করুন</button>
+        <div id="testResult" style="margin-top:14px"></div>
+      </div>
+    </div>
+
+    <!-- WINNING PRODUCTS -->
+    <div id="page-products" class="hidden">
+      <div class="admin-header">
+        <div><div class="page-title">🏆 Winning Products</div></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-sm btn-secondary" onclick="addSampleProducts()">📦 Sample Data</button>
+          <button class="btn btn-primary" onclick="openProductForm()">+ Product যোগ করুন</button>
+        </div>
+      </div>
+      <div class="table-card"><div id="productsTable"></div></div>
+    </div>
+
+    <!-- BANNERS -->
+    <div id="page-banners" class="hidden">
+      <div class="admin-header">
+        <div><div class="page-title">🖼️ Banner Management</div></div>
+        <button class="btn btn-primary" onclick="openBannerForm()">+ Banner যোগ করুন</button>
+      </div>
+      <div id="bannersGrid" style="display:grid;gap:16px"></div>
+    </div>
+
+    <!-- PAYMENTS -->
+    <div id="page-payments" class="hidden">
+      <div class="admin-header">
+        <div><div class="page-title">💳 Payment Requests</div></div>
+        <button class="btn btn-sm btn-secondary" onclick="exportTableCSV('payments')">⬇️ CSV</button>
+      </div>
+      <div class="table-card"><div id="paymentsTable"></div></div>
+    </div>
+
+    <!-- HELP REQUESTS -->
+    <div id="page-help" class="hidden">
+      <div class="admin-header">
+        <div><div class="page-title">🆘 Help Requests</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select class="form-control" id="helpFilter" onchange="renderHelpTable()" style="width:auto;padding:7px 12px;font-size:.82rem">
+            <option value="all">সব</option><option value="pending">Pending</option><option value="replied">Replied</option><option value="closed">Closed</option>
+          </select>
+          <button class="btn btn-sm btn-secondary" onclick="exportTableCSV('help')">⬇️ CSV</button>
+        </div>
+      </div>
+      <div class="table-card"><div id="helpTable"></div></div>
+    </div>
+
+    <!-- AGENCY -->
+    <div id="page-agency" class="hidden">
+      <div class="admin-header">
+        <div><div class="page-title">🚀 Upgrade Inquiries</div></div>
+        <button class="btn btn-sm btn-secondary" onclick="exportTableCSV('agency')">⬇️ CSV</button>
+      </div>
+      <div class="table-card"><div id="agencyTable"></div></div>
+    </div>
+
+    <!-- PRO USERS -->
+    <div id="page-users" class="hidden">
+      <div class="admin-header">
+        <div><div class="page-title">👥 Pro User Management</div></div>
+        <button class="btn btn-primary" onclick="Modal.show('addUserModal')">+ Pro User যোগ করুন</button>
+      </div>
+      <div class="table-card"><div id="usersTable"></div></div>
+    </div>
+
+    <!-- ALL USERS -->
+    <div id="page-allUsers" class="hidden">
+      <div class="admin-header">
+        <div><div class="page-title">👤 সব Registered Users</div></div>
+        <button class="btn btn-sm btn-secondary" onclick="renderAllUsers()">🔄 Refresh</button>
+      </div>
+      <div class="table-card"><div id="allUsersTable"></div></div>
+    </div>
+
+    <!-- ANALYTICS -->
+    <div id="page-analytics" class="hidden">
+      <div class="admin-header"><div><div class="page-title">📈 Analytics</div></div></div>
+      <div class="table-card">
+        <div class="table-header"><div class="table-title">📋 Recent Events</div></div>
+        <div id="eventsTable"></div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div id="page-settings" class="hidden">
+      <div class="admin-header"><div><div class="page-title">⚙️ Settings</div></div></div>
+      <div class="settings-section">
+        <h3>📱 bKash Number পরিবর্তন</h3>
+        <div class="form-group"><label class="form-label">bKash Number</label><input class="form-control" id="bkashInput" placeholder="01XXXXXXXXX"></div>
+        <button class="btn btn-primary btn-sm" onclick="saveBkash()">💾 Save করুন</button>
+      </div>
+      <div class="settings-section">
+        <h3>👤 Admin Account তথ্য</h3>
+        <div style="font-size:.85rem;color:var(--text2)" id="adminInfo"></div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- PRODUCT FORM MODAL -->
+<div class="modal-overlay hidden" id="productFormModal">
+  <div class="modal-box modal-box-lg" style="max-width:700px">
+    <div class="modal-header">
+      <div class="modal-title" id="productFormTitle">➕ Product যোগ করুন</div>
+      <button class="modal-close" onclick="Modal.hideAll()">✕</button>
+    </div>
+    <div class="product-form-grid">
+      <div class="form-group"><label class="form-label">Product Name *</label><input class="form-control" id="pf-name" placeholder="e.g., Posture Corrector Pro"></div>
+      <div class="form-group"><label class="form-label">Category</label>
+        <select class="form-control" id="pf-cat">
+          <option>Health & Beauty</option><option>Electronics</option><option>Home & Garden</option>
+          <option>Sports & Fitness</option><option>Baby & Kids</option><option>Pet Products</option>
+          <option>Kitchen</option><option>Fashion</option><option>Other</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Image URL</label><input class="form-control" id="pf-img" placeholder="https://...image.jpg"></div>
+      <div class="form-group"><label class="form-label">মূল্য পরিসর</label><input class="form-control" id="pf-price" placeholder="e.g., ৳২,৫০০-৪,৫০০"></div>
+      <div class="form-group"><label class="form-label">Product Score (১-১০০)</label><input class="form-control" id="pf-score" type="number" min="1" max="100" placeholder="85"></div>
+      <div class="form-group"><label class="form-label">Premium Only?</label>
+        <select class="form-control" id="pf-premium"><option value="true">হ্যাঁ — শুধু Premium Users</option><option value="false">না — সবার জন্য</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">Short Description</label><input class="form-control" id="pf-short" placeholder="১-২ বাক্যে সংক্ষিপ্ত বিবরণ"></div>
+    <div class="form-group"><label class="form-label">Full Description</label><textarea class="form-control" id="pf-desc" rows="3" placeholder="বিস্তারিত বিবরণ..."></textarea></div>
+    <div class="form-group"><label class="form-label">কোথায় পাওয়া যাবে</label><input class="form-control" id="pf-where" placeholder="e.g., AliExpress, Alibaba"></div>
+    <div class="form-group"><label class="form-label">Key Selling Points (প্রতিটি নতুন লাইনে)</label><textarea class="form-control" id="pf-points" rows="3"></textarea></div>
+    <div class="form-group"><label class="form-label">🎵 TikTok Ad Strategy</label><textarea class="form-control" id="pf-tiktok" rows="3"></textarea></div>
+    <div class="form-group"><label class="form-label">📘 Facebook Ad Strategy</label><textarea class="form-control" id="pf-facebook" rows="3"></textarea></div>
+    <div class="form-group"><label class="form-label">💰 Ad Budget Recommendation</label><input class="form-control" id="pf-budget" placeholder="e.g., দিনে ৳২,০০০"></div>
+    <div class="form-group"><label class="form-label">💬 Caption Template</label><textarea class="form-control" id="pf-caption" rows="2"></textarea></div>
+    <div class="form-group"><label class="form-label">🏷️ Hashtags</label><input class="form-control" id="pf-tags" placeholder="#posturecorrector #backpain"></div>
+    <div class="form-group"><label class="form-label">📌 Additional Notes</label><textarea class="form-control" id="pf-notes" rows="2"></textarea></div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveProduct()">💾 Save করুন</button>
+      <button class="btn btn-secondary" onclick="Modal.hideAll()">বাতিল</button>
+    </div>
+  </div>
+</div>
+
+<!-- BANNER FORM MODAL -->
+<div class="modal-overlay hidden" id="bannerFormModal">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title" id="bannerFormTitle">🖼️ Banner যোগ করুন</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
+    <div class="form-group"><label class="form-label">Title *</label><input class="form-control" id="bn-title"></div>
+    <div class="form-group"><label class="form-label">Subtitle</label><input class="form-control" id="bn-sub"></div>
+    <div class="form-group"><label class="form-label">CTA Button Text</label><input class="form-control" id="bn-cta" placeholder="শুরু করুন"></div>
+    <div class="form-group"><label class="form-label">CTA Link</label><input class="form-control" id="bn-link" placeholder="#tools"></div>
+    <div class="form-group"><label class="form-label">Background Gradient</label><input class="form-control" id="bn-bg" placeholder="linear-gradient(135deg,#00f5d4,#7c3aed)"></div>
+    <div class="form-group"><label class="form-label">Active?</label><select class="form-control" id="bn-active"><option value="true">হ্যাঁ</option><option value="false">না</option></select></div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveBanner()">💾 Save</button>
+      <button class="btn btn-secondary" onclick="Modal.hideAll()">বাতিল</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+<div class="modal-overlay hidden" id="detailModal">
+  <div class="modal-box" style="max-width:580px">
+    <div class="modal-header"><div class="modal-title" id="detailTitle">Details</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
+    <div id="detailContent"></div>
+  </div>
+</div>
+
+<!-- ADD USER MODAL -->
+<div class="modal-overlay hidden" id="addUserModal">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title">👥 Pro User Activate করুন</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
+    <p style="font-size:.85rem;color:var(--text2);margin-bottom:16px">User-এর Firebase account থাকতে হবে। Email দিয়ে Pro activate করুন।</p>
+    <div class="form-group"><label class="form-label">User Email *</label><input class="form-control" id="nu-email" type="email" placeholder="user@example.com"></div>
+    <div class="form-group"><label class="form-label">Plan</label>
+      <select class="form-control" id="nu-plan">
+        <option>Pro Monthly</option><option>Pro Annual</option><option>Agency</option>
+      </select>
+    </div>
+    <div id="addUserResult" style="margin-bottom:10px"></div>
+    <button class="btn btn-primary btn-full" onclick="addProUserManual()">⭐ Pro Activate করুন</button>
+  </div>
+</div>
+
+<script src="../assets/js/app.js"></script>
+<script>
+/* ════════ ADMIN AUTH (Firebase) ════════ */
+async function adminLogin(){
+  const email = document.getElementById('adminEmail').value.trim().toLowerCase();
+  const pass  = document.getElementById('adminPass').value;
+  if(!email||!pass){ Toast.error('Email ও password দিন'); return; }
+
+  const btn = document.getElementById('loginBtn');
+  btn.disabled = true; btn.textContent = '⏳ Login হচ্ছে...';
+  document.getElementById('loginErr').classList.add('hidden');
+
+  try {
+    const cred = await auth.signInWithEmailAndPassword(email, pass);
+    const uid  = cred.user.uid;
+
+    /* Admin check: শুধু UID অথবা email মিললেই admin */
+    const ADMIN_UID   = 'd8uASRNpNVbpPeCKAWI5OQAg1UF2';
+    const ADMIN_EMAIL = 'totul01744@gmail.com';
+    const isAdmin = (uid === ADMIN_UID) || (email === ADMIN_EMAIL);
+
+    if(!isAdmin){
+      await auth.signOut();
+      document.getElementById('loginErr').classList.remove('hidden');
+      const s = document.getElementById('loginErrMsg');
+      if(s) s.textContent = '❌ এই account admin নয়।';
+      btn.disabled=false; btn.textContent='🔐 Login করুন';
+      return;
+    }
+
+    /* Load API key from Firestore */
+    try { await Store.loadApiKeyFromFirestore(); } catch(e){}
+
+    /* Success */
+    document.getElementById('loginScreen').classList.add('hidden');
+    document.getElementById('adminApp').classList.remove('hidden');
+    initAdmin();
+
+  } catch(e) {
+    const msgs = {
+      'auth/user-not-found':        '❌ এই email-এ কোনো account নেই।',
+      'auth/wrong-password':        '❌ পাসওয়ার্ড ভুল।',
+      'auth/invalid-credential':    '❌ Email বা পাসওয়ার্ড ভুল।',
+      'auth/invalid-email':         '❌ সঠিক email দিন।',
+      'auth/too-many-requests':     '❌ অনেকবার চেষ্টা। কিছুক্ষণ পরে চেষ্টা করুন।',
+      'auth/network-request-failed':'❌ ইন্টারনেট সংযোগ সমস্যা।',
+    };
+    document.getElementById('loginErr').classList.remove('hidden');
+    const s = document.getElementById('loginErrMsg');
+    if(s) s.textContent = msgs[e.code] || ('❌ সমস্যা: ' + (e.message||''));
+    btn.disabled=false; btn.textContent='🔐 Login করুন';
+  }
+}
+
+function adminLogout(){
+  auth.signOut();
+  location.reload();
+}
+
+/* ════════ INIT ════════ */
+async function initAdmin(){
+  document.getElementById('dashDate').textContent = new Date().toLocaleString('bn-BD');
+  if(!Store.getApiKey()){
+    document.getElementById('apiKeyAlert').classList.remove('hidden');
+  }
+  try {
+    const stats = await FB.getStats();
+    document.getElementById('s-prod').textContent    = stats.products;
+    document.getElementById('s-help').textContent    = stats.helpPending;
+    document.getElementById('s-agency').textContent  = stats.agency;
+    document.getElementById('s-pay').textContent     = stats.paymentsPending;
+    document.getElementById('s-users').textContent   = stats.proUsers;
+    document.getElementById('sb-help').textContent   = stats.helpPending;
+    document.getElementById('sb-pay').textContent    = stats.paymentsPending;
+
+    /* Total users */
+    const allU = await db.collection('users').get();
+    document.getElementById('s-allUsers').textContent = allU.size;
+  } catch(e){}
+
+  renderRecentPayments();
+  renderRecentHelp();
+}
+
+/* ════════ PAGE ROUTING ════════ */
+function showPage(name,btn){
+  document.querySelectorAll('[id^="page-"]').forEach(p=>p.classList.add('hidden'));
+  document.getElementById('page-'+name)?.classList.remove('hidden');
+  document.querySelectorAll('.sidebar-link').forEach(l=>l.classList.remove('active'));
+  btn?.classList.add('active');
+  if(name==='products') renderProductsTable();
+  if(name==='banners') renderBanners();
+  if(name==='payments') renderPaymentsTable();
+  if(name==='help') renderHelpTable();
+  if(name==='agency') renderAgencyTable();
+  if(name==='users') renderUsersTable();
+  if(name==='allUsers') renderAllUsers();
+  if(name==='analytics') renderAnalytics();
+  if(name==='apikey') renderApiKeyStatus();
+  if(name==='settings') renderSettings();
+}
+
+function fd(iso){ try{return new Date(iso).toLocaleDateString('bn-BD',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'})}catch{return '—'} }
+
+/* ════════ API KEY ════════ */
+function renderApiKeyStatus(){
+  const key=Store.getApiKey();
+  const icon=document.getElementById('apiKeyStatusIcon');
+  const title=document.getElementById('apiKeyStatusTitle');
+  const desc=document.getElementById('apiKeyStatusDesc');
+  const display=document.getElementById('apiKeyCurrentDisplay');
+  const masked=document.getElementById('apiKeyMasked');
+  if(key){
+    icon.style.background='rgba(0,245,212,.15)'; icon.textContent='✅';
+    title.textContent='System Key সক্রিয়';
+    desc.textContent='সব tools কাজ করছে।';
+    display.style.display='block';
+    masked.textContent=key.substring(0,8)+'...'+key.substring(key.length-4);
+  } else {
+    icon.style.background='rgba(245,158,11,.12)'; icon.textContent='⚠️';
+    title.textContent='System Key সেট নেই!';
+    desc.textContent='Tools কাজ করবে না। Gemini API key দিন।';
+    display.style.display='none';
+  }
+}
+async function saveAdminApiKey(){
+  const key=document.getElementById('adminApiKeyInput')?.value?.trim();
+  if(!key||key.length<10){ Toast.error('সঠিক API Key দিন'); return; }
+  const btn=document.querySelector('[onclick="saveAdminApiKey()"]');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Save হচ্ছে...';}
+  await Store.setApiKey(key);
+  if(btn){btn.disabled=false;btn.textContent='🔑 Key Save করুন';}
+  document.getElementById('adminApiKeyInput').value='';
+  renderApiKeyStatus();
+  document.getElementById('apiKeyAlert')?.classList.add('hidden');
+  Toast.success('System API Key সেভ হয়েছে! ✅ সব user পাবে।');
+}
+async function removeAdminApiKey(){
+  if(!confirm('System API Key মুছবেন?'))return;
+  await Store.setApiKey('');
+  window._cachedApiKey='';
+  renderApiKeyStatus();
+  Toast.warning('API Key মুছা হয়েছে।');
+}
+async function testApiKey(){
+  const key=Store.getApiKey();
+  const btn=document.getElementById('testBtn');
+  const result=document.getElementById('testResult');
+  if(!key){ result.innerHTML='<div class="alert alert-error">❌ কোনো key সেট নেই।</div>'; return; }
+  btn.disabled=true; btn.textContent='⏳ Test করা হচ্ছে...';
+  result.innerHTML='<div class="alert alert-info">🔄 Connection check করা হচ্ছে...</div>';
+  try{
+    const url=`${CONFIG.GEMINI_URL}?key=${key}`;
+    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:'Say OK only'}]}],generationConfig:{maxOutputTokens:5}})});
+    if(res.ok){ result.innerHTML='<div class="alert alert-success">✅ Connection সফল!</div>'; }
+    else { const err=await res.json().catch(()=>{}); result.innerHTML=`<div class="alert alert-error">❌ Error: ${err?.error?.message||'Invalid key'}</div>`; }
+  } catch(e){ result.innerHTML=`<div class="alert alert-error">❌ ${e.message}</div>`; }
+  btn.disabled=false; btn.textContent='🧪 Connection Test করুন';
+}
+
+/* ════════ PRODUCTS ════════ */
+let editingProductId=null;
+function openProductForm(id=null){
+  editingProductId=id;
+  document.getElementById('productFormTitle').textContent=id?'✏️ Product সম্পাদনা':'➕ Product যোগ করুন';
+  /* Clear fields */
+  ['pf-name','pf-img','pf-price','pf-score','pf-short','pf-desc','pf-where','pf-points','pf-tiktok','pf-facebook','pf-budget','pf-caption','pf-tags','pf-notes'].forEach(fid=>{
+    const el=document.getElementById(fid); if(el) el.value='';
+  });
+  document.getElementById('pf-premium').value='true';
+  if(id){
+    /* Load from current products list */
+    const p=window._adminProducts?.find(x=>x.id===id);
+    if(p){
+      [['pf-name',p.name||''],['pf-img',p.image||''],['pf-price',p.price||''],
+       ['pf-score',p.score||''],['pf-premium',p.premium!==false?'true':'false'],
+       ['pf-short',p.shortDesc||''],['pf-desc',p.description||''],
+       ['pf-where',p.whereToFind||''],['pf-points',(p.sellingPoints||[]).join('\n')],
+       ['pf-tiktok',p.tiktokAd||''],['pf-facebook',p.facebookAd||''],
+       ['pf-budget',p.adBudget||''],['pf-caption',p.caption||''],
+       ['pf-tags',p.hashtags||''],['pf-notes',p.notes||''],
+      ].forEach(([fid,val])=>{ const el=document.getElementById(fid); if(el)el.value=val; });
+      const catEl=document.getElementById('pf-cat'); if(catEl&&p.category) catEl.value=p.category;
+    }
+  }
+  Modal.show('productFormModal');
+}
+
+async function saveProduct(){
+  const name=document.getElementById('pf-name')?.value?.trim();
+  if(!name){ Toast.error('Product name দিন'); return; }
+  const pts=document.getElementById('pf-points')?.value||'';
+  const data={
+    name, category:document.getElementById('pf-cat')?.value,
+    image:document.getElementById('pf-img')?.value?.trim(),
+    price:document.getElementById('pf-price')?.value?.trim(),
+    score:parseInt(document.getElementById('pf-score')?.value)||0,
+    premium:document.getElementById('pf-premium')?.value==='true',
+    shortDesc:document.getElementById('pf-short')?.value?.trim(),
+    description:document.getElementById('pf-desc')?.value?.trim(),
+    whereToFind:document.getElementById('pf-where')?.value?.trim(),
+    sellingPoints:pts.split('\n').map(s=>s.trim()).filter(Boolean),
+    tiktokAd:document.getElementById('pf-tiktok')?.value?.trim(),
+    facebookAd:document.getElementById('pf-facebook')?.value?.trim(),
+    adBudget:document.getElementById('pf-budget')?.value?.trim(),
+    caption:document.getElementById('pf-caption')?.value?.trim(),
+    hashtags:document.getElementById('pf-tags')?.value?.trim(),
+    notes:document.getElementById('pf-notes')?.value?.trim(),
+  };
+  try {
+    if(editingProductId){
+      await FB.updateProduct(editingProductId, data);
+      Toast.success('Product update হয়েছে! ✅');
+    } else {
+      await FB.addProduct(data);
+      Toast.success('Product যোগ হয়েছে! ✅');
+    }
+    Modal.hideAll();
+    renderProductsTable();
+    initAdmin();
+  } catch(e){ Toast.error('সমস্যা হয়েছে: '+e.message); }
+}
+
+async function renderProductsTable(){
+  document.getElementById('productsTable').innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
+  const products = await FB.getProducts();
+  window._adminProducts = products;
+  if(!products.length){
+    document.getElementById('productsTable').innerHTML=`<div style="padding:30px;text-align:center;color:var(--text2)"><p>এখনো কোনো product নেই।</p></div>`;
+    return;
+  }
+  document.getElementById('productsTable').innerHTML=`<table>
+    <thead><tr><th>Product</th><th>Category</th><th>Score</th><th>Type</th><th>Date</th><th>Actions</th></tr></thead>
+    <tbody>${products.map(p=>`<tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        ${p.image?`<img src="${p.image}" style="width:40px;height:40px;border-radius:8px;object-fit:cover" onerror="this.style.display='none'">`:'<div style="width:40px;height:40px;border-radius:8px;background:rgba(0,245,212,.1);display:flex;align-items:center;justify-content:center">🏆</div>'}
+        <div><div style="font-weight:800;color:#fff">${p.name}</div><div style="font-size:.77rem;color:var(--text2)">${p.shortDesc?.substring(0,40)||''}…</div></div>
+      </div></td>
+      <td><span class="tag tag-mint">${p.category||'—'}</span></td>
+      <td><span style="font-weight:900;color:${p.score>=80?'var(--a1)':p.score>=60?'var(--a3)':'#f87171'}">${p.score||'—'}</span></td>
+      <td><span class="tag ${p.premium?'tag-amber':'tag-green'}">${p.premium?'⭐ Premium':'Free'}</span></td>
+      <td style="font-size:.79rem;color:var(--text2)">${fd(p.date)}</td>
+      <td>
+        <button class="action-btn" onclick="openProductForm('${p.id}')">✏️ Edit</button>
+        <button class="action-btn" style="color:#f87171;margin-left:4px" onclick="delProduct('${p.id}')">🗑️</button>
+      </td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+async function delProduct(id){
+  if(!confirm('মুছবেন?'))return;
+  await FB.deleteProduct(id);
+  renderProductsTable(); initAdmin(); Toast.success('Deleted');
+}
+
+async function addSampleProducts(){
+  const samples=[
+    {name:'Posture Corrector Pro',category:'Health & Beauty',score:88,premium:true,price:'৳২,৫০০-৪,৫০০',shortDesc:'Back support brace — TikTok ও Amazon-এ বিশাল চাহিদা',description:'TikTok-এর #১ trending health product।',whereToFind:'AliExpress',sellingPoints:['১০ দিনে পিঠের ব্যথা কমে','সব শরীরের জন্য','Doctor recommended'],tiktokAd:'Before/After content',facebookAd:'Targeting: ৩০-৫৫',adBudget:'দিনে ৳২,০০০',caption:'পিঠের ব্যথার সমাধান 😱 #PostureCorrector',hashtags:'#posturecorrector #backpain',notes:'১৮+ মাস ধরে trending।'},
+    {name:'LED Face Mask',category:'Health & Beauty',score:85,premium:true,price:'৳৩,০০০-৬,০০০',shortDesc:'৭ রঙের LED therapy mask',description:'Professional LED light therapy mask।',whereToFind:'Alibaba',sellingPoints:['৭টি LED mode','Anti-aging','ঘরে বসেই spa'],tiktokAd:'Before/after content',facebookAd:'Audience: ২৫-৪৫',adBudget:'৳৩,০০০/দিন',caption:'৩০ দিনে change ✨',hashtags:'#LEDmask #skincare',notes:'Premium positioning ভালো।'},
+  ];
+  for(const s of samples) await FB.addProduct(s);
+  renderProductsTable(); initAdmin(); Toast.success('Sample products যোগ হয়েছে! ✅');
+}
+
+/* ════════ BANNERS ════════ */
+let editingBannerId=null;
+function openBannerForm(id=null){
+  editingBannerId=id;
+  const b=id!==null?Store.getBanners().find(x=>x.id===id):null;
+  document.getElementById('bn-title').value=b?.title||'';
+  document.getElementById('bn-sub').value=b?.subtitle||'';
+  document.getElementById('bn-cta').value=b?.cta||'শুরু করুন';
+  document.getElementById('bn-link').value=b?.link||'#';
+  document.getElementById('bn-bg').value=b?.bg||'linear-gradient(135deg,#00f5d4,#7c3aed)';
+  document.getElementById('bn-active').value=b?.active!==false?'true':'false';
+  Modal.show('bannerFormModal');
+}
+function saveBanner(){
+  const title=document.getElementById('bn-title')?.value?.trim();
+  if(!title){ Toast.error('Title দিন'); return; }
+  const banners=Store.getBanners();
+  const data={title,subtitle:document.getElementById('bn-sub')?.value?.trim(),cta:document.getElementById('bn-cta')?.value?.trim()||'শুরু করুন',link:document.getElementById('bn-link')?.value?.trim()||'#',bg:document.getElementById('bn-bg')?.value?.trim()||'linear-gradient(135deg,#00f5d4,#7c3aed)',active:document.getElementById('bn-active')?.value==='true'};
+  if(editingBannerId!==null){ const i=banners.findIndex(b=>b.id===editingBannerId); if(i!==-1)banners[i]={...banners[i],...data}; }
+  else { data.id=Date.now(); banners.push(data); }
+  Store.setBanners(banners); Modal.hideAll(); renderBanners(); Toast.success('Banner save! ✅');
+}
+function renderBanners(){
+  const banners=Store.getBanners();
+  document.getElementById('bannersGrid').innerHTML=banners.map(b=>`
+    <div class="card" style="padding:20px;border-left:4px solid ${b.active?'var(--a1)':'var(--border)'}">
+      <div style="display:flex;align-items:center;gap:14px">
+        <div style="width:80px;height:50px;border-radius:8px;background:${b.bg};flex-shrink:0"></div>
+        <div style="flex:1"><strong style="color:#fff">${b.title}</strong><p style="font-size:.82rem;margin:2px 0">${b.subtitle||''}</p><div style="display:flex;gap:6px;margin-top:6px"><span class="tag ${b.active?'tag-mint':'tag-red'}">${b.active?'Active':'Hidden'}</span></div></div>
+        <div style="display:flex;gap:6px"><button class="action-btn" onclick="openBannerForm(${b.id})">✏️</button><button class="action-btn" style="color:#f87171" onclick="delBanner(${b.id})">🗑️</button></div>
+      </div>
+    </div>`).join('');
+}
+function delBanner(id){ if(!confirm('মুছবেন?'))return; Store.setBanners(Store.getBanners().filter(x=>x.id!==id)); renderBanners(); }
+
+/* ════════ PAYMENTS ════════ */
+async function renderRecentPayments(){
+  document.getElementById('recentPayments').innerHTML='<div style="padding:14px;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
+  const payments = await FB.getPayments();
+  buildPaymentsHTML(payments.slice(0,5), 'recentPayments', true);
+}
+async function renderPaymentsTable(){
+  document.getElementById('paymentsTable').innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
+  const payments = await FB.getPayments();
+  window._adminPayments = payments;
+  buildPaymentsHTML(payments, 'paymentsTable', false);
+}
+function buildPaymentsHTML(rows, elId, compact){
+  const el = document.getElementById(elId);
+  if(!rows.length){ el.innerHTML=`<div style="padding:28px;text-align:center;color:var(--text2)">কোনো payment নেই।</div>`; return; }
+  el.innerHTML=`<table><thead><tr>
+    <th>নাম</th><th>Email</th><th>Phone</th><th>Plan</th><th>Amount</th>
+    <th>TxnID</th><th>তারিখ</th><th>Status</th><th>Actions</th>
+  </tr></thead><tbody>
+    ${rows.map(r=>`<tr>
+      <td><strong style="color:#fff">${r.name||'—'}</strong></td>
+      <td style="font-size:.82rem;color:var(--text2)">${r.email||'—'}</td>
+      <td style="font-size:.82rem">${r.phone||'—'}</td>
+      <td><span class="tag tag-violet" style="font-size:.72rem">${r.plan||'—'}</span></td>
+      <td style="font-weight:800;color:var(--a3)">${r.amount||'—'}</td>
+      <td style="font-family:monospace;font-size:.85rem;color:var(--a1);font-weight:700">${r.txnId||'—'}</td>
+      <td style="font-size:.79rem;color:var(--text2)">${fd(r.date)}</td>
+      <td><span class="status-pill status-${r.status||'pending'}">${r.status||'pending'}</span></td>
+      <td style="white-space:nowrap">
+        <button class="action-btn" onclick="viewPayment('${r.id}')">🔍 দেখুন</button>
+        ${r.status!=='approved'?`<button class="action-btn" style="color:var(--a1);margin-left:4px" onclick="approvePayment('${r.id}','${r.email}','${r.name}','${r.plan}')">✅</button>`:''}
+        ${r.status!=='rejected'?`<button class="action-btn" style="color:#f87171;margin-left:4px" onclick="rejectPayment('${r.id}')">✕</button>`:''}
+      </td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+
+async function approvePayment(id, email, name, plan){
+  if(!confirm(`${email} কে Pro activate করবেন?\nPlan: ${plan}`))return;
+  await FB.updatePayment(id,{status:'approved', approvedAt:new Date().toISOString()});
+  const result = await FB.addProUserByEmail(email||'', name||'', plan||'Pro Monthly');
+  if(result==='activated'){
+    Toast.success(`✅ ${email} এখন Pro! Account activate হয়েছে।`);
+  } else if(result==='pending'){
+    Toast.info(`⏳ Payment approved। User এখনো register করেনি — register করলে Pro হবে।`);
+  } else {
+    Toast.warning(`Payment approved কিন্তু Pro activate এ সমস্যা হয়েছে।`);
+  }
+  renderPaymentsTable(); initAdmin();
+}
+
+async function rejectPayment(id){
+  if(!confirm('Payment reject করবেন? User কে জানাবেন।'))return;
+  await FB.updatePayment(id,{status:'rejected', rejectedAt:new Date().toISOString()});
+  Toast.warning('Payment rejected।');
+  renderPaymentsTable();
+}
+
+function viewPayment(id){
+  const r = window._adminPayments?.find(x=>x.id===id); if(!r)return;
+  document.getElementById('detailTitle').textContent='💳 Payment Details';
+  document.getElementById('detailContent').innerHTML=`
+    <div style="display:grid;gap:14px">
+      <!-- Status badge -->
+      <div style="text-align:center">
+        <span class="status-pill status-${r.status||'pending'}" style="font-size:.88rem;padding:6px 18px">${r.status||'pending'}</span>
+      </div>
+      <!-- Info grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:12px">
+          <div style="font-size:.7rem;color:var(--text2);margin-bottom:4px">নাম</div>
+          <strong style="color:#fff">${r.name||'—'}</strong>
+        </div>
+        <div style="background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:12px">
+          <div style="font-size:.7rem;color:var(--text2);margin-bottom:4px">Phone</div>
+          <strong style="color:#fff">${r.phone||'—'}</strong>
+        </div>
+        <div style="background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:12px;grid-column:1/-1">
+          <div style="font-size:.7rem;color:var(--text2);margin-bottom:4px">Email</div>
+          <strong style="color:var(--a1)">${r.email||'—'}</strong>
+        </div>
+        <div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:10px;padding:12px">
+          <div style="font-size:.7rem;color:var(--text2);margin-bottom:4px">Plan</div>
+          <strong style="color:#a78bfa">${r.plan||'—'}</strong>
+        </div>
+        <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px">
+          <div style="font-size:.7rem;color:var(--text2);margin-bottom:4px">Amount</div>
+          <strong style="color:var(--a3);font-size:1.1rem">${r.amount||'—'}</strong>
+        </div>
+      </div>
+      <!-- TxnID big display -->
+      <div style="background:rgba(236,72,153,.08);border:2px solid rgba(236,72,153,.3);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:.75rem;color:var(--text2);margin-bottom:6px">bKash Transaction ID</div>
+        <div style="font-family:monospace;font-size:1.4rem;font-weight:900;color:#f472b6;letter-spacing:3px">${r.txnId||'—'}</div>
+        <button onclick="navigator.clipboard.writeText('${r.txnId||''}').then(()=>Toast.success('Copied!'))" style="background:rgba(244,114,182,.1);border:1px solid rgba(244,114,182,.3);border-radius:6px;color:#f472b6;padding:4px 12px;font-size:.72rem;cursor:pointer;margin-top:8px">📋 Copy TxnID</button>
+      </div>
+      <!-- bKash sent to -->
+      ${r.bkashTo?`<div style="font-size:.82rem;color:var(--text2);text-align:center">পাঠিয়েছেন: <strong style="color:#fff">${r.bkashTo}</strong> নম্বরে</div>`:''}
+      <!-- Date -->
+      <div style="font-size:.8rem;color:var(--text2);text-align:center">Submit: ${fd(r.date)}</div>
+      <!-- Action buttons -->
+      <div style="display:flex;gap:10px;margin-top:4px">
+        ${r.status!=='approved'?`<button class="btn btn-primary" style="flex:1" onclick="approvePayment('${r.id}','${r.email}','${r.name}','${r.plan}');Modal.hideAll()">✅ Approve & Activate</button>`:'<div style="flex:1;text-align:center;color:var(--a1);font-weight:800">✅ Already Approved</div>'}
+        ${r.status!=='rejected'?`<button class="btn btn-danger btn-sm" onclick="rejectPayment('${r.id}');Modal.hideAll()">✕ Reject</button>`:''}
+      </div>
+    </div>`;
+  Modal.show('detailModal');
+}
+
+/* ════════ HELP ════════ */
+let _adminHelp = [];
+async function renderRecentHelp(){
+  document.getElementById('recentHelp').innerHTML='<div style="padding:14px;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
+  const rows = await FB.getHelp();
+  _adminHelp = rows;
+  buildHelpHTML(rows.slice(0,5), 'recentHelp', true);
+}
+async function renderHelpTable(){
+  document.getElementById('helpTable').innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
+  const rows = await FB.getHelp();
+  _adminHelp = rows;
+  const f=document.getElementById('helpFilter')?.value||'all';
+  const filtered = f==='all'?rows:rows.filter(x=>x.status===f);
+  buildHelpHTML(filtered, 'helpTable', false);
+}
+function buildHelpHTML(rows, elId, compact){
+  const el=document.getElementById(elId);
+  if(!rows.length){ el.innerHTML=`<div style="padding:28px;text-align:center;color:var(--text2)">কোনো request নেই।</div>`; return; }
+  el.innerHTML=`<table><thead><tr><th>নাম</th><th>Email</th>${compact?'':'<th>বিষয়</th>'}<th>বার্তা</th><th>তারিখ</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr>
+      <td><strong>${r.name}</strong></td>
+      <td style="color:var(--text2)">${r.email}</td>
+      ${compact?'':'<td><span class="tag tag-mint">'+(r.category||'—')+'</span></td>'}
+      <td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text2)">${r.message?.substring(0,70)}…</td>
+      <td style="font-size:.79rem;color:var(--text2)">${fd(r.date)}</td>
+      <td><span class="status-pill status-${r.status}">${r.status}</span></td>
+      <td>
+        <button class="action-btn" onclick="viewHelp('${r.id}')">দেখুন</button>
+        <button class="action-btn" onclick="updH('${r.id}','replied')" style="margin-left:4px">✅</button>
+        <button class="action-btn" onclick="updH('${r.id}','closed')" style="margin-left:4px;color:#f87171">✕</button>
+      </td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+async function updH(id,s){
+  await FB.updateHelp(id,{status:s});
+  renderHelpTable(); renderRecentHelp(); initAdmin(); Toast.success(`Status → ${s}`);
+}
+function viewHelp(id){
+  const r=_adminHelp.find(x=>x.id===id); if(!r)return;
+  document.getElementById('detailTitle').textContent=`🆘 ${r.name}`;
+  document.getElementById('detailContent').innerHTML=`
+    <div style="display:grid;gap:12px">
+      <div style="display:flex;gap:14px;flex-wrap:wrap">
+        <div><div style="font-size:.72rem;color:var(--text2)">নাম</div><strong>${r.name}</strong></div>
+        <div><div style="font-size:.72rem;color:var(--text2)">Email</div><strong>${r.email}</strong></div>
+        <div><div style="font-size:.72rem;color:var(--text2)">বিষয়</div><span class="tag tag-mint">${r.category||'General'}</span></div>
+      </div>
+      <div style="background:rgba(0,245,212,.04);border:1px solid rgba(0,245,212,.15);border-radius:10px;padding:14px;font-size:.88rem;line-height:1.7">${r.message}</div>
+      <div style="display:flex;gap:8px">
+        <button class="btn btn-success btn-sm" onclick="updH('${r.id}','replied');Modal.hideAll()">✅ Replied</button>
+        <button class="btn btn-danger btn-sm" onclick="updH('${r.id}','closed');Modal.hideAll()">✕ Close</button>
+      </div>
+    </div>`;
+  Modal.show('detailModal');
+}
+
+/* ════════ AGENCY ════════ */
+let _adminAgency = [];
+async function renderAgencyTable(){
+  document.getElementById('agencyTable').innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
+  const rows = await FB.getAgency();
+  _adminAgency = rows;
+  if(!rows.length){ document.getElementById('agencyTable').innerHTML=`<div style="padding:28px;text-align:center;color:var(--text2)">কোনো inquiry নেই।</div>`; return; }
+  document.getElementById('agencyTable').innerHTML=`<table><thead><tr><th>নাম</th><th>Email</th><th>Plan</th><th>তারিখ</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+    ${rows.map(r=>`<tr>
+      <td><strong>${r.name}</strong></td>
+      <td style="color:var(--text2)">${r.email}</td>
+      <td><span class="tag tag-violet">${r.plan}</span></td>
+      <td style="font-size:.79rem;color:var(--text2)">${fd(r.date)}</td>
+      <td><span class="status-pill status-${r.status}">${r.status}</span></td>
+      <td>
+        <button class="action-btn" onclick="viewAgency('${r.id}')">দেখুন</button>
+        <button class="action-btn" style="color:var(--a1);margin-left:4px" onclick="activateFromAgency('${r.email}','${r.name}','${r.plan}')">⭐</button>
+      </td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+function viewAgency(id){
+  const r=_adminAgency.find(x=>x.id===id); if(!r)return;
+  document.getElementById('detailTitle').textContent=`🚀 ${r.name}`;
+  document.getElementById('detailContent').innerHTML=`
+    <div style="display:grid;gap:12px">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div><div style="font-size:.72rem;color:var(--text2)">নাম</div><strong>${r.name}</strong></div>
+        <div><div style="font-size:.72rem;color:var(--text2)">Email</div><strong>${r.email}</strong></div>
+        <div><div style="font-size:.72rem;color:var(--text2)">Plan</div><span class="tag tag-violet">${r.plan}</span></div>
+      </div>
+      ${r.message?`<div style="background:rgba(124,58,237,.05);border:1px solid rgba(124,58,237,.15);border-radius:10px;padding:14px;font-size:.88rem">${r.message}</div>`:''}
+      <button class="btn btn-primary btn-sm" onclick="activateFromAgency('${r.email}','${r.name}','${r.plan}');Modal.hideAll()">⭐ Pro Activate</button>
+    </div>`;
+  Modal.show('detailModal');
+}
+async function activateFromAgency(email,name,plan){
+  const ok = await FB.addProUserByEmail(email, name, plan);
+  Toast.success(ok ? `✅ ${email} এখন Pro!` : `✅ Recorded! User register করলে Pro হবে।`);
+  initAdmin();
+}
+
+/* ════════ PRO USERS ════════ */
+async function renderUsersTable(){
+  document.getElementById('usersTable').innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
+  const users = await FB.getProUsers();
+  if(!users.length){ document.getElementById('usersTable').innerHTML=`<div style="padding:28px;text-align:center;color:var(--text2)">কোনো Pro user নেই।</div>`; return; }
+  document.getElementById('usersTable').innerHTML=`<table><thead><tr><th>নাম</th><th>Email</th><th>Plan</th><th>Expires</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+    ${users.map(u=>`<tr>
+      <td><strong>${u.name||'—'}</strong></td>
+      <td style="color:var(--text2)">${u.email}</td>
+      <td><span class="tag tag-mint">${u.plan||'Pro'}</span></td>
+      <td style="font-size:.79rem;color:var(--text2)">${u.expiryDate?fd(u.expiryDate):'∞'}</td>
+      <td><span class="tag ${u.banned?'tag-red':'tag-green'}">${u.banned?'Banned':'Active'}</span></td>
+      <td>
+        <button class="action-btn" style="color:#f87171" onclick="removeProUser('${u.id}')">Remove</button>
+        <button class="action-btn" style="color:var(--a3);margin-left:4px" onclick="banUserFn('${u.id}')">Ban</button>
+      </td>
+    </tr>`).join('')}
+  </tbody></table>`;
+}
+async function addProUserManual(){
+  const email = document.getElementById('nu-email')?.value?.trim().toLowerCase();
+  const plan  = document.getElementById('nu-plan')?.value;
+  const result = document.getElementById('addUserResult');
+  if(!email){ Toast.error('Email দিন'); return; }
+  result.innerHTML='<div class="alert alert-info">⏳ Processing...</div>';
+  const ok = await FB.addProUserByEmail(email, email.split('@')[0], plan);
+  if(ok){
+    result.innerHTML=`<div class="alert alert-success">✅ ${email} Pro করা হয়েছে!</div>`;
+    Toast.success(`${email} এখন Pro!`);
+    renderUsersTable(); initAdmin();
+  } else {
+    result.innerHTML=`<div class="alert alert-warning">⚠️ User এখনো register করেনি। Register করলে Pro হবে।</div>`;
+  }
+}
+async function removeProUser(uid){
+  if(!confirm('Pro access সরাবেন?'))return;
+  await FB.removeProUser(uid);
+  renderUsersTable(); initAdmin(); Toast.success('Pro access সরানো হয়েছে।');
+}
+async function banUserFn(uid){
+  if(!confirm('Ban করবেন?'))return;
+  await FB.banUser(uid);
+  renderUsersTable(); initAdmin(); Toast.warning('User ban করা হয়েছে।');
+}
+
+/* ════════ ALL USERS ════════ */
+async function renderAllUsers(){
+  document.getElementById('allUsersTable').innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
+  try {
+    const snap = await db.collection('users').orderBy('createdAt','desc').get();
+    const users = snap.docs.map(d=>({id:d.id,...d.data()}));
+    if(!users.length){ document.getElementById('allUsersTable').innerHTML='<div style="padding:28px;text-align:center;color:var(--text2)">কোনো user নেই।</div>'; return; }
+    document.getElementById('allUsersTable').innerHTML=`<table><thead><tr><th>নাম</th><th>Email</th><th>WhatsApp</th><th>ঠিকানা</th><th>Facebook</th><th>Plan</th><th>যোগ হয়েছে</th><th>Actions</th></tr></thead><tbody>
+      ${users.map(u=>`<tr>
+        <td><strong>${u.name||'—'}</strong></td>
+        <td style="font-size:.82rem;color:var(--text2)">${u.email||'—'}</td>
+        <td style="font-size:.82rem">${u.whatsapp||u.phone||'—'}</td>
+        <td style="font-size:.82rem;color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis">${u.address||'—'}</td>
+        <td style="font-size:.78rem">${u.facebook?`<a href="${u.facebook.startsWith('http')?u.facebook:'https://'+u.facebook}" target="_blank" style="color:var(--a1)">🔗 FB</a>`:u.fbLink?`<a href="${u.fbLink}" target="_blank" style="color:var(--a1)">🔗</a>`:'—'}</td>
+        <td style="font-size:.82rem;color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis">${u.address||'—'}</td>
+        <td style="font-size:.78rem">${u.fbLink?`<a href="${u.fbLink}" target="_blank" style="color:var(--a1)">🔗 Link</a>`:'—'}</td>
+        <td><span class="tag ${u.plan==='admin'?'tag-red':u.isPro?'tag-amber':'tag-green'}">${u.plan||'free'}</span></td>
+        <td style="font-size:.79rem;color:var(--text2)">${fd(u.createdAt)}</td>
+        <td>
+          <button class="action-btn" onclick="activateFromAgency('${u.email}','${u.name}','Pro Monthly')">⭐ Pro</button>
+        </td>
+      </tr>`).join('')}
+    </tbody></table>`;
+  } catch(e){ document.getElementById('allUsersTable').innerHTML=`<div style="padding:20px;color:#f87171">Error: ${e.message}</div>`; }
+}
+
+/* ════════ ANALYTICS ════════ */
+async function renderAnalytics(){
+  document.getElementById('eventsTable').innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
+  const events = await FB.getEvents(50);
+  const labels={product_research:'🏆 Product Research',tiktok:'🎵 TikTok',ad_creative:'🎨 Ad Creative',ad_script:'🎬 Ad Script',product_desc:'✍️ Product Desc',supplier:'🏭 Supplier',competitor:'🔭 Competitor',market_report:'📊 Market Report',post_generator:'✍️ Post Gen',viral_post:'🔥 Viral Post',promo_post:'🎁 Promo Post',ad_copy:'📢 Ad Copy',video_script:'🎥 Video Script',video_prompt:'🤖 Video Prompt',storyboard:'🎞️ Storyboard',subtitle_translator:'🌐 Subtitle',ad_funnel:'📐 Ad Funnel',concept_architect:'🏗️ Concept',help:'🆘 Help',agency:'🚀 Agency',support_chat:'💬 Support',payment_submit:'💳 Payment'};
+  document.getElementById('eventsTable').innerHTML=events.length?`<table><thead><tr><th>Event</th><th>Data</th><th>Time</th></tr></thead><tbody>
+    ${events.map(e=>`<tr>
+      <td><span class="tag tag-mint">${labels[e.ev]||e.ev}</span></td>
+      <td style="color:var(--text2);font-size:.81rem">${JSON.stringify(e.data||{}).substring(0,60)}</td>
+      <td style="font-size:.78rem;color:var(--text2)">${e.t?.toDate?e.t.toDate().toLocaleString():fd(e.t)}</td>
+    </tr>`).join('')}
+  </tbody></table>`:`<div style="padding:20px;color:var(--text2)">কোনো event নেই।</div>`;
+}
+
+/* ════════ SETTINGS ════════ */
+function renderSettings(){
+  document.getElementById('bkashInput').value = Store.getBkashNumber();
+  const admins = JSON.parse(localStorage.getItem('es_admin_emails')||'[]');
+  document.getElementById('adminInfo').innerHTML=`
+    <div style="margin-bottom:14px">
+      <strong style="color:#fff">Current Admin Email:</strong>
+      <span style="color:var(--a1);margin-left:8px">${auth?.currentUser?.email||'—'}</span>
+    </div>
+    <div style="margin-bottom:14px">
+      <strong style="color:#fff">All Admin Emails:</strong>
+      <div style="margin-top:6px;display:grid;gap:6px">
+        ${admins.map(e=>`<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.15);border-radius:8px;padding:8px 12px">
+          <span style="color:var(--a1);font-size:.85rem">${e}</span>
+          <button class="action-btn" style="color:#f87171" onclick="removeAdminEmail('${e}')">Remove</button>
+        </div>`).join('')}
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:10px">
+      <input class="form-control" id="newAdminEmail" type="email" placeholder="নতুন admin email যোগ করুন" style="flex:1">
+      <button class="btn btn-primary btn-sm" onclick="addAdminEmail()">+ যোগ করুন</button>
+    </div>
+    <div style="margin-top:12px;padding:10px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;font-size:.82rem;color:var(--a3)">
+      ⚠️ Admin email list এই browser এ localStorage তে save হয়। Netlify deploy করলে নতুন browser এ প্রথম login করলে auto-admin হবে।
+    </div>`;}
+
+function addAdminEmail(){
+  const email = document.getElementById('newAdminEmail')?.value?.trim().toLowerCase();
+  if(!email||!email.includes('@')){ Toast.error('সঠিক email দিন'); return; }
+  const admins = JSON.parse(localStorage.getItem('es_admin_emails')||'[]');
+  if(!admins.includes(email)){ admins.push(email); localStorage.setItem('es_admin_emails', JSON.stringify(admins)); }
+  Toast.success(`${email} admin হিসেবে যোগ হয়েছে।`);
+  renderSettings();
+}
+
+function removeAdminEmail(email){
+  if(!confirm(`${email} admin list থেকে সরাবেন?`))return;
+  let admins = JSON.parse(localStorage.getItem('es_admin_emails')||'[]');
+  admins = admins.filter(e=>e!==email);
+  localStorage.setItem('es_admin_emails', JSON.stringify(admins));
+  Toast.success('Removed।');
+  renderSettings();
+}
+async function saveBkash(){
+  const n=document.getElementById('bkashInput').value.trim();
+  if(!n){ Toast.error('Number দিন'); return; }
+  await Store.setBkashNumber(n);
+  window._cachedBkash = n;
+  Toast.success('bKash number save হয়েছে! ✅');
+}
+
+/* ════════ CSV EXPORT ════════ */
+async function exportTableCSV(type){
+  let data;
+  if(type==='help') data = await FB.getHelp();
+  else if(type==='agency') data = await FB.getAgency();
+  else if(type==='payments') data = await FB.getPayments();
+  else data = [];
+  if(!data.length){ Toast.warning('কোনো data নেই'); return; }
+  const h=Object.keys(data[0]).join(',');
+  const rows=data.map(r=>Object.values(r).map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
+  const csv=[h,...rows].join('\n');
+  const b=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`ecomspark-${type}.csv`; a.click();
+  Toast.success('CSV export হয়েছে!');
+}
+
+/* ════════ INIT ════════ */
+document.addEventListener('DOMContentLoaded',()=>{
+  Toast.init();
+  initFirebase();
+
+  /* Auto-login: Firebase Auth state পরিবর্তন হলে চেক করো */
+  auth.onAuthStateChanged(async (user) => {
+    if(!user) return;
+    const ADMIN_UID   = 'd8uASRNpNVbpPeCKAWI5OQAg1UF2';
+    const ADMIN_EMAIL = 'totul01744@gmail.com';
+    const isAdmin = (user.uid === ADMIN_UID) || (user.email?.toLowerCase() === ADMIN_EMAIL);
+    if(isAdmin){
+      try{ await Store.loadApiKeyFromFirestore(); }catch(e){}
+      document.getElementById('loginScreen').classList.add('hidden');
+      document.getElementById('adminApp').classList.remove('hidden');
+      initAdmin();
+    }
+  });
+
+  document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o)o.classList.add('hidden'); }));
+});
+</script>
+</body>

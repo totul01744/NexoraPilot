@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EcomSpark — AI Ecommerce Research Platform</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+/* Login Gate Overlay */
+#loginGate{
+  position:fixed;inset:0;z-index:9999;
+  background:rgba(4,8,15,.97);
+  backdrop-filter:blur(20px);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+}
+#loginGate.hidden{display:none!important}
+.gate-box{
+  background:rgba(8,18,36,.98);
+  border:1px solid rgba(0,245,212,.2);
+  border-radius:28px;padding:40px;width:100%;max-width:440px;
+  box-shadow:0 24px 80px rgba(0,0,0,.8),0 0 80px rgba(0,245,212,.08);
+  position:relative;
+}
+.gate-box::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,var(--a1),var(--a2),transparent);
+  opacity:.6;border-radius:28px 28px 0 0;
+}
+.gate-tabs{display:flex;border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:24px}
+.gate-tab{flex:1;background:none;border:none;color:var(--text2);padding:10px;font-family:var(--font);font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s}
+.gate-tab.active{background:rgba(0,245,212,.1);color:var(--a1)}
+.gate-form{display:none}
+.gate-form.active{display:block}
+</style>
+</head>
+<body>
+
+<!-- ═══ LOGIN GATE (দেখায় যখন login নেই) ═══ -->
+<div id="loginGate">
+  <div class="gate-box">
+    <div style="text-align:center;margin-bottom:28px">
+      <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--a1),var(--a2));border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto 14px;box-shadow:0 0 30px rgba(0,245,212,.4)">⚡</div>
+      <div style="font-family:var(--font-h);font-size:1.3rem;font-weight:900;color:#fff">EcomSpark</div>
+      <div style="font-size:.82rem;color:var(--text2);margin-top:4px">চালু করতে Login বা Register করুন</div>
+    </div>
+
+    <div class="gate-tabs">
+      <button class="gate-tab active" id="gTab_login" onclick="gSwitch('login')">🔐 Login</button>
+      <button class="gate-tab" id="gTab_register" onclick="gSwitch('register')">✅ Register</button>
+    </div>
+
+    <!-- GATE LOGIN -->
+    <div class="gate-form active" id="gForm_login">
+      <div class="form-group">
+        <label class="form-label">Email *</label>
+        <input class="form-control" id="g_email" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')gLogin()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">পাসওয়ার্ড *</label>
+        <input class="form-control" id="g_pass" type="password" placeholder="পাসওয়ার্ড" onkeydown="if(event.key==='Enter')gLogin()">
+      </div>
+      <div id="g_login_err" style="display:none;margin-bottom:12px" class="alert alert-error">❌ <span id="g_login_err_msg"></span></div>
+      <button class="btn btn-primary btn-full" id="g_login_btn" onclick="gLogin()">🔐 Login করুন</button>
+      <div style="text-align:center;margin-top:12px">
+        <button style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:.82rem" onclick="gSwitch('forgot')">পাসওয়ার্ড ভুলে গেছেন?</button>
+      </div>
+    </div>
+
+    <!-- GATE REGISTER -->
+    <div class="gate-form" id="gForm_register">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">পূর্ণ নাম *</label>
+          <input class="form-control" id="g_name" placeholder="আপনার পূর্ণ নাম">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">ঠিকানা * (জেলা/বিভাগ)</label>
+          <input class="form-control" id="g_address" placeholder="যেমন: ঢাকা, চট্টগ্রাম...">
+        </div>
+        <div class="form-group">
+          <label class="form-label">📱 WhatsApp নম্বর *</label>
+          <input class="form-control" id="g_whatsapp" type="tel" placeholder="01XXXXXXXXX">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Facebook Username <span style="font-weight:400;color:var(--text2);text-transform:none">(optional)</span></label>
+          <input class="form-control" id="g_facebook" placeholder="fb.com/username">
+        </div>
+        <div class="form-group" style="grid-column:1/-1">
+          <label class="form-label">Email *</label>
+          <input class="form-control" id="g_reg_email" type="email" placeholder="you@example.com">
+        </div>
+        <div class="form-group">
+          <label class="form-label">পাসওয়ার্ড * (৬+)</label>
+          <input class="form-control" id="g_reg_pass" type="password" placeholder="পাসওয়ার্ড">
+        </div>
+        <div class="form-group">
+          <label class="form-label">পাসওয়ার্ড নিশ্চিত *</label>
+          <input class="form-control" id="g_reg_pass2" type="password" placeholder="আবার দিন">
+        </div>
+      </div>
+      <div id="g_reg_err" style="display:none;margin-bottom:12px" class="alert alert-error">❌ <span id="g_reg_err_msg"></span></div>
+      <button class="btn btn-primary btn-full" id="g_reg_btn" onclick="gRegister()">✅ Account তৈরি করুন</button>
+    </div>
+
+    <!-- GATE FORGOT -->
+    <div class="gate-form" id="gForm_forgot">
+      <p style="font-size:.86rem;color:var(--text2);margin-bottom:16px">Email দিন, Password reset link পাঠানো হবে।</p>
+      <div class="form-group">
+        <label class="form-label">Email *</label>
+        <input class="form-control" id="g_forgot_email" type="email" placeholder="you@example.com">
+      </div>
+      <button class="btn btn-primary btn-full" id="g_forgot_btn" onclick="gForgot()">📧 Reset Link পাঠান</button>
+      <div style="text-align:center;margin-top:10px">
+        <button style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:.82rem" onclick="gSwitch('login')">← Login-এ ফিরুন</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ═══ MAIN APP (login gate সরলে দেখা যাবে) ═══ -->
+<div id="mainApp">
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-inner">
+    <a href="index.html" class="logo"><div class="logo-icon">⚡</div>EcomSpark</a>
+    <nav class="nav" id="mainNav">
+      <a class="nav-link active" href="index.html">🏠 Home</a>
+      <a class="nav-link" href="#winning">🏆 Products</a>
+      <a class="nav-link" href="#tools">🛠️ Tools</a>
+      <a class="nav-link" href="help.html">💬 Support</a>
+    </nav>
+    <div id="headerUserArea" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"></div>
+    <button class="hamburger" id="hamburgerBtn">☰</button>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="container">
+    <div class="hero-badge">⚡ AI-Powered Ecommerce Research</div>
+    <h1 class="hero-title">Winning Products খুঁজুন AI দিয়ে</h1>
+    <p class="hero-sub">Product research, ad creative, market reports — সব কিছু মিনিটে। বাংলাদেশের সেরা ecommerce AI tool।</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="#tools" class="btn btn-primary btn-lg">🚀 Tools ব্যবহার করুন</a>
+      <a href="#winning" class="btn btn-outline btn-lg">🏆 Winning Products দেখুন</a>
+    </div>
+    <div class="hero-stats">
+      <div class="hero-stat"><div class="hero-stat-num mint">১৮+</div><div class="hero-stat-label">AI Tools</div></div>
+      <div class="hero-stat"><div class="hero-stat-num">১০০%</div><div class="hero-stat-label">বাংলায়</div></div>
+      <div class="hero-stat"><div class="hero-stat-num violet">Free</div><div class="hero-stat-label">দিনে ৩ বার</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- BANNER -->
+<section style="padding:0 0 48px">
+  <div class="container"><div class="banner-wrap" id="bannerSlider"></div></div>
+</section>
+
+<!-- WINNING PRODUCTS -->
+<section id="winning" style="padding:60px 0">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">🏆 Admin-Curated</div>
+      <h2 class="section-title">Winning Products</h2>
+      <p class="section-sub">Admin-দের বাছাই করা সেরা ecommerce products — সম্পূর্ণ ad strategy সহ</p>
+    </div>
+    <div class="product-grid" id="productsGrid">
+      <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text2)">⏳ লোড হচ্ছে...</div>
+    </div>
+  </div>
+</section>
+
+<!-- TOOLS -->
+<section id="tools" style="padding:60px 0 80px">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">🛠️ AI Tools</div>
+      <h2 class="section-title">সব Tools</h2>
+      <p class="section-sub">Product research থেকে video script — সব কিছু এক জায়গায়</p>
+    </div>
+    <div class="tools-grid" id="toolsNav"></div>
+    <div id="toolContainer" style="margin-top:32px"></div>
+  </div>
+</section>
+
+<!-- PRICING -->
+<section style="padding:60px 0 80px;background:rgba(0,0,0,.2)">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">💎 Plans</div>
+      <h2 class="section-title">Pricing</h2>
+    </div>
+    <div class="pricing-grid">
+      <div class="card pricing-card">
+        <div style="font-family:var(--font-h);font-size:.9rem;color:var(--text2);margin-bottom:12px">🆓 Free</div>
+        <div class="price-amt">৳০</div><div class="price-period">সবসময়</div>
+        <div class="price-divider"></div>
+        <div class="price-feat"><div class="price-feat-icon yes">✓</div>দিনে ৩টি AI generation</div>
+        <div class="price-feat"><div class="price-feat-icon yes">✓</div>সব tools access</div>
+        <div class="price-feat"><div class="price-feat-icon no">✗</div>Premium products locked</div>
+        <button class="btn btn-outline btn-full" style="margin-top:20px" disabled>✅ আপনি এখানে আছেন</button>
+      </div>
+      <div class="card pricing-card featured">
+        <div class="price-ribbon">BEST</div>
+        <div style="font-family:var(--font-h);font-size:.9rem;color:var(--a1);margin-bottom:12px">⭐ Pro</div>
+        <div class="price-amt">৳১৯৯</div><div class="price-period">/মাস</div>
+        <div class="price-divider"></div>
+        <div class="price-feat"><div class="price-feat-icon yes">✓</div>Unlimited AI generation</div>
+        <div class="price-feat"><div class="price-feat-icon yes">✓</div>সব Premium products unlock</div>
+        <div class="price-feat"><div class="price-feat-icon yes">✓</div>সম্পূর্ণ ad strategies</div>
+        <div class="price-feat"><div class="price-feat-icon yes">✓</div>Priority support</div>
+        <button class="btn btn-primary btn-full" style="margin-top:20px" onclick="showPaymentModal()">🚀 Pro নিন</button>
+      </div>
+      <div class="card pricing-card card-violet">
+        <div style="font-family:var(--font-h);font-size:.9rem;color:#a78bfa;margin-bottom:12px">🏢 Agency</div>
+        <div class="price-amt" style="color:#a78bfa">৳৪৯৯</div><div class="price-period">/মাস</div>
+        <div class="price-divider"></div>
+        <div class="price-feat"><div class="price-feat-icon yes">✓</div>৫টি team seat</div>
+        <div class="price-feat"><div class="price-feat-icon yes">✓</div>White-label reports</div>
+        <div class="price-feat"><div class="price-feat-icon yes">✓</div>Dedicated support</div>
+        <button class="btn btn-violet btn-full" style="margin-top:20px" onclick="window.location.href='help.html'">📩 Inquiry করুন</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRODUCT DETAIL MODAL -->
+<div class="modal-overlay hidden" id="productModal">
+  <div class="modal-box modal-box-lg" style="max-width:680px">
+    <div class="modal-header"><div class="modal-title" id="prodModalTitle">Product Details</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
+    <div id="prodModalContent"></div>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay hidden" id="paymentModal">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header"><div class="modal-title">🚀 Pro Membership নিন</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
+    <div id="paymentContent"></div>
+  </div>
+</div>
+
+<!-- SUPPORT FAB -->
+<button class="support-fab" onclick="toggleSupport()">💬</button>
+<div class="support-panel" id="supportPanel">
+  <div class="support-panel-head">
+    <h4>💬 Live Support</h4>
+    <p>সাধারণত ২-৬ ঘণ্টার মধ্যে reply</p>
+    <button class="support-close" onclick="toggleSupport()">✕</button>
+  </div>
+  <div class="support-body" id="supportBody"></div>
+</div>
+
+</div><!-- end #mainApp -->
+
+<script src="assets/js/app.js"></script>
+<script>
+/* ═══════════════════════════════════════
+   LOGIN GATE LOGIC
+═══════════════════════════════════════ */
+function gSwitch(tab){
+  ['login','register','forgot'].forEach(t=>{
+    document.getElementById('gForm_'+t)?.classList.toggle('active', t===tab);
+    document.getElementById('gTab_'+t)?.classList.toggle('active', t===tab);
+  });
+  /* clear errors */
+  document.getElementById('g_login_err').style.display='none';
+  document.getElementById('g_reg_err').style.display='none';
+}
+
+function gShowErr(errId, msg){
+  const el=document.getElementById(errId);
+  document.getElementById(errId+'_msg').textContent=msg;
+  el.style.display='flex';
+}
+
+async function gLogin(){
+  const email = document.getElementById('g_email').value.trim().toLowerCase();
+  const pass  = document.getElementById('g_pass').value;
+  if(!email||!pass){ gShowErr('g_login_err','Email ও পাসওয়ার্ড দিন'); return; }
+  const btn = document.getElementById('g_login_btn');
+  btn.disabled=true; btn.textContent='⏳ Login হচ্ছে...';
+  document.getElementById('g_login_err').style.display='none';
+  const res = await loginUser(email, pass);
+  btn.disabled=false; btn.textContent='🔐 Login করুন';
+  if(res.success||res.ok){
+    /* onAuthStateChanged will fire and hide gate */
+  } else {
+    gShowErr('g_login_err', res.error||res.msg||'সমস্যা হয়েছে');
+  }
+}
+
+async function gRegister(){
+  const name     = document.getElementById('g_name').value.trim();
+  const address  = document.getElementById('g_address').value.trim();
+  const whatsapp = document.getElementById('g_whatsapp').value.trim();
+  const facebook = document.getElementById('g_facebook').value.trim();
+  const email    = document.getElementById('g_reg_email').value.trim().toLowerCase();
+  const pass     = document.getElementById('g_reg_pass').value;
+  const pass2    = document.getElementById('g_reg_pass2').value;
+
+  if(!name)       { gShowErr('g_reg_err','পূর্ণ নাম দিন'); return; }
+  if(!address)    { gShowErr('g_reg_err','ঠিকানা দিন'); return; }
+  if(!whatsapp)   { gShowErr('g_reg_err','WhatsApp নম্বর দিন'); return; }
+  if(!email||!email.includes('@')){ gShowErr('g_reg_err','সঠিক email দিন'); return; }
+  if(!pass||pass.length<6){ gShowErr('g_reg_err','পাসওয়ার্ড কমপক্ষে ৬ অক্ষর'); return; }
+  if(pass!==pass2){ gShowErr('g_reg_err','পাসওয়ার্ড দুটো মিলছে না'); return; }
+
+  const btn = document.getElementById('g_reg_btn');
+  btn.disabled=true; btn.textContent='⏳ তৈরি হচ্ছে...';
+  document.getElementById('g_reg_err').style.display='none';
+  const res = await registerUser(name, address, whatsapp, facebook, email, pass);
+  btn.disabled=false; btn.textContent='✅ Account তৈরি করুন';
+  if(res.success||res.ok){
+    /* onAuthStateChanged fires → gate hides */
+    Toast.success('Account তৈরি হয়েছে! স্বাগতম 🎉');
+  } else {
+    gShowErr('g_reg_err', res.error||res.msg||'সমস্যা হয়েছে');
+  }
+}
+
+async function gForgot(){
+  const email = document.getElementById('g_forgot_email').value.trim().toLowerCase();
+  if(!email){ gShowErr('g_login_err','Email দিন'); gSwitch('login'); return; }
+  const btn = document.getElementById('g_forgot_btn');
+  btn.disabled=true; btn.textContent='⏳ পাঠানো হচ্ছে...';
+  const res = await sendPasswordReset(email);
+  btn.disabled=false; btn.textContent='📧 Reset Link পাঠান';
+  if(res.success||res.ok){
+    Toast.success('Password reset email পাঠানো হয়েছে! inbox চেক করুন।');
+    gSwitch('login');
+  } else {
+    alert(res.error||res.msg||'সমস্যা হয়েছে');
+  }
+}
+
+/* ═══════════════════════════════════════
+   AUTH STATE → GATE CONTROL
+═══════════════════════════════════════ */
+function onAuthStateReady(user){
+  if(user){
+    /* User logged in → hide gate, show app */
+    document.getElementById('loginGate').classList.add('hidden');
+    document.getElementById('mainApp').style.display='block';
+    updateHeaderUser();
+    loadProducts();
+    const sb=document.getElementById('supportBody');
+    if(sb) sb.innerHTML=supportFormHTML();
+    initBanners();
+  } else {
+    /* Not logged in → show gate, hide app */
+    document.getElementById('loginGate').classList.remove('hidden');
+    document.getElementById('mainApp').style.display='none';
+  }
+}
+
+/* ═══════════════════════════════════════
+   TOOLS NAV
+═══════════════════════════════════════ */
+const TOOLS=[
+  {id:'product_research',icon:'🔬',name:'Product Research',desc:'AI demand/competition scoring',color:'rgba(0,245,212,.08)',border:'rgba(0,245,212,.2)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">🔬 Product Research</h3><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px"><div class="form-group" style="grid-column:1/-1"><label class="form-label">Product Name *</label><input class="form-control" id="pr-product" placeholder="e.g., Posture Corrector"></div><div class="form-group"><label class="form-label">Category</label><select class="form-control" id="pr-category"><option>Health &amp; Beauty</option><option>Electronics</option><option>Kitchen</option><option>Fashion</option><option>Sports</option><option>Other</option></select></div><div class="form-group"><label class="form-label">Market</label><select class="form-control" id="pr-market"><option>Bangladesh</option><option>India</option><option>US</option><option>UK</option></select></div></div><button class="btn btn-primary" onclick="runProductResearch()">🔬 Research করুন</button><div id="pr-result" class="result-area mt-3"></div></div>`},
+  {id:'tiktok_viral',icon:'🎵',name:'TikTok Viral Finder',desc:'Trending niche detection',color:'rgba(236,72,153,.08)',border:'rgba(236,72,153,.2)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">🎵 TikTok Viral Finder</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="form-group" style="grid-column:1/-1"><label class="form-label">Niche *</label><input class="form-control" id="tt-niche" placeholder="e.g., beauty, fitness"></div><div class="form-group"><label class="form-label">Budget</label><select class="form-control" id="tt-budget"><option>low</option><option selected>medium</option><option>high</option></select></div><div class="form-group"><label class="form-label">Market</label><select class="form-control" id="tt-market"><option>Bangladesh</option><option>US</option><option>Global</option></select></div></div><button class="btn btn-primary" onclick="runTikTokFinder()">🎵 Find করুন</button><div id="tt-result" class="result-area mt-3"></div></div>`},
+  {id:'ad_creative',icon:'🎨',name:'Ad Creative Generator',desc:'TikTok + Facebook ads',color:'rgba(124,58,237,.08)',border:'rgba(124,58,237,.2)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">🎨 Ad Creative Generator</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="form-group" style="grid-column:1/-1"><label class="form-label">Product *</label><input class="form-control" id="ac-product" placeholder="Product name"></div><div class="form-group"><label class="form-label">Platform</label><select class="form-control" id="ac-platform"><option>TikTok &amp; Facebook</option><option>TikTok</option><option>Facebook</option><option>Instagram</option></select></div><div class="form-group"><label class="form-label">Audience</label><select class="form-control" id="ac-audience"><option>18-25</option><option selected>18-35</option><option>25-45</option></select></div><div class="form-group" style="grid-column:1/-1"><label class="form-label">USP (optional)</label><input class="form-control" id="ac-usp" placeholder="মূল selling point..."></div></div><button class="btn btn-primary" onclick="runAdCreative()">🎨 Generate করুন</button><div id="ac-result" class="result-area mt-3"></div></div>`},
+  {id:'ad_script',icon:'🎬',name:'Ad Script Generator',desc:'Full UGC scripts',color:'rgba(245,158,11,.08)',border:'rgba(245,158,11,.2)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">🎬 Ad Script</h3><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px"><div class="form-group" style="grid-column:1/-1"><label class="form-label">Product *</label><input class="form-control" id="as-product" placeholder="Product name"></div><div class="form-group"><label class="form-label">Platform</label><select class="form-control" id="as-platform"><option>TikTok</option><option>Facebook</option><option>YouTube Shorts</option></select></div><div class="form-group"><label class="form-label">Duration</label><select class="form-control" id="as-duration"><option>15s</option><option>30s</option><option>60s</option></select></div><div class="form-group"><label class="form-label">Style</label><select class="form-control" id="as-style"><option>UGC</option><option>Professional</option><option>Storytelling</option></select></div></div><button class="btn btn-primary" onclick="runAdScript()">🎬 Script তৈরি করুন</button><div id="as-result" class="result-area mt-3"></div></div>`},
+  {id:'product_description',icon:'✍️',name:'Product Description',desc:'SEO-optimized copy',color:'rgba(59,130,246,.08)',border:'rgba(59,130,246,.2)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">✍️ Product Description</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div class="form-group" style="grid-column:1/-1"><label class="form-label">Product *</label><input class="form-control" id="pd-product" placeholder="Product name"></div><div class="form-group" style="grid-column:1/-1"><label class="form-label">Features</label><input class="form-control" id="pd-features" placeholder="Key features..."></div><div class="form-group"><label class="form-label">Buyer</label><select class="form-control" id="pd-buyer"><option>General</option><option>Women</option><option>Men</option><option>Mothers</option></select></div><div class="form-group"><label class="form-label">Tone</label><select class="form-control" id="pd-tone"><option>friendly</option><option>professional</option><option>exciting</option></select></div></div><button class="btn btn-primary" onclick="runProductDesc()">✍️ Generate করুন</button><div id="pd-result" class="result-area mt-3"></div></div>`},
+  {id:'supplier_finder',icon:'🏭',name:'Supplier Finder',desc:'Alibaba/AliExpress strategy',color:'rgba(0,245,212,.06)',border:'rgba(0,245,212,.12)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">🏭 Supplier Finder</h3><div class="form-group"><label class="form-label">Product *</label><input class="form-control" id="sf-product" placeholder="Product name"></div><div class="form-group"><label class="form-label">Budget</label><select class="form-control" id="sf-budget"><option>low</option><option selected>medium</option><option>high</option></select></div><button class="btn btn-primary" onclick="runSupplier()">🏭 Find করুন</button><div id="sf-result" class="result-area mt-3"></div></div>`},
+  {id:'competitor_analysis',icon:'🔭',name:'Competitor Analysis',desc:'Market gaps & strategy',color:'rgba(124,58,237,.06)',border:'rgba(124,58,237,.12)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">🔭 Competitor Analysis</h3><div class="form-group"><label class="form-label">Product/Niche *</label><input class="form-control" id="ca-product" placeholder="Product বা niche"></div><div class="form-group"><label class="form-label">Platform</label><select class="form-control" id="ca-platform"><option>Facebook</option><option>Amazon</option><option>Daraz</option></select></div><button class="btn btn-primary" onclick="runCompetitor()">🔭 Analyze করুন</button><div id="ca-result" class="result-area mt-3"></div></div>`},
+  {id:'market_report',icon:'📊',name:'Market Research Report',desc:'Full AI market reports',color:'rgba(245,158,11,.06)',border:'rgba(245,158,11,.12)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">📊 Market Report</h3><div class="form-group"><label class="form-label">Product/Niche *</label><input class="form-control" id="mr-product" placeholder="Product বা niche"></div><div class="form-group"><label class="form-label">Market</label><select class="form-control" id="mr-market"><option>Bangladesh</option><option>India</option><option>US</option><option>Global</option></select></div><button class="btn btn-primary" onclick="runMarketReport()">📊 Report তৈরি করুন</button><div id="mr-result" class="result-area mt-3"></div></div>`},
+  {id:'post_generator',icon:'📱',name:'Facebook Post Generator',desc:'Bengali social posts',color:'rgba(59,130,246,.06)',border:'rgba(59,130,246,.12)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">📱 Facebook Post Generator</h3><div class="form-group"><label class="form-label">Product *</label><input class="form-control" id="pg-product" placeholder="Product name"></div><div class="form-group"><label class="form-label">Features</label><input class="form-control" id="pg-features" placeholder="মূল features..."></div><div class="form-group"><label class="form-label">Language</label><select class="form-control" id="pg-lang"><option>Bengali</option><option>English</option><option>Banglish</option></select></div><button class="btn btn-primary" onclick="runPostGenerator()">📱 Posts তৈরি করুন</button><div id="pg-result" class="result-area mt-3"></div></div>`},
+  {id:'viral_post',icon:'🔥',name:'Viral Post Creator',desc:'Trending content angles',color:'rgba(236,72,153,.06)',border:'rgba(236,72,153,.12)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">🔥 Viral Post Creator</h3><div class="form-group"><label class="form-label">Topic *</label><input class="form-control" id="vp-topic" placeholder="Topic বা product"></div><div class="form-group"><label class="form-label">Platform</label><select class="form-control" id="vp-platform"><option>Facebook</option><option>Instagram</option><option>TikTok</option></select></div><button class="btn btn-primary" onclick="runViralPost()">🔥 Create করুন</button><div id="vp-result" class="result-area mt-3"></div></div>`},
+  {id:'promo_post',icon:'🎁',name:'Promo Post Generator',desc:'Offer & sale posts',color:'rgba(245,158,11,.06)',border:'rgba(245,158,11,.12)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">🎁 Promo Post</h3><div class="form-group"><label class="form-label">Product *</label><input class="form-control" id="pp-product" placeholder="Product name"></div><div class="form-group"><label class="form-label">Offer</label><select class="form-control" id="pp-offer"><option>discount</option><option>buy 1 get 1</option><option>free shipping</option><option>flash sale</option></select></div><div class="form-group"><label class="form-label">Duration</label><select class="form-control" id="pp-duration"><option>24 hours</option><option>48 hours</option><option>7 days</option></select></div><button class="btn btn-primary" onclick="runPromoPost()">🎁 Create করুন</button><div id="pp-result" class="result-area mt-3"></div></div>`},
+  {id:'ad_copy',icon:'📢',name:'Ad Copy Writer',desc:'Facebook & Google ads',color:'rgba(0,245,212,.06)',border:'rgba(0,245,212,.12)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">📢 Ad Copy Writer</h3><div class="form-group"><label class="form-label">Product *</label><input class="form-control" id="adc-product" placeholder="Product name"></div><div class="form-group"><label class="form-label">Goal</label><select class="form-control" id="adc-goal"><option>sales</option><option>leads</option><option>awareness</option></select></div><div class="form-group"><label class="form-label">Audience</label><select class="form-control" id="adc-audience"><option>adults</option><option>women</option><option>men</option><option>parents</option></select></div><button class="btn btn-primary" onclick="runAdCopy()">📢 Write করুন</button><div id="adc-result" class="result-area mt-3"></div></div>`},
+  {id:'video_script',icon:'🎥',name:'Video Script',desc:'YouTube & Reels scripts',color:'rgba(124,58,237,.06)',border:'rgba(124,58,237,.12)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">🎥 Video Script</h3><div class="form-group"><label class="form-label">Topic *</label><input class="form-control" id="vs-topic" placeholder="Video topic"></div><div class="form-group"><label class="form-label">Duration</label><select class="form-control" id="vs-duration"><option>1-2 min</option><option>3-5 min</option><option>5-10 min</option></select></div><div class="form-group"><label class="form-label">Platform</label><select class="form-control" id="vs-platform"><option>YouTube</option><option>Facebook</option><option>TikTok</option></select></div><button class="btn btn-primary" onclick="runVideoScript()">🎥 Script লিখুন</button><div id="vs-result" class="result-area mt-3"></div></div>`},
+  {id:'video_prompt',icon:'🤖',name:'AI Video Prompts',desc:'Veo/Sora/Kling prompts',color:'rgba(236,72,153,.06)',border:'rgba(236,72,153,.12)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">🤖 AI Video Prompts</h3><div class="form-group"><label class="form-label">Scene/Product *</label><input class="form-control" id="vpr-scene" placeholder="Describe the scene"></div><div class="form-group"><label class="form-label">Style</label><select class="form-control" id="vpr-style"><option>cinematic</option><option>realistic</option><option>product showcase</option></select></div><div class="form-group"><label class="form-label">Duration</label><select class="form-control" id="vpr-duration"><option>5 seconds</option><option>15 seconds</option><option>30 seconds</option></select></div><button class="btn btn-primary" onclick="runVideoPrompt()">🤖 Prompts তৈরি করুন</button><div id="vpr-result" class="result-area mt-3"></div></div>`},
+  {id:'storyboard',icon:'🎞️',name:'Storyboard Creator',desc:'Scene-by-scene planning',color:'rgba(59,130,246,.06)',border:'rgba(59,130,246,.12)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">🎞️ Storyboard</h3><div class="form-group"><label class="form-label">Topic *</label><input class="form-control" id="sb-topic" placeholder="Video topic"></div><div class="form-group"><label class="form-label">Type</label><select class="form-control" id="sb-type"><option>product showcase</option><option>testimonial</option><option>tutorial</option></select></div><div class="form-group"><label class="form-label">Duration</label><select class="form-control" id="sb-duration"><option>30 seconds</option><option>60 seconds</option><option>2 minutes</option></select></div><button class="btn btn-primary" onclick="runStoryboard()">🎞️ Storyboard তৈরি করুন</button><div id="sb-result" class="result-area mt-3"></div></div>`},
+  {id:'subtitle_translator',icon:'🌐',name:'Subtitle Translator',desc:'Multi-language subtitles',color:'rgba(0,245,212,.06)',border:'rgba(0,245,212,.12)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">🌐 Subtitle Translator</h3><div class="form-group"><label class="form-label">Text *</label><textarea class="form-control" id="st-text" rows="4" placeholder="Subtitle text..."></textarea></div><div class="form-group"><label class="form-label">From</label><select class="form-control" id="st-from"><option>English</option><option>Bengali</option><option>Hindi</option></select></div><div class="form-group"><label class="form-label">To</label><select class="form-control" id="st-to"><option>Bengali</option><option>English</option><option>Hindi</option></select></div><button class="btn btn-primary" onclick="runSubtitleTranslator()">🌐 Translate করুন</button><div id="st-result" class="result-area mt-3"></div></div>`},
+  {id:'ad_funnel',icon:'📐',name:'Ad Funnel Strategy',desc:'Full funnel planning',color:'rgba(245,158,11,.06)',border:'rgba(245,158,11,.12)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">📐 Ad Funnel Strategy</h3><div class="form-group"><label class="form-label">Product *</label><input class="form-control" id="af-product" placeholder="Product name"></div><div class="form-group"><label class="form-label">Daily Budget</label><select class="form-control" id="af-budget"><option>low (৳500-2000)</option><option selected>medium (৳2000-5000)</option><option>high (৳5000+)</option></select></div><button class="btn btn-primary" onclick="runAdFunnel()">📐 Strategy তৈরি করুন</button><div id="af-result" class="result-area mt-3"></div></div>`},
+  {id:'concept_architect',icon:'🏗️',name:'Concept Architect',desc:'Business blueprint',color:'rgba(124,58,237,.06)',border:'rgba(124,58,237,.12)',html:`<div class="card" style="padding:24px"><h3 style="margin-bottom:18px">🏗️ Concept Architect</h3><div class="form-group"><label class="form-label">Business Idea *</label><textarea class="form-control" id="con-idea" rows="3" placeholder="আপনার business idea..."></textarea></div><div class="form-group"><label class="form-label">Industry</label><select class="form-control" id="con-industry"><option>ecommerce</option><option>fashion</option><option>food</option><option>tech</option><option>service</option></select></div><button class="btn btn-primary" onclick="runConceptArchitect()">🏗️ Blueprint তৈরি করুন</button><div id="con-result" class="result-area mt-3"></div></div>`},
+];
+
+(function(){
+  const nav=document.getElementById('toolsNav');
+  if(!nav) return;
+  TOOLS.forEach(t=>{
+    const d=document.createElement('div');
+    d.className='card tool-card';
+    d.style.cssText=`background:${t.color};border-color:${t.border};cursor:pointer`;
+    d.innerHTML=`<div class="tool-card-icon" style="background:${t.color};border:1px solid ${t.border}">${t.icon}</div><h3>${t.name}</h3><p>${t.desc}</p><button class="btn btn-sm btn-secondary btn-full" style="margin-top:10px">Open Tool →</button>`;
+    d.onclick=()=>openTool(t.id);
+    nav.appendChild(d);
+  });
+})();
+
+function openTool(id){
+  const tool=TOOLS.find(t=>t.id===id); if(!tool) return;
+  const c=document.getElementById('toolContainer');
+  c.innerHTML=tool.html;
+  c.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ═══════════════════════════════════════
+   PRODUCTS
+═══════════════════════════════════════ */
+window._products=[];
+async function loadProducts(){
+  const grid=document.getElementById('productsGrid');
+  if(!grid) return;
+  grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
+  try{
+    const products = await FB.getProducts();
+    window._products = products;
+    if(!products.length){
+      grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">এখনো কোনো product যোগ করা হয়নি।</div>';
+      return;
+    }
+    const isPro = FB.isPro();
+    grid.innerHTML = products.map(p=>{
+      const locked = p.premium && !isPro;
+      return `<div class="card product-card" onclick="showProduct('${p.id}')">
+        <div style="position:relative">
+          ${p.image?`<img class="product-card-img" src="${p.image}" alt="${p.name}" onerror="this.style.display='none';this.parentElement.querySelector('.product-card-img-ph').style.display='flex'">`:''}
+          <div class="product-card-img-ph" style="${p.image?'display:none':'display:flex'}">🏆</div>
+          ${p.premium?`<div style="position:absolute;top:10px;right:10px"><span class="tag tag-amber">⭐ Pro</span></div>`:`<div style="position:absolute;top:10px;right:10px"><span class="tag tag-green">Free</span></div>`}
+        </div>
+        <div class="product-card-body">
+          <div class="product-card-title">${p.name}</div>
+          <div class="product-card-desc">${p.shortDesc||''}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+            <div style="display:flex;align-items:center;gap:8px">
+              ${p.price?`<span class="tag tag-mint" style="font-size:.72rem">${p.price}</span>`:''}
+              ${p.score?`<span style="font-family:var(--font-h);font-size:1rem;font-weight:900;color:${p.score>=80?'var(--a1)':p.score>=60?'var(--a3)':'#f87171'}">${p.score}</span>`:''}
+            </div>
+            ${locked?`<span style="font-size:.78rem;color:var(--text2)">🔒 Pro only</span>`:`<span style="font-size:.78rem;color:var(--a1)">Details →</span>`}
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }catch(e){
+    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:#f87171">⚠️ Products লোড হয়নি। Console দেখুন।</div>`;
+    console.error('loadProducts error:', e);
+  }
+}
+
+function showProduct(id){
+  const p=window._products.find(x=>x.id===id); if(!p)return;
+  const locked=p.premium&&!FB.isPro();
+  document.getElementById('prodModalTitle').textContent=p.name;
+  document.getElementById('prodModalContent').innerHTML=locked?`
+    <div style="text-align:center;padding:40px 20px">
+      <div style="font-size:3rem;margin-bottom:16px">🔒</div>
+      <h3 style="color:#fff;margin-bottom:8px">Premium Content</h3>
+      <p style="margin-bottom:24px">সম্পূর্ণ ad strategy দেখতে Pro membership নিন।</p>
+      <button class="btn btn-primary" onclick="Modal.hideAll();showPaymentModal()">🚀 মাত্র ৳১৯৯/মাসে Pro নিন</button>
+    </div>`:`
+    <div style="display:grid;gap:18px">
+      ${p.image?`<img src="${p.image}" style="width:100%;border-radius:12px;max-height:280px;object-fit:cover" onerror="this.style.display='none'">`:''}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        ${p.price?`<div style="background:rgba(0,245,212,.08);border:1px solid rgba(0,245,212,.15);border-radius:10px;padding:12px;text-align:center"><div style="font-size:.72rem;color:var(--text2)">💰 Price</div><strong style="color:var(--a1)">${p.price}</strong></div>`:''}
+        ${p.score?`<div style="background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center"><div style="font-size:.72rem;color:var(--text2)">📊 Score</div><strong style="font-family:var(--font-h);font-size:1.3rem;color:${p.score>=80?'var(--a1)':p.score>=60?'var(--a3)':'#f87171'}">${p.score}</strong></div>`:''}
+        ${p.category?`<div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.15);border-radius:10px;padding:12px;text-align:center"><div style="font-size:.72rem;color:var(--text2)">📁</div><strong style="color:#a78bfa;font-size:.82rem">${p.category}</strong></div>`:''}
+      </div>
+      ${p.description?`<p style="font-size:.88rem;line-height:1.7">${p.description}</p>`:''}
+      ${p.whereToFind?`<div style="background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.15);border-radius:10px;padding:14px"><strong style="font-size:.83rem;color:var(--a1)">🛒 কোথায় পাবেন</strong><p style="font-size:.86rem;margin-top:6px">${p.whereToFind}</p></div>`:''}
+      ${(p.sellingPoints||[]).length?`<div><strong style="font-size:.83rem;color:var(--text2)">⭐ Selling Points</strong><ul style="list-style:none;padding:0;margin-top:8px">${p.sellingPoints.map(s=>`<li style="padding:5px 0;font-size:.86rem;display:flex;gap:8px;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:var(--a1)">●</span>${s}</li>`).join('')}</ul></div>`:''}
+      ${p.tiktokAd?`<div style="background:rgba(236,72,153,.06);border:1px solid rgba(236,72,153,.15);border-radius:10px;padding:14px"><strong style="font-size:.83rem;color:var(--a4)">🎵 TikTok Strategy</strong><p style="font-size:.86rem;margin-top:8px;white-space:pre-wrap">${p.tiktokAd}</p></div>`:''}
+      ${p.facebookAd?`<div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:10px;padding:14px"><strong style="font-size:.83rem;color:#60a5fa">📘 Facebook Strategy</strong><p style="font-size:.86rem;margin-top:8px;white-space:pre-wrap">${p.facebookAd}</p></div>`:''}
+      ${p.adBudget?`<div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:10px;padding:14px"><strong style="font-size:.83rem;color:var(--a3)">💰 Ad Budget</strong><p style="font-size:.86rem;margin-top:6px">${p.adBudget}</p></div>`:''}
+      ${p.caption?`<div><strong style="font-size:.83rem;color:var(--text2)">💬 Caption</strong><div style="margin-top:8px">${R.copyBox(p.caption,'📋 Copy')}</div></div>`:''}
+      ${p.hashtags?`<div>${R.tags(p.hashtags.split(/[\s,]+/).filter(Boolean),'tag-violet')}</div>`:''}
+      ${p.notes?`<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:.85rem;color:var(--text2)">${p.notes}</div>`:''}
+    </div>`;
+  Modal.show('productModal');
+}
+
+/* Hamburger */
+document.getElementById('hamburgerBtn')?.addEventListener('click', ()=>document.getElementById('mainNav')?.classList.toggle('open'));
+
+/* Payment modal alias */
+function renderPaymentStep1(){ if(typeof renderPayStep1==='function') renderPayStep1(); else if(typeof renderPaymentStep1==='function') {} }
+</script>
+</body>
+</html>

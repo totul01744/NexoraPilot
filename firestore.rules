@@ -1,0 +1,78 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Admin check — UID অথবা email দিয়ে
+    function isAdmin() {
+      return request.auth != null && (
+        request.auth.uid == 'd8uASRNpNVbpPeCKAWI5OQAg1UF2' ||
+        request.auth.token.email == 'totul01744@gmail.com'
+      );
+    }
+
+    // Logged in user check
+    function isLoggedIn() {
+      return request.auth != null;
+    }
+
+    // ── Settings (API key, bKash) ──
+    // সবাই read করতে পারবে (API key দরকার tools চালাতে)
+    // শুধু admin write করবে
+    match /settings/{docId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── Users ──
+    // নিজের data নিজে read/write, admin সব দেখবে
+    match /users/{uid} {
+      allow read, write: if isLoggedIn() && request.auth.uid == uid;
+      allow read, write: if isAdmin();
+    }
+
+    // ── Products ──
+    // সবাই read করতে পারবে, শুধু admin write করবে
+    match /products/{id} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // ── Usage tracking ──
+    // নিজের usage নিজে read/write
+    match /usage/{docId} {
+      allow read, write: if isLoggedIn() && docId.matches(request.auth.uid + '_.*');
+      allow read: if isAdmin();
+    }
+
+    // ── Help requests ──
+    // যে কেউ create করতে পারবে, admin manage করবে
+    match /help/{id} {
+      allow create: if true;
+      allow read, update: if isAdmin();
+    }
+
+    // ── Agency inquiries ──
+    match /agency/{id} {
+      allow create: if true;
+      allow read, update: if isAdmin();
+    }
+
+    // ── Payments ──
+    // Login করা user create করতে পারবে, admin manage করবে
+    match /payments/{id} {
+      allow create: if isLoggedIn();
+      allow read, update: if isAdmin();
+    }
+
+    // ── Events / Analytics ──
+    match /events/{id} {
+      allow create: if true;
+      allow read: if isAdmin();
+    }
+
+    // ── Pending Pro ──
+    match /pendingPro/{id} {
+      allow read, write: if isAdmin();
+    }
+  }
+}

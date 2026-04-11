@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Support — EcomSpark</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+<header class="header">
+  <div class="header-inner">
+    <a href="index.html" class="logo"><div class="logo-icon">⚡</div>EcomSpark</a>
+    <nav class="nav" id="mainNav">
+      <a class="nav-link" href="index.html">🏠 Home</a>
+      <a class="nav-link" href="index.html#winning">🏆 Products</a>
+      <a class="nav-link" href="index.html#tools">🛠️ Tools</a>
+      <a class="nav-link active" href="help.html">💬 Support</a>
+      <div class="usage-pill" style="margin-left:6px"><span class="glow-dot mint"></span><span class="usage-display">3/3</span> বাকি</div>
+    </nav>
+    <div id="headerUserDisplay" style="display:flex;align-items:center;gap:8px;margin-left:8px"></div>
+    <button class="hamburger" onclick="document.getElementById('mainNav').classList.toggle('open')">☰</button>
+  </div>
+</header>
+
+<section style="padding:60px 0 80px">
+  <div class="container" style="max-width:900px">
+    <div class="section-header">
+      <div class="section-label">💬 Support Center</div>
+      <h2 class="section-title">আমরা কীভাবে সাহায্য করতে পারি?</h2>
+      <p class="section-sub">প্রশ্ন, সমস্যা বা upgrade করতে চান? আমরা সবসময় আছি।</p>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px">
+      <div class="card" style="padding:28px">
+        <h3 style="margin-bottom:18px">🆘 Help Request পাঠান</h3>
+        <div class="form-group"><label class="form-label">আপনার নাম</label><input class="form-control" id="helpName" placeholder="নাম লিখুন"></div>
+        <div class="form-group"><label class="form-label">Email Address</label><input class="form-control" id="helpEmail" type="email" placeholder="you@example.com"></div>
+        <div class="form-group"><label class="form-label">বিষয়</label>
+          <select class="form-control" id="helpCat">
+            <option>Technical সমস্যা</option><option>Billing / Upgrade</option>
+            <option>Feature কীভাবে ব্যবহার করবো</option><option>Bug Report</option>
+            <option>সাধারণ প্রশ্ন</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">আপনার বার্তা</label><textarea class="form-control" id="helpMsg" rows="5" placeholder="আপনার প্রশ্ন বা সমস্যা বিস্তারিত লিখুন..."></textarea></div>
+        <button class="btn btn-primary btn-full" onclick="submitHelp()">📤 Request পাঠান</button>
+      </div>
+
+      <div class="card card-violet" style="padding:28px">
+        <h3 style="margin-bottom:6px">🚀 Pro / Agency নিন</h3>
+        <p style="font-size:.84rem;margin-bottom:18px">সব products unlock করুন এবং unlimited access পান।</p>
+
+        <div style="background:rgba(0,245,212,.08);border:1px solid rgba(0,245,212,.2);border-radius:12px;padding:16px;margin-bottom:14px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <strong style="color:#fff;font-family:var(--font-h)">⭐ Pro Plan</strong>
+            <span style="font-family:var(--font-h);font-size:1.4rem;font-weight:900;color:var(--a1)">৳১৯৯<span style="font-size:.75rem;color:var(--text2)">/মাস</span></span>
+          </div>
+          <div style="font-size:.82rem;color:var(--text2)">Unlimited tools + সব winning products unlock</div>
+        </div>
+
+        <div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:12px;padding:16px;margin-bottom:18px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <strong style="color:#fff;font-family:var(--font-h)">🏢 Agency Plan</strong>
+            <span style="font-family:var(--font-h);font-size:1.4rem;font-weight:900;color:#a78bfa">৳৪৯৯<span style="font-size:.75rem;color:var(--text2)">/মাস</span></span>
+          </div>
+          <div style="font-size:.82rem;color:var(--text2)">৫টি team seat + white-label + dedicated support</div>
+        </div>
+
+        <div class="form-group"><label class="form-label">আপনার নাম</label><input class="form-control" id="agName" placeholder="নাম বা company"></div>
+        <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="agEmail" type="email" placeholder="hello@company.com"></div>
+        <div class="form-group"><label class="form-label">Plan</label>
+          <select class="form-control" id="agPlan">
+            <option>Pro (৳১৯৯/মাস)</option>
+            <option>Agency (৳৪৯৯/মাস)</option>
+            <option>Annual Pro (৳১,৯৯৯/বছর)</option>
+          </select>
+        </div>
+        <div class="form-group"><label class="form-label">বার্তা (optional)</label><textarea class="form-control" id="agMsg" rows="2" placeholder="যেকোনো প্রশ্ন..."></textarea></div>
+        <button class="btn btn-primary btn-full" style="background:linear-gradient(135deg,var(--a2),var(--a5))" onclick="submitAgency()">🚀 Inquiry পাঠান</button>
+      </div>
+    </div>
+
+    <!-- FAQ -->
+    <div class="card" style="padding:28px;margin-bottom:24px">
+      <h3 style="margin-bottom:20px">❓ সাধারণ প্রশ্নোত্তর</h3>
+      <div id="faqList"></div>
+    </div>
+
+    <!-- How it works -->
+    <div class="card" style="padding:28px">
+      <h3 style="margin-bottom:18px">⚙️ কীভাবে ব্যবহার করবেন</h3>
+      <div style="display:grid;gap:14px">
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(0,245,212,.12);border:1px solid rgba(0,245,212,.25);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.84rem;color:var(--a1);flex-shrink:0">1</div>
+          <div><strong style="color:#fff">Account তৈরি করুন</strong><p style="font-size:.84rem;margin-top:2px">উপরে Login/Register করুন। Email, নাম, ঠিকানা ও নম্বর দিয়ে account করুন।</p></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(0,245,212,.12);border:1px solid rgba(0,245,212,.25);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.84rem;color:var(--a1);flex-shrink:0">2</div>
+          <div><strong style="color:#fff">Tools-এ যান</strong><p style="font-size:.84rem;margin-top:2px">Homepage-এ যেকোনো tool-এ ক্লিক করুন।</p></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(0,245,212,.12);border:1px solid rgba(0,245,212,.25);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.84rem;color:var(--a1);flex-shrink:0">3</div>
+          <div><strong style="color:#fff">ফলাফল পান</strong><p style="font-size:.84rem;margin-top:2px">কয়েক সেকেন্ডের মধ্যে সম্পূর্ণ বিশ্লেষণ পাবেন।</p></div>
+        </div>
+        <div style="display:flex;gap:14px;align-items:flex-start">
+          <div style="width:30px;height:30px;border-radius:50%;background:rgba(0,245,212,.12);border:1px solid rgba(0,245,212,.3);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.84rem;color:var(--a1);flex-shrink:0">✓</div>
+          <div><strong style="color:var(--a1)">Free plan = দিনে ৩ বার। Pro = unlimited।</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay hidden" id="authModal">
+  <div class="modal-box" style="max-width:460px">
+    <div class="modal-header">
+      <div style="display:flex;gap:0">
+        <button id="authTabLogin" class="tab-btn active" onclick="switchAuthTab('login')" style="border-radius:8px 0 0 8px">🔐 Login</button>
+        <button id="authTabReg" class="tab-btn" onclick="switchAuthTab('register')" style="border-radius:0 8px 8px 0">✅ Register</button>
+      </div>
+      <button class="modal-close" onclick="Modal.hideAll()">✕</button>
+    </div>
+
+    <!-- Login Form -->
+    <div id="authLoginForm" style="padding-top:8px">
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="loginEmail" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="form-group"><label class="form-label">পাসওয়ার্ড</label><input class="form-control" id="loginPass" type="password" placeholder="পাসওয়ার্ড" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn btn-primary btn-full" id="loginBtn" onclick="doLogin()">🔐 Login করুন</button>
+      <div style="text-align:center;margin-top:12px">
+        <button style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:.82rem" onclick="document.getElementById('authLoginForm').classList.add('hidden');document.getElementById('authForgotForm').classList.remove('hidden')">পাসওয়ার্ড ভুলে গেছেন?</button>
+      </div>
+    </div>
+
+    <!-- Register Form -->
+    <div id="authRegForm" class="hidden" style="padding-top:8px">
+      <div class="form-group"><label class="form-label">পূর্ণ নাম *</label><input class="form-control" id="regName" placeholder="আপনার নাম"></div>
+      <div class="form-group"><label class="form-label">ঠিকানা *</label><input class="form-control" id="regAddress" placeholder="জেলা, বিভাগ"></div>
+      <div class="form-group"><label class="form-label">📱 WhatsApp নম্বর *</label><input class="form-control" id="re_whatsapp" type="tel" placeholder="01XXXXXXXXX"></div>
+      <div class="form-group"><label class="form-label">Facebook Username <span style="font-weight:400;color:var(--text2);text-transform:none">(optional)</span></label><input class="form-control" id="re_facebook" placeholder="fb.com/username"></div>
+      <div class="form-group"><label class="form-label">Email *</label><input class="form-control" id="regEmail" type="email" placeholder="you@example.com"></div>
+      <div class="form-group"><label class="form-label">পাসওয়ার্ড * (৬+ অক্ষর)</label><input class="form-control" id="regPass" type="password" placeholder="পাসওয়ার্ড"></div>
+      <div class="form-group"><label class="form-label">পাসওয়ার্ড নিশ্চিত করুন *</label><input class="form-control" id="regPass2" type="password" placeholder="আবার দিন"></div>
+      <button class="btn btn-primary btn-full" id="regBtn" onclick="doRegister()">✅ Account তৈরি করুন</button>
+    </div>
+
+    <!-- Forgot Password Form -->
+    <div id="authForgotForm" class="hidden" style="padding-top:8px">
+      <p style="font-size:.85rem;color:var(--text2);margin-bottom:14px">আপনার email দিন, password reset link পাঠানো হবে।</p>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="forgotEmail" type="email" placeholder="you@example.com"></div>
+      <button class="btn btn-primary btn-full" onclick="doForgotPassword()">📧 Reset Link পাঠান</button>
+      <div style="text-align:center;margin-top:10px">
+        <button style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:.82rem" onclick="document.getElementById('authForgotForm').classList.add('hidden');document.getElementById('authLoginForm').classList.remove('hidden')">← Login-এ ফিরুন</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/app.js"></script>
+<script>
+const FAQS=[
+  {q:"দিনে কতবার ব্যবহার করতে পারবো?",a:"ফ্রি plan-এ প্রতিদিন ৩ বার। প্রতিদিন রাত ১২টায় reset হয়। Pro-তে unlimited।"},
+  {q:"Pro এর দাম কত?",a:"Pro plan মাত্র ৳১৯৯/মাস। Annual plan-এ ৳১,৯৯৯/বছর (মাসে মাত্র ৳১৬৬)।"},
+  {q:"Agency plan কীসের জন্য?",a:"Agency plan ৳৪৯৯/মাসে — ৫টি team seat, white-label reports ও dedicated support সহ।"},
+  {q:"Account করলে কী সুবিধা?",a:"Account করলে আপনার usage data যেকোনো browser ও device-এ কাজ করে। Pro হলে সব জায়গায় unlimited access পাবেন।"},
+  {q:"Winning Products কীভাবে কাজ করে?",a:"Admin প্রতিটি product upload করেন সম্পূর্ণ ad strategy সহ। Pro members সব দেখতে পান।"},
+  {q:"আমার তথ্য কি সুরক্ষিত?",a:"হ্যাঁ। Firebase-এর সুরক্ষিত database ব্যবহার করা হয়। কোনো তৃতীয় পক্ষকে দেওয়া হয় না।"},
+];
+
+document.getElementById('faqList').innerHTML=FAQS.map((f,i)=>`
+<div style="border-bottom:1px solid var(--border);padding:14px 0">
+  <div style="display:flex;align-items:center;justify-content:space-between;cursor:pointer" onclick="toggleFaq(${i})">
+    <strong style="font-size:.9rem;color:#fff">${f.q}</strong>
+    <span id="fi${i}" style="color:var(--a1);font-size:1.1rem">+</span>
+  </div>
+  <div id="fa${i}" class="hidden" style="margin-top:10px;font-size:.87rem;color:var(--text2);line-height:1.65">${f.a}</div>
+</div>`).join('');
+
+function toggleFaq(i){
+  const a=document.getElementById('fa'+i),ic=document.getElementById('fi'+i);
+  const h=a.classList.contains('hidden');
+  a.classList.toggle('hidden',!h); ic.textContent=h?'−':'+';
+}
+
+async function submitHelp(){
+  const name  = document.getElementById('helpName').value.trim();
+  const email = document.getElementById('helpEmail').value.trim();
+  const cat   = document.getElementById('helpCat').value;
+  const msg   = document.getElementById('helpMsg').value.trim();
+  if(!name||!email||!msg){ Toast.error('সব তথ্য পূরণ করুন'); return; }
+  try {
+    await FB.addHelp({name,email,category:cat,message:msg});
+    await FB.logEvent('help',{name,email,cat});
+    document.getElementById('helpName').value='';
+    document.getElementById('helpEmail').value='';
+    document.getElementById('helpMsg').value='';
+    Toast.success('Request পাঠানো হয়েছে! ২৪ ঘণ্টার মধ্যে reply পাবেন ✅');
+  } catch(e){ Toast.error('সমস্যা হয়েছে। আবার চেষ্টা করুন।'); }
+}
+
+async function submitAgency(){
+  const name  = document.getElementById('agName').value.trim();
+  const email = document.getElementById('agEmail').value.trim();
+  const plan  = document.getElementById('agPlan').value;
+  const msg   = document.getElementById('agMsg').value.trim();
+  if(!name||!email){ Toast.error('নাম ও email দিন'); return; }
+  try {
+    await FB.addAgency({name,email,plan,revenue:'N/A',message:msg});
+    await FB.logEvent('agency',{name,email,plan});
+    document.getElementById('agName').value='';
+    document.getElementById('agEmail').value='';
+    document.getElementById('agMsg').value='';
+    Toast.success('Inquiry পাঠানো হয়েছে! ১২ ঘণ্টার মধ্যে যোগাযোগ হবে 🚀');
+  } catch(e){ Toast.error('সমস্যা হয়েছে। আবার চেষ্টা করুন।'); }
+}
+
+/* Pre-fill forms if user is logged in */
+function onAuthStateReady(user){
+  if(user && currentUserData){
+    document.getElementById('helpName').value  = currentUserData.name||'';
+    document.getElementById('helpEmail').value = user.email||'';
+    document.getElementById('agName').value    = currentUserData.name||'';
+    document.getElementById('agEmail').value   = user.email||'';
+  }
+  updateUsageDisplay();
+}
+</script>
+</body>
+</html>
