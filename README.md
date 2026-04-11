@@ -1,4 +1,4 @@
-# ⚡ EcomSpark v4.0 — Firebase Edition
+# ⚡ NexoraPilot v4.0 — Firebase Edition
 
 ## 🔐 Admin Login
 
@@ -16,14 +16,14 @@ Firebase এ user আছে কিন্তু password নেই? নিচে�
 
 **অথবা** Firebase Console → Authentication → Users → "Add user":
 - Email: totul01744@gmail.com
-- Password: EcomSpark@2025 (বা আপনার পছন্দের)
+- Password: NexoraPilot@2025 (বা আপনার পছন্দের)
 
 ---
 
 ## 🚀 Deploy
 
 1. ZIP extract করুন
-2. Netlify.com → "Deploy manually" → ecomspark folder drag & drop
+2. Netlify.com → "Deploy manually" → NexoraPilot folder drag & drop
 3. /admin এ login করুন
 4. Admin Panel → System API Key → Gemini key দিন (aistudio.google.com/apikey)
 5. bKash number সেট করুন
