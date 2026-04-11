@@ -334,69 +334,49 @@ async function adminLogin(){
   const email = document.getElementById('adminEmail').value.trim().toLowerCase();
   const pass  = document.getElementById('adminPass').value;
   if(!email||!pass){ Toast.error('Email ও password দিন'); return; }
+
   const btn = document.getElementById('loginBtn');
   btn.disabled = true; btn.textContent = '⏳ Login হচ্ছে...';
   document.getElementById('loginErr').classList.add('hidden');
 
-  /* Method 1: Firebase Auth login */
   try {
-    await auth.signInWithEmailAndPassword(email, pass);
+    const cred = await auth.signInWithEmailAndPassword(email, pass);
+    const uid  = cred.user.uid;
 
-    /* Check admin — try Firestore first, fallback to stored admin email */
-    const uid = auth.currentUser.uid;
-    let isAdmin = false;
-
-    /* Check localStorage stored admin emails */
-    const storedAdmins = JSON.parse(localStorage.getItem('es_admin_emails')||'[]');
-    if(storedAdmins.includes(email)) isAdmin = true;
-
-    /* Check Firestore (may fail if rules block it) */
-    if(!isAdmin){
-      try {
-        const snap = await db.collection('users').doc(uid).get();
-        if(snap.exists && snap.data().plan === 'admin') isAdmin = true;
-      } catch(e){ /* Firestore blocked, skip */ }
-    }
-
-    /* First time setup: if no admins registered yet, first login becomes admin */
-    if(!isAdmin && storedAdmins.length === 0){
-      isAdmin = true;
-      storedAdmins.push(email);
-      localStorage.setItem('es_admin_emails', JSON.stringify(storedAdmins));
-      /* Also try to save to Firestore */
-      try {
-        await db.collection('users').doc(uid).set({
-          uid, email, name:'Admin', plan:'admin', isPro:true,
-          banned:false, createdAt: new Date().toISOString()
-        }, {merge:true});
-      } catch(e){}
-    }
+    /* Admin check: শুধু UID অথবা email মিললেই admin */
+    const ADMIN_UID   = 'd8uASRNpNVbpPeCKAWI5OQAg1UF2';
+    const ADMIN_EMAIL = 'totul01744@gmail.com';
+    const isAdmin = (uid === ADMIN_UID) || (email === ADMIN_EMAIL);
 
     if(!isAdmin){
       await auth.signOut();
       document.getElementById('loginErr').classList.remove('hidden');
-      const errSpan = document.getElementById('loginErrMsg');
-      if(errSpan) errSpan.textContent = '❌ এই account-এ admin access নেই।';
+      const s = document.getElementById('loginErrMsg');
+      if(s) s.textContent = '❌ এই account admin নয়।';
       btn.disabled=false; btn.textContent='🔐 Login করুন';
       return;
     }
 
+    /* Load API key from Firestore */
+    try { await Store.loadApiKeyFromFirestore(); } catch(e){}
+
     /* Success */
-    localStorage.setItem('es_admin_auth', JSON.stringify({email, uid, t: Date.now()}));
     document.getElementById('loginScreen').classList.add('hidden');
     document.getElementById('adminApp').classList.remove('hidden');
     initAdmin();
 
   } catch(e) {
-    let msg = '❌ ভুল email বা password।';
-    if(e.code === 'auth/user-not-found')   msg = '❌ এই email-এ কোনো account নেই।';
-    if(e.code === 'auth/wrong-password')   msg = '❌ পাসওয়ার্ড ভুল।';
-    if(e.code === 'auth/invalid-credential') msg = '❌ Email বা পাসওয়ার্ড ভুল।';
-    if(e.code === 'auth/too-many-requests') msg = '❌ অনেকবার চেষ্টা হয়েছে। কিছুক্ষণ পরে আবার চেষ্টা করুন।';
-    if(e.code === 'auth/network-request-failed') msg = '❌ ইন্টারনেট সংযোগ সমস্যা।';
+    const msgs = {
+      'auth/user-not-found':        '❌ এই email-এ কোনো account নেই।',
+      'auth/wrong-password':        '❌ পাসওয়ার্ড ভুল।',
+      'auth/invalid-credential':    '❌ Email বা পাসওয়ার্ড ভুল।',
+      'auth/invalid-email':         '❌ সঠিক email দিন।',
+      'auth/too-many-requests':     '❌ অনেকবার চেষ্টা। কিছুক্ষণ পরে চেষ্টা করুন।',
+      'auth/network-request-failed':'❌ ইন্টারনেট সংযোগ সমস্যা।',
+    };
     document.getElementById('loginErr').classList.remove('hidden');
-    const errSpan = document.getElementById('loginErrMsg');
-    if(errSpan) errSpan.textContent = msg;
+    const s = document.getElementById('loginErrMsg');
+    if(s) s.textContent = msgs[e.code] || ('❌ সমস্যা: ' + (e.message||''));
     btn.disabled=false; btn.textContent='🔐 Login করুন';
   }
 }
@@ -472,18 +452,22 @@ function renderApiKeyStatus(){
     display.style.display='none';
   }
 }
-function saveAdminApiKey(){
+async function saveAdminApiKey(){
   const key=document.getElementById('adminApiKeyInput')?.value?.trim();
   if(!key||key.length<10){ Toast.error('সঠিক API Key দিন'); return; }
-  Store.setApiKey(key);
+  const btn=document.querySelector('[onclick="saveAdminApiKey()"]');
+  if(btn){btn.disabled=true;btn.textContent='⏳ Save হচ্ছে...';}
+  await Store.setApiKey(key);
+  if(btn){btn.disabled=false;btn.textContent='🔑 Key Save করুন';}
   document.getElementById('adminApiKeyInput').value='';
   renderApiKeyStatus();
-  document.getElementById('apiKeyAlert').classList.add('hidden');
-  Toast.success('System API Key সেভ হয়েছে! ✅');
+  document.getElementById('apiKeyAlert')?.classList.add('hidden');
+  Toast.success('System API Key সেভ হয়েছে! ✅ সব user পাবে।');
 }
-function removeAdminApiKey(){
+async function removeAdminApiKey(){
   if(!confirm('System API Key মুছবেন?'))return;
-  Store.setApiKey('');
+  await Store.setApiKey('');
+  window._cachedApiKey='';
   renderApiKeyStatus();
   Toast.warning('API Key মুছা হয়েছে।');
 }
@@ -658,52 +642,95 @@ async function renderPaymentsTable(){
 function buildPaymentsHTML(rows, elId, compact){
   const el = document.getElementById(elId);
   if(!rows.length){ el.innerHTML=`<div style="padding:28px;text-align:center;color:var(--text2)">কোনো payment নেই।</div>`; return; }
-  el.innerHTML=`<table><thead><tr><th>নাম</th><th>Email</th><th>Plan</th><th>TxnID</th><th>Amount</th><th>তারিখ</th><th>Status</th><th>Actions</th></tr></thead><tbody>
+  el.innerHTML=`<table><thead><tr>
+    <th>নাম</th><th>Email</th><th>Phone</th><th>Plan</th><th>Amount</th>
+    <th>TxnID</th><th>তারিখ</th><th>Status</th><th>Actions</th>
+  </tr></thead><tbody>
     ${rows.map(r=>`<tr>
-      <td><strong>${r.name}</strong></td>
-      <td style="color:var(--text2)">${r.email}</td>
-      <td><span class="tag tag-violet">${r.plan||'—'}</span></td>
-      <td style="font-family:monospace;font-size:.82rem;color:var(--a1)">${r.txnId||'—'}</td>
-      <td style="font-weight:700;color:var(--a3)">${r.amount||'—'}</td>
+      <td><strong style="color:#fff">${r.name||'—'}</strong></td>
+      <td style="font-size:.82rem;color:var(--text2)">${r.email||'—'}</td>
+      <td style="font-size:.82rem">${r.phone||'—'}</td>
+      <td><span class="tag tag-violet" style="font-size:.72rem">${r.plan||'—'}</span></td>
+      <td style="font-weight:800;color:var(--a3)">${r.amount||'—'}</td>
+      <td style="font-family:monospace;font-size:.85rem;color:var(--a1);font-weight:700">${r.txnId||'—'}</td>
       <td style="font-size:.79rem;color:var(--text2)">${fd(r.date)}</td>
-      <td><span class="status-pill status-${r.status}">${r.status}</span></td>
-      <td>
-        <button class="action-btn" onclick="viewPayment('${r.id}')">দেখুন</button>
-        <button class="action-btn" style="color:var(--a1);margin-left:4px" onclick="approvePayment('${r.id}','${r.email}','${r.name}','${r.plan}')">✅ Approve</button>
-        <button class="action-btn" style="color:#f87171;margin-left:4px" onclick="rejectPayment('${r.id}')">✕</button>
+      <td><span class="status-pill status-${r.status||'pending'}">${r.status||'pending'}</span></td>
+      <td style="white-space:nowrap">
+        <button class="action-btn" onclick="viewPayment('${r.id}')">🔍 দেখুন</button>
+        ${r.status!=='approved'?`<button class="action-btn" style="color:var(--a1);margin-left:4px" onclick="approvePayment('${r.id}','${r.email}','${r.name}','${r.plan}')">✅</button>`:''}
+        ${r.status!=='rejected'?`<button class="action-btn" style="color:#f87171;margin-left:4px" onclick="rejectPayment('${r.id}')">✕</button>`:''}
       </td>
     </tr>`).join('')}
   </tbody></table>`;
 }
+
 async function approvePayment(id, email, name, plan){
-  if(!confirm(`${email} কে Pro activate করবেন?`))return;
-  await FB.updatePayment(id,{status:'approved',approvedAt:new Date().toISOString()});
-  const ok = await FB.addProUserByEmail(email, name, plan);
-  Toast.success(ok ? `✅ ${email} এখন Pro!` : `✅ Payment approved! User register করলে Pro হবে।`);
+  if(!confirm(`${email} কে Pro activate করবেন?\nPlan: ${plan}`))return;
+  await FB.updatePayment(id,{status:'approved', approvedAt:new Date().toISOString()});
+  const result = await FB.addProUserByEmail(email||'', name||'', plan||'Pro Monthly');
+  if(result==='activated'){
+    Toast.success(`✅ ${email} এখন Pro! Account activate হয়েছে।`);
+  } else if(result==='pending'){
+    Toast.info(`⏳ Payment approved। User এখনো register করেনি — register করলে Pro হবে।`);
+  } else {
+    Toast.warning(`Payment approved কিন্তু Pro activate এ সমস্যা হয়েছে।`);
+  }
   renderPaymentsTable(); initAdmin();
 }
+
 async function rejectPayment(id){
-  if(!confirm('Reject করবেন?'))return;
-  await FB.updatePayment(id,{status:'rejected'});
+  if(!confirm('Payment reject করবেন? User কে জানাবেন।'))return;
+  await FB.updatePayment(id,{status:'rejected', rejectedAt:new Date().toISOString()});
   Toast.warning('Payment rejected।');
   renderPaymentsTable();
 }
+
 function viewPayment(id){
   const r = window._adminPayments?.find(x=>x.id===id); if(!r)return;
-  document.getElementById('detailTitle').textContent=`💳 Payment — ${r.name}`;
+  document.getElementById('detailTitle').textContent='💳 Payment Details';
   document.getElementById('detailContent').innerHTML=`
-    <div style="display:grid;gap:12px">
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div><div style="font-size:.72rem;color:var(--text2)">নাম</div><strong>${r.name}</strong></div>
-        <div><div style="font-size:.72rem;color:var(--text2)">Email</div><strong>${r.email}</strong></div>
-        <div><div style="font-size:.72rem;color:var(--text2)">Plan</div><span class="tag tag-violet">${r.plan}</span></div>
-        <div><div style="font-size:.72rem;color:var(--text2)">Amount</div><strong style="color:var(--a3)">${r.amount}</strong></div>
-        <div><div style="font-size:.72rem;color:var(--text2)">TxnID</div><strong style="color:var(--a1);font-family:monospace">${r.txnId}</strong></div>
-        <div><div style="font-size:.72rem;color:var(--text2)">Phone</div>${r.phone||'—'}</div>
+    <div style="display:grid;gap:14px">
+      <!-- Status badge -->
+      <div style="text-align:center">
+        <span class="status-pill status-${r.status||'pending'}" style="font-size:.88rem;padding:6px 18px">${r.status||'pending'}</span>
       </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn btn-primary btn-sm" onclick="approvePayment('${r.id}','${r.email}','${r.name}','${r.plan}');Modal.hideAll()">✅ Approve & Activate</button>
-        <button class="btn btn-danger btn-sm" onclick="rejectPayment('${r.id}');Modal.hideAll()">✕ Reject</button>
+      <!-- Info grid -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:12px">
+          <div style="font-size:.7rem;color:var(--text2);margin-bottom:4px">নাম</div>
+          <strong style="color:#fff">${r.name||'—'}</strong>
+        </div>
+        <div style="background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:12px">
+          <div style="font-size:.7rem;color:var(--text2);margin-bottom:4px">Phone</div>
+          <strong style="color:#fff">${r.phone||'—'}</strong>
+        </div>
+        <div style="background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:12px;grid-column:1/-1">
+          <div style="font-size:.7rem;color:var(--text2);margin-bottom:4px">Email</div>
+          <strong style="color:var(--a1)">${r.email||'—'}</strong>
+        </div>
+        <div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.2);border-radius:10px;padding:12px">
+          <div style="font-size:.7rem;color:var(--text2);margin-bottom:4px">Plan</div>
+          <strong style="color:#a78bfa">${r.plan||'—'}</strong>
+        </div>
+        <div style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px">
+          <div style="font-size:.7rem;color:var(--text2);margin-bottom:4px">Amount</div>
+          <strong style="color:var(--a3);font-size:1.1rem">${r.amount||'—'}</strong>
+        </div>
+      </div>
+      <!-- TxnID big display -->
+      <div style="background:rgba(236,72,153,.08);border:2px solid rgba(236,72,153,.3);border-radius:12px;padding:16px;text-align:center">
+        <div style="font-size:.75rem;color:var(--text2);margin-bottom:6px">bKash Transaction ID</div>
+        <div style="font-family:monospace;font-size:1.4rem;font-weight:900;color:#f472b6;letter-spacing:3px">${r.txnId||'—'}</div>
+        <button onclick="navigator.clipboard.writeText('${r.txnId||''}').then(()=>Toast.success('Copied!'))" style="background:rgba(244,114,182,.1);border:1px solid rgba(244,114,182,.3);border-radius:6px;color:#f472b6;padding:4px 12px;font-size:.72rem;cursor:pointer;margin-top:8px">📋 Copy TxnID</button>
+      </div>
+      <!-- bKash sent to -->
+      ${r.bkashTo?`<div style="font-size:.82rem;color:var(--text2);text-align:center">পাঠিয়েছেন: <strong style="color:#fff">${r.bkashTo}</strong> নম্বরে</div>`:''}
+      <!-- Date -->
+      <div style="font-size:.8rem;color:var(--text2);text-align:center">Submit: ${fd(r.date)}</div>
+      <!-- Action buttons -->
+      <div style="display:flex;gap:10px;margin-top:4px">
+        ${r.status!=='approved'?`<button class="btn btn-primary" style="flex:1" onclick="approvePayment('${r.id}','${r.email}','${r.name}','${r.plan}');Modal.hideAll()">✅ Approve & Activate</button>`:'<div style="flex:1;text-align:center;color:var(--a1);font-weight:800">✅ Already Approved</div>'}
+        ${r.status!=='rejected'?`<button class="btn btn-danger btn-sm" onclick="rejectPayment('${r.id}');Modal.hideAll()">✕ Reject</button>`:''}
       </div>
     </div>`;
   Modal.show('detailModal');
@@ -937,10 +964,11 @@ function removeAdminEmail(email){
   Toast.success('Removed।');
   renderSettings();
 }
-function saveBkash(){
+async function saveBkash(){
   const n=document.getElementById('bkashInput').value.trim();
   if(!n){ Toast.error('Number দিন'); return; }
-  Store.setBkashNumber(n);
+  await Store.setBkashNumber(n);
+  window._cachedBkash = n;
   Toast.success('bKash number save হয়েছে! ✅');
 }
 
@@ -965,30 +993,14 @@ document.addEventListener('DOMContentLoaded',()=>{
   Toast.init();
   initFirebase();
 
-  /* Check if already logged in via Firebase Auth */
+  /* Auto-login: Firebase Auth state পরিবর্তন হলে চেক করো */
   auth.onAuthStateChanged(async (user) => {
-    if(!user) return; /* Not logged in, stay on login screen */
-
-    const email = user.email?.toLowerCase();
-    const storedAdmins = JSON.parse(localStorage.getItem('es_admin_emails')||'[]');
-    let isAdmin = storedAdmins.includes(email);
-
-    /* Check Firestore */
-    if(!isAdmin){
-      try {
-        const snap = await db.collection('users').doc(user.uid).get();
-        if(snap.exists && snap.data().plan === 'admin') isAdmin = true;
-      } catch(e){}
-    }
-
-    /* First time: no admins yet → first authenticated user becomes admin */
-    if(!isAdmin && storedAdmins.length === 0){
-      isAdmin = true;
-      storedAdmins.push(email);
-      localStorage.setItem('es_admin_emails', JSON.stringify(storedAdmins));
-    }
-
+    if(!user) return;
+    const ADMIN_UID   = 'd8uASRNpNVbpPeCKAWI5OQAg1UF2';
+    const ADMIN_EMAIL = 'totul01744@gmail.com';
+    const isAdmin = (user.uid === ADMIN_UID) || (user.email?.toLowerCase() === ADMIN_EMAIL);
     if(isAdmin){
+      try{ await Store.loadApiKeyFromFirestore(); }catch(e){}
       document.getElementById('loginScreen').classList.add('hidden');
       document.getElementById('adminApp').classList.remove('hidden');
       initAdmin();
@@ -999,4 +1011,3 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 </script>
 </body>
-</html>

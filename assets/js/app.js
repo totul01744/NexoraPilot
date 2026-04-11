@@ -16,10 +16,11 @@ const FB_CONFIG = {
 
 /* ── App Config ── */
 const CONFIG = {
-  GEMINI_URL: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+  GEMINI_URL:       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
   FREE_DAILY_LIMIT: 3,
-  ADMIN_EMAIL: 'admin@ecomspark.com', /* Admin Firebase Auth email */
-  BKASH_NUMBER: '01859-393487',
+  ADMIN_UID:        'd8uASRNpNVbpPeCKAWI5OQAg1UF2',   /* আপনার UID */
+  ADMIN_EMAIL:      'totul01744@gmail.com',             /* আপনার email */
+  BKASH_NUMBER:     '01859-393487',
 };
 
 /* ── Firebase Instances ── */
@@ -37,6 +38,9 @@ function initFirebase() {
       }
       db   = firebase.firestore();
       auth = firebase.auth();
+
+      /* Load API Key from Firestore immediately */
+      Store.loadApiKeyFromFirestore();
 
       /* Listen for auth state changes */
       auth.onAuthStateChanged(async (user) => {
@@ -86,27 +90,56 @@ const Store = {
   D(){ return this.get('es_sys')||{} },
   SD(d){ this.set('es_sys',d) },
 
-  /* System API Key (admin sets, all benefit) */
-  getApiKey(){ return this.D().systemApiKey||'' },
-  setApiKey(k){ const d=this.D(); d.systemApiKey=k; this.SD(d) },
+  /* API Key — Firestore এ save হয়, localStorage cache হিসেবে */
+  getApiKey(){
+    /* First try memory cache */
+    if(window._cachedApiKey) return window._cachedApiKey;
+    /* Then try localStorage cache */
+    return this.D().systemApiKey||'';
+  },
+  async setApiKey(k){
+    /* Save to localStorage */
+    const d=this.D(); d.systemApiKey=k; this.SD(d);
+    window._cachedApiKey = k;
+    /* Also save to Firestore so all users get it */
+    if(db){
+      try{
+        await db.collection('settings').doc('config').set(
+          {systemApiKey: k, updatedAt: new Date().toISOString()},
+          {merge: true}
+        );
+      }catch(e){ console.warn('Firestore key save failed:', e); }
+    }
+  },
+
+  /* Load API Key from Firestore on startup */
+  async loadApiKeyFromFirestore(){
+    if(!db) return;
+    try{
+      const snap = await db.collection('settings').doc('config').get();
+      if(snap.exists && snap.data().systemApiKey){
+        const k = snap.data().systemApiKey;
+        window._cachedApiKey = k;
+        const d = this.D(); d.systemApiKey = k; this.SD(d);
+        console.log('API Key loaded from Firestore ✅');
+      }
+    }catch(e){ console.warn('Firestore key load failed:', e); }
+  },
 
   /* bKash Number */
   getBkashNumber(){ return this.D().bkashNumber||CONFIG.BKASH_NUMBER },
-  setBkashNumber(n){ const d=this.D(); d.bkashNumber=n; this.SD(d) },
+  async setBkashNumber(n){
+    const d=this.D(); d.bkashNumber=n; this.SD(d);
+    if(db){ try{ await db.collection('settings').doc('config').set({bkashNumber:n},{merge:true}); }catch(e){} }
+  },
 
   /* Banners */
   getBanners(){ return this.D().banners||getDefaultBanners() },
   setBanners(b){ const d=this.D(); d.banners=b; this.SD(d) },
 
-  /* Legacy fallback — no longer primary storage */
   isAdmin(){
     if(!currentUser) return false;
-    const d=this.D();
-    return currentUser.email === (d.adminEmail || CONFIG.ADMIN_EMAIL);
-  },
-
-  stats(){
-    return { help:0, helpPending:0, payments:0, paymentsPending:0, products:0, proUsers:0, activePro:0, totalGen:0 };
+    return currentUser.uid === CONFIG.ADMIN_UID || currentUser.email?.toLowerCase() === CONFIG.ADMIN_EMAIL;
   },
 };
 
@@ -149,6 +182,10 @@ const FB = {
 
   /* ── Pro check ── */
   isPro() {
+    if(!currentUser) return false;
+    /* Admin সবসময় Pro */
+    if(currentUser.uid === CONFIG.ADMIN_UID) return true;
+    if(currentUser.email?.toLowerCase() === CONFIG.ADMIN_EMAIL) return true;
     if(!currentUserData) return false;
     if(currentUserData.banned) return false;
     if(currentUserData.plan === 'admin') return true;
@@ -162,6 +199,8 @@ const FB = {
 
   isAdmin() {
     if(!currentUser) return false;
+    if(currentUser.uid === CONFIG.ADMIN_UID) return true;
+    if(currentUser.email?.toLowerCase() === CONFIG.ADMIN_EMAIL) return true;
     return currentUserData?.plan === 'admin';
   },
 
@@ -676,68 +715,162 @@ function showUpgradeModal(){ showPaymentModal(); }
 function renderPayStep1(){ renderPaymentStep1(); }
 
 function renderPaymentStep1(){
-  const bkash=Store.getBkashNumber();
-  const modal=document.getElementById('paymentContent');
-  if(!modal)return;
-  const userEmail = currentUser?.email || '';
-  const userName  = currentUserData?.name || '';
-  modal.innerHTML=`
-    <div style="text-align:center;margin-bottom:24px">
-      <div style="font-size:2.5rem;font-weight:900;font-family:var(--font-h);color:#fff">৳১৯৯<span style="font-size:1rem;color:var(--text2)">/মাস</span></div>
-      <div style="font-size:.84rem;color:var(--text2);margin-top:4px">বা ৳১,৯৯৯/বছর</div>
+  /* bKash number ─ Firestore settings থেকে, fallback localStorage */
+  const bkash = window._cachedBkash || Store.getBkashNumber();
+  const el = document.getElementById('paymentContent');
+  if(!el) return;
+  const userName  = currentUserData?.name  || (currentUser?.email?.split('@')[0]) || '';
+  const userEmail = currentUser?.email     || '';
+  const userPhone = currentUserData?.whatsapp || '';
+
+  el.innerHTML = `
+    <!-- Plan selector -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">
+      <div class="plan-opt active" id="plan_monthly" onclick="selectPlan('monthly',this)" style="background:rgba(0,245,212,.08);border:2px solid var(--a1);border-radius:12px;padding:14px;text-align:center;cursor:pointer">
+        <div style="font-size:.72rem;color:var(--text2);margin-bottom:4px">মাসিক</div>
+        <div style="font-family:var(--font-h);font-size:1.3rem;font-weight:900;color:var(--a1)">৳১৯৯</div>
+        <div style="font-size:.7rem;color:var(--text2)">/মাস</div>
+      </div>
+      <div class="plan-opt" id="plan_yearly" onclick="selectPlan('yearly',this)" style="background:rgba(0,0,0,.2);border:2px solid var(--border);border-radius:12px;padding:14px;text-align:center;cursor:pointer">
+        <div style="font-size:.72rem;color:var(--text2);margin-bottom:4px">বার্ষিক</div>
+        <div style="font-family:var(--font-h);font-size:1.3rem;font-weight:900;color:#fff">৳১,৯৯৯</div>
+        <div style="font-size:.7rem;color:var(--a1)">মাত্র ৳১৬৬/মাস</div>
+      </div>
+      <div class="plan-opt" id="plan_agency" onclick="selectPlan('agency',this)" style="background:rgba(0,0,0,.2);border:2px solid var(--border);border-radius:12px;padding:14px;text-align:center;cursor:pointer">
+        <div style="font-size:.72rem;color:var(--text2);margin-bottom:4px">Agency</div>
+        <div style="font-family:var(--font-h);font-size:1.3rem;font-weight:900;color:#a78bfa">৳৪৯৯</div>
+        <div style="font-size:.7rem;color:var(--text2)">/মাস</div>
+      </div>
     </div>
-    <div style="background:rgba(236,72,153,.1);border:1px solid rgba(236,72,153,.3);border-radius:14px;padding:20px;margin-bottom:20px;text-align:center">
-      <div style="font-size:1.8rem;margin-bottom:8px">📱</div>
-      <div style="font-family:var(--font-h);font-weight:800;color:#fff;font-size:.95rem;margin-bottom:4px">bKash-এ পাঠান</div>
-      <div style="font-size:1.4rem;font-weight:900;color:#f472b6;letter-spacing:2px;margin:8px 0">${bkash}</div>
-      <div style="font-size:.82rem;color:var(--text2)">উপরের নম্বরে <strong style="color:#fff">Send Money</strong> করুন</div>
+
+    <!-- bKash instruction box -->
+    <div style="background:linear-gradient(135deg,rgba(236,72,153,.15),rgba(124,58,237,.1));border:1px solid rgba(236,72,153,.35);border-radius:14px;padding:18px;margin-bottom:18px">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+        <div style="font-size:1.6rem">📱</div>
+        <div>
+          <div style="font-weight:800;color:#fff;font-size:.92rem">bKash Send Money করুন</div>
+          <div style="font-size:.78rem;color:var(--text2)">নিচের নম্বরে পাঠান</div>
+        </div>
+      </div>
+      <div style="background:rgba(0,0,0,.3);border-radius:10px;padding:12px 16px;text-align:center;margin-bottom:10px">
+        <div style="font-size:.72rem;color:var(--text2);margin-bottom:4px">bKash Number</div>
+        <div style="font-family:var(--font-h);font-size:1.6rem;font-weight:900;color:#f472b6;letter-spacing:3px" id="payBkashNum">${bkash}</div>
+        <button onclick="navigator.clipboard.writeText('${bkash}').then(()=>Toast.success('Copied!'))" style="background:rgba(244,114,182,.1);border:1px solid rgba(244,114,182,.3);border-radius:6px;color:#f472b6;padding:4px 12px;font-size:.72rem;cursor:pointer;margin-top:6px">📋 Copy Number</button>
+      </div>
+      <div style="font-size:.82rem;color:var(--text2);display:grid;gap:5px;padding:0 4px">
+        <div style="display:flex;align-items:center;gap:8px"><span style="color:var(--a1);font-weight:800">১.</span> bKash App খুলুন → <strong style="color:#fff">Send Money</strong></div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="color:var(--a1);font-weight:800">২.</span> নম্বর: <strong style="color:#f472b6">${bkash}</strong> দিন</div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="color:var(--a1);font-weight:800">৩.</span> Amount দিন (নির্বাচিত plan অনুযায়ী)</div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="color:var(--a1);font-weight:800">৪.</span> Reference: আপনার <strong style="color:#fff">Email</strong> লিখুন</div>
+        <div style="display:flex;align-items:center;gap:8px"><span style="color:var(--a1);font-weight:800">৫.</span> Transaction ID নিচে দিন → Submit করুন</div>
+      </div>
     </div>
-    <div style="background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.15);border-radius:12px;padding:14px;margin-bottom:20px;font-size:.84rem;color:var(--text2)">
-      <div style="margin-bottom:6px"><strong style="color:#fff">পদক্ষেপ:</strong></div>
-      <div>১. bKash App → Send Money → ${bkash}</div>
-      <div>২. Amount: ৳১৯৯ বা ৳১,৯৯৯ (বার্ষিক)</div>
-      <div>৩. Reference: আপনার Email লিখুন</div>
-      <div>৪. Transaction ID নিচে দিন</div>
+
+    <!-- User info form -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div class="form-group" style="grid-column:1/-1">
+        <label class="form-label">আপনার নাম *</label>
+        <input class="form-control" id="pay-name" placeholder="পূর্ণ নাম" value="${userName}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Email *</label>
+        <input class="form-control" id="pay-email" type="email" placeholder="you@example.com" value="${userEmail}">
+      </div>
+      <div class="form-group">
+        <label class="form-label">আপনার Phone *</label>
+        <input class="form-control" id="pay-phone" type="tel" placeholder="01XXXXXXXXX" value="${userPhone}">
+      </div>
     </div>
-    <div class="form-group"><label class="form-label">আপনার নাম *</label><input class="form-control" id="pay-name" placeholder="পূর্ণ নাম লিখুন" value="${userName}"></div>
-    <div class="form-group"><label class="form-label">Email Address *</label><input class="form-control" id="pay-email" type="email" placeholder="আপনার email" value="${userEmail}"></div>
-    <div class="form-group"><label class="form-label">Plan *</label>
-      <select class="form-control" id="pay-plan">
-        <option value="monthly">Pro Monthly — ৳১৯৯/মাস</option>
-        <option value="yearly">Pro Annual — ৳১,৯৯৯/বছর</option>
-      </select>
+
+    <div class="form-group">
+      <label class="form-label">💳 bKash Transaction ID *</label>
+      <input class="form-control" id="pay-txn" placeholder="e.g., 8N6X1J2ABC" style="letter-spacing:2px;font-family:monospace;font-size:1rem" oninput="this.value=this.value.toUpperCase()">
+      <div style="font-size:.75rem;color:var(--text2);margin-top:4px">Payment করার পর bKash থেকে পাওয়া Transaction ID লিখুন</div>
     </div>
-    <div class="form-group"><label class="form-label">bKash Transaction ID *</label><input class="form-control" id="pay-txn" placeholder="e.g., 8N6X1J2ABC" style="letter-spacing:1px"></div>
-    <div class="form-group"><label class="form-label">Phone Number (bKash)</label><input class="form-control" id="pay-phone" placeholder="01XXXXXXXXX"></div>
-    <button class="btn btn-primary btn-full" onclick="submitPayment()" style="background:linear-gradient(135deg,#ec4899,#7c3aed)">📤 Payment Submit করুন</button>
-    <p style="text-align:center;font-size:.78rem;color:var(--text2);margin-top:12px">Admin verify করলে ২-১২ ঘণ্টার মধ্যে activate হবে।</p>`;
+
+    <input type="hidden" id="pay-plan-val" value="monthly">
+
+    <button class="btn btn-primary btn-full" id="pay-submit-btn" onclick="submitPayment()" style="background:linear-gradient(135deg,#ec4899,#7c3aed);margin-top:4px">
+      📤 Payment Submit করুন
+    </button>
+    <p style="text-align:center;font-size:.76rem;color:var(--text2);margin-top:10px">
+      ✅ Admin verify করলে <strong style="color:#fff">২-১২ ঘণ্টার</strong> মধ্যে activate হবে
+    </p>`;
+
+  /* Load bKash from Firestore if not cached */
+  if(!window._cachedBkash && db){
+    db.collection('settings').doc('config').get().then(snap=>{
+      if(snap.exists && snap.data().bkashNumber){
+        window._cachedBkash = snap.data().bkashNumber;
+        const el2 = document.getElementById('payBkashNum');
+        if(el2) el2.textContent = window._cachedBkash;
+      }
+    }).catch(()=>{});
+  }
+}
+
+function selectPlan(plan, el){
+  document.querySelectorAll('.plan-opt').forEach(x=>{
+    x.style.background='rgba(0,0,0,.2)';
+    x.style.border='2px solid var(--border)';
+  });
+  el.style.background = plan==='agency'?'rgba(124,58,237,.12)':'rgba(0,245,212,.08)';
+  el.style.border      = plan==='agency'?'2px solid rgba(124,58,237,.5)':'2px solid var(--a1)';
+  document.getElementById('pay-plan-val').value = plan;
 }
 
 async function submitPayment(){
   const name  = document.getElementById('pay-name')?.value?.trim();
   const email = document.getElementById('pay-email')?.value?.trim();
-  const plan  = document.getElementById('pay-plan')?.value;
-  const txn   = document.getElementById('pay-txn')?.value?.trim();
   const phone = document.getElementById('pay-phone')?.value?.trim();
-  if(!name||!email||!txn){ Toast.error('নাম, email ও Transaction ID আবশ্যক'); return; }
-  if(!email.includes('@')){ Toast.error('সঠিক email দিন'); return; }
-  const payment = { name, email, plan, txnId:txn, phone, amount:plan==='yearly'?'৳১,৯৯৯':'৳১৯৯' };
+  const txn   = document.getElementById('pay-txn')?.value?.trim().toUpperCase();
+  const plan  = document.getElementById('pay-plan-val')?.value || 'monthly';
+
+  if(!name)  { Toast.error('নাম দিন'); return; }
+  if(!email||!email.includes('@')){ Toast.error('সঠিক email দিন'); return; }
+  if(!phone) { Toast.error('Phone নম্বর দিন'); return; }
+  if(!txn||txn.length < 5){ Toast.error('Transaction ID দিন (কমপক্ষে ৫ অক্ষর)'); return; }
+
+  const amountMap = {monthly:'৳১৯৯', yearly:'৳১,৯৯৯', agency:'৳৪৯৯'};
+  const planMap   = {monthly:'Pro Monthly', yearly:'Pro Annual', agency:'Agency'};
+  const bkash     = Store.getBkashNumber();
+
+  const btn = document.getElementById('pay-submit-btn');
+  if(btn){ btn.disabled=true; btn.textContent='⏳ Submit হচ্ছে...'; }
+
   try {
-    await FB.addPayment(payment);
+    await FB.addPayment({
+      name, email, phone,
+      plan:     planMap[plan],
+      planCode: plan,
+      txnId:    txn,
+      amount:   amountMap[plan],
+      bkashTo:  bkash,
+      uid:      currentUser?.uid || null,
+    });
     await FB.logEvent('payment_submit',{name,email,plan,txn});
-  } catch(e) { console.warn('Payment save error:', e); }
-  document.getElementById('paymentContent').innerHTML=`
-    <div style="text-align:center;padding:20px 0">
-      <div style="font-size:3rem;margin-bottom:14px">✅</div>
-      <div style="font-family:var(--font-h);font-size:1.2rem;font-weight:800;color:#fff;margin-bottom:10px">Payment Submit হয়েছে!</div>
-      <div style="font-size:.88rem;color:var(--text2);margin-bottom:20px">আপনার TrxID: <strong style="color:var(--a1)">${txn}</strong><br>Admin verify করলে <strong style="color:#fff">২-১২ ঘণ্টার মধ্যে</strong> activate হবে।</div>
-      <div style="background:rgba(0,245,212,.08);border:1px solid rgba(0,245,212,.2);border-radius:12px;padding:14px;font-size:.85rem;margin-bottom:20px">
-        আপনার email: <strong style="color:var(--a1)">${email}</strong><br>
-        <span style="color:var(--text2)">Firebase account-এ activate হবে।</span>
-      </div>
-      <button class="btn btn-secondary" onclick="Modal.hideAll()">বন্ধ করুন</button>
-    </div>`;
-  Toast.success('Payment submit হয়েছে! Admin verify করবেন।');
+
+    document.getElementById('paymentContent').innerHTML = `
+      <div style="text-align:center;padding:24px 0">
+        <div style="font-size:3.5rem;margin-bottom:14px">✅</div>
+        <div style="font-family:var(--font-h);font-size:1.25rem;font-weight:900;color:#fff;margin-bottom:10px">Payment Submit হয়েছে!</div>
+        <div style="background:rgba(0,245,212,.08);border:1px solid rgba(0,245,212,.2);border-radius:12px;padding:16px;margin-bottom:18px;font-size:.87rem">
+          <div style="display:grid;gap:8px;text-align:left">
+            <div><span style="color:var(--text2)">নাম:</span> <strong style="color:#fff">${name}</strong></div>
+            <div><span style="color:var(--text2)">Email:</span> <strong style="color:var(--a1)">${email}</strong></div>
+            <div><span style="color:var(--text2)">Plan:</span> <strong style="color:#fff">${planMap[plan]} (${amountMap[plan]})</strong></div>
+            <div><span style="color:var(--text2)">TrxID:</span> <strong style="color:#f472b6;font-family:monospace">${txn}</strong></div>
+          </div>
+        </div>
+        <p style="font-size:.83rem;color:var(--text2);margin-bottom:18px">Admin verify করলে <strong style="color:#fff">২-১২ ঘণ্টার</strong> মধ্যে আপনার account activate হবে।</p>
+        <button class="btn btn-secondary" onclick="Modal.hideAll()">✕ বন্ধ করুন</button>
+      </div>`;
+    Toast.success('Payment submit হয়েছে! ✅');
+  } catch(e){
+    if(btn){ btn.disabled=false; btn.textContent='📤 Payment Submit করুন'; }
+    Toast.error('Submit করতে সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+    console.error('Payment error:', e);
+  }
 }
 
 /* ════════ SUPPORT CHAT ════════ */
@@ -778,18 +911,28 @@ function goBanner(i){ const s=document.querySelectorAll('.banner-slide'),d=docum
 /* ════════ TOOL RUNNERS ════════ */
 async function runTool(promptFn, inputs, resultId) {
   const resultEl = document.getElementById(resultId);
-  if(!resultEl) return;
-  if(!Store.getApiKey()){ resultEl.innerHTML=R.noKey(); return; }
+  if(!resultEl) return null;
+
+  /* API key: try Firestore reload if missing */
+  let apiKey = Store.getApiKey();
+  if(!apiKey){
+    await Store.loadApiKeyFromFirestore();
+    apiKey = Store.getApiKey();
+  }
+  if(!apiKey){ resultEl.innerHTML=R.noKey(); return null; }
+
   const canRun = await Engine.checkLimit();
-  if(!canRun){ resultEl.innerHTML=R.limitReached(); return; }
-  resultEl.innerHTML=R.skeleton(2);
+  if(!canRun){ resultEl.innerHTML=await R.limitReached(); return null; }
+
+  resultEl.innerHTML = R.skeleton(2);
   try{
-    const data=await Engine.call(promptFn(inputs));
+    const data = await Engine.call(promptFn(inputs));
     await FB.incUsage();
     await updateUsageDisplay();
     return data;
   }catch(e){
-    resultEl.innerHTML=R.error(e.message);
+    resultEl.innerHTML = R.error(e.message);
+    console.error('Tool error:', e);
     return null;
   }
 }
