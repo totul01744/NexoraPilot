@@ -1,5 +1,5 @@
 /* ============================================================
-   EcomSpark — Core Engine v5.0
+   NexoraPilot — Core Engine v5.0
    Firebase Auth + Firestore — NO localStorage for user data
    ============================================================ */
 
