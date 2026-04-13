@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="../assets/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin Panel — NexoraPilot</title>
+<title>Admin Panel — EcomSpark</title>
 <link rel="stylesheet" href="../assets/css/style.css">
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
@@ -19,7 +19,7 @@
     <div style="text-align:center;margin-bottom:30px">
       <div style="width:60px;height:60px;background:linear-gradient(135deg,var(--a1),var(--a2));border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 14px;box-shadow:0 0 36px rgba(0,245,212,.4)">⚡</div>
       <div style="font-family:var(--font-h);font-weight:900;font-size:1.3rem;color:#fff">Admin Panel</div>
-      <div style="font-size:.8rem;color:var(--text2);margin-top:3px">NexoraPilot Control Center</div>
+      <div style="font-size:.8rem;color:var(--text2);margin-top:3px">EcomSpark Control Center</div>
     </div>
     <div class="form-group">
       <label class="form-label">Admin Email</label>
@@ -31,7 +31,7 @@
     </div>
     <div id="loginErr" class="hidden mb-3"><div class="alert alert-error"><span id="loginErrMsg">❌ ভুল email বা password।</span></div></div>
     <button class="btn btn-primary btn-full" id="loginBtn" onclick="adminLogin()">🔐 Login করুন</button>
-    <p style="text-align:center;margin-top:14px;font-size:.78rem"><a href="../index.html" style="color:var(--text2)">← NexoraPilot-এ ফিরুন</a></p>
+    <p style="text-align:center;margin-top:14px;font-size:.78rem"><a href="../index.html" style="color:var(--text2)">← EcomSpark-এ ফিরুন</a></p>
   </div>
 </div>
 
@@ -40,7 +40,7 @@
   <aside class="sidebar" id="sidebar">
     <div class="sidebar-logo">
       <div style="width:36px;height:36px;background:linear-gradient(135deg,var(--a1),var(--a2));border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1rem;box-shadow:0 0 20px rgba(0,245,212,.3)">⚡</div>
-      <div style="font-family:var(--font-h);font-weight:900;font-size:.88rem;color:#fff;line-height:1.2">NexoraPilot<br><span style="font-size:.62rem;color:var(--a1);text-transform:uppercase;letter-spacing:1px">Admin</span></div>
+      <div style="font-family:var(--font-h);font-weight:900;font-size:.88rem;color:#fff;line-height:1.2">EcomSpark<br><span style="font-size:.62rem;color:var(--a1);text-transform:uppercase;letter-spacing:1px">Admin</span></div>
     </div>
     <div style="padding:10px">
       <div class="sidebar-section">Dashboard</div>
@@ -985,7 +985,7 @@ async function exportTableCSV(type){
   const rows=data.map(r=>Object.values(r).map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','));
   const csv=[h,...rows].join('\n');
   const b=new Blob([csv],{type:'text/csv'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`nexorapilot-${type}.csv`; a.click();
+  const a=document.createElement('a'); a.href=URL.createObjectURL(b); a.download=`ecomspark-${type}.csv`; a.click();
   Toast.success('CSV export হয়েছে!');
 }
 

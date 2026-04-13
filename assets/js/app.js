@@ -1,5 +1,5 @@
 /* ============================================================
-   NexoraPilot — Core Engine v5.0
+   EcomSpark — Core Engine v5.0
    Firebase Auth + Firestore — NO localStorage for user data
    ============================================================ */
 
@@ -202,6 +202,45 @@ const FB = {
     if(currentUser.uid === CONFIG.ADMIN_UID) return true;
     if(currentUser.email?.toLowerCase() === CONFIG.ADMIN_EMAIL) return true;
     return currentUserData?.plan === 'admin';
+  },
+
+  /* ── User Personal API Key ── */
+  async getUserApiKey() {
+    if(!currentUser) return '';
+    /* Memory cache */
+    if(window._userApiKey) return window._userApiKey;
+    /* Firestore থেকে load */
+    try {
+      const snap = await db.collection('users').doc(currentUser.uid).get();
+      if(snap.exists && snap.data().geminiKey) {
+        window._userApiKey = snap.data().geminiKey;
+        return window._userApiKey;
+      }
+    } catch(e){}
+    return '';
+  },
+
+  async setUserApiKey(key) {
+    if(!currentUser) return false;
+    window._userApiKey = key;
+    try {
+      await db.collection('users').doc(currentUser.uid).update({ geminiKey: key });
+      return true;
+    } catch(e) {
+      /* If update fails (doc doesn't exist), use set with merge */
+      try {
+        await db.collection('users').doc(currentUser.uid).set({ geminiKey: key }, { merge: true });
+        return true;
+      } catch(e2) { return false; }
+    }
+  },
+
+  async removeUserApiKey() {
+    if(!currentUser) return;
+    window._userApiKey = '';
+    try {
+      await db.collection('users').doc(currentUser.uid).update({ geminiKey: '' });
+    } catch(e){}
   },
 
   /* ── Products ── */
@@ -477,9 +516,20 @@ const Toast = {
 
 /* ════════ ENGINE (Gemini) ════════ */
 const Engine = {
+  async getActiveKey(){
+    /* Priority: 1) User personal key  2) System key */
+    const userKey = await FB.getUserApiKey();
+    if(userKey) return { key: userKey, source: 'user' };
+    const sysKey = Store.getApiKey();
+    if(sysKey) return { key: sysKey, source: 'system' };
+    return { key: '', source: 'none' };
+  },
+
   async call(prompt){
-    const apiKey=Store.getApiKey();
-    if(!apiKey) throw new Error('সিস্টেম এখনো চালু হয়নি। Admin-এর সাথে যোগাযোগ করুন।');
+    const { key: apiKey, source } = await Engine.getActiveKey();
+    if(!apiKey){
+      throw new Error('API Key সেট নেই। Dashboard থেকে আপনার Gemini API Key দিন।');
+    }
     const url=`${CONFIG.GEMINI_URL}?key=${apiKey}`;
     let res;
     try {
@@ -498,10 +548,12 @@ const Engine = {
       const msg=err.error?.message||'';
       const status=res.status;
       if(msg.includes('suspended')||msg.includes('Consumer')||status===403)
-        throw new Error('সিস্টেম key সমস্যা। Admin-এর সাথে যোগাযোগ করুন।');
-      if(msg.includes('quota')||status===429)
-        throw new Error('সিস্টেম ব্যস্ত। কিছুক্ষণ পরে আবার চেষ্টা করুন।');
-      throw new Error('সমস্যা হয়েছে। আবার চেষ্টা করুন।');
+        throw new Error('API Key সমস্যা (403)। Key টি সঠিক কিনা দেখুন।');
+      if(msg.includes('quota')||msg.includes('RESOURCE_EXHAUSTED')||status===429)
+        throw new Error('Gemini API rate limit হয়েছে (429)। ১ মিনিট পরে আবার চেষ্টা করুন।');
+      if(msg.includes('API_KEY_INVALID')||msg.includes('invalid'))
+        throw new Error('API Key ভুল। Admin panel থেকে সঠিক key দিন।');
+      throw new Error(`API Error (${status}): ${msg||'অজানা সমস্যা'}`);
     }
     const data=await res.json();
     const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
@@ -511,6 +563,9 @@ const Engine = {
   },
 
   async checkLimit(){
+    /* User এর নিজস্ব key থাকলে unlimited */
+    const userKey = await FB.getUserApiKey();
+    if(userKey) return true;
     if(!Store.getApiKey()) return false;
     if(FB.isPro()) return true;
     const usage = await FB.getUsage();
@@ -518,6 +573,9 @@ const Engine = {
   },
 
   async remaining(){
+    /* User এর নিজস্ব key থাকলে unlimited */
+    const userKey = await FB.getUserApiKey();
+    if(userKey) return 999;
     if(FB.isPro()) return 999;
     if(!Store.getApiKey()) return 0;
     const usage = await FB.getUsage();
@@ -578,6 +636,7 @@ async function updateUsageDisplay(){
   const r = await Engine.remaining();
   const isPro = FB.isPro();
   const isLoggedIn = !!currentUser;
+  const hasUserKey = !!(await FB.getUserApiKey());
   document.querySelectorAll('.usage-display').forEach(el=>{
     el.textContent = isPro ? '∞ Pro' : `${r}/${CONFIG.FREE_DAILY_LIMIT}`;
     el.style.color  = isPro ? 'var(--a1)' : r>0 ? 'var(--a3)' : '#f87171';
@@ -595,13 +654,14 @@ async function updateUsageDisplay(){
       userDisplay.innerHTML=`
         <div class="usage-pill" style="margin-right:4px">
           <span class="glow-dot ${isPro?'mint':'violet'}"></span>
-          <span style="color:${isPro?'var(--a1)':r>0?'var(--a3)':'#f87171'}">${isPro?'∞ Pro':`${r}/${CONFIG.FREE_DAILY_LIMIT}`}</span>
+          <span style="color:${isPro?'var(--a1)':r>0?'var(--a3)':'#f87171'}">${isPro?'∞ Pro':hasUserKey?'∞ নিজস্ব Key':`${r}/${CONFIG.FREE_DAILY_LIMIT}`}</span>
           বাকি
         </div>
         <div style="display:flex;align-items:center;gap:8px">
           <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--a1),var(--a2));display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.85rem;color:#0a0a14;flex-shrink:0">${nm.charAt(0).toUpperCase()}</div>
           <span style="font-size:.84rem;font-weight:700;color:#fff;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${nm}</span>
           ${isPro?'<span class="tag tag-mint" style="font-size:.65rem;padding:2px 7px">PRO</span>':''}
+          ${hasUserKey?'<span class="tag tag-green" style="font-size:.65rem;padding:2px 7px;cursor:pointer" onclick="openApiKeyModal()" title="নিজস্ব API Key সেট আছে">🔑 Key</span>':'<span class="tag tag-amber" style="font-size:.65rem;padding:2px 7px;cursor:pointer" onclick="openApiKeyModal()" title="API Key দিন">🔑 Key দিন</span>'}
           <button class="btn btn-sm btn-secondary" style="padding:4px 10px;font-size:.75rem" onclick="authLogout()">Logout</button>
         </div>`;
     } else {
@@ -913,13 +973,22 @@ async function runTool(promptFn, inputs, resultId) {
   const resultEl = document.getElementById(resultId);
   if(!resultEl) return null;
 
-  /* API key: try Firestore reload if missing */
-  let apiKey = Store.getApiKey();
+  /* Priority: user personal key → system key → error */
+  const userKey = await FB.getUserApiKey();
+  let apiKey = userKey;
   if(!apiKey){
     await Store.loadApiKeyFromFirestore();
     apiKey = Store.getApiKey();
   }
-  if(!apiKey){ resultEl.innerHTML=R.noKey(); return null; }
+  if(!apiKey){
+    resultEl.innerHTML = `<div class="alert alert-warning" style="flex-direction:column;gap:12px">
+      <div>🔑 <strong>API Key সেট নেই!</strong></div>
+      <div style="font-size:.85rem;color:var(--text2)">Tool ব্যবহার করতে আপনার Gemini API Key দিন।<br>
+      <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--a1)">aistudio.google.com/apikey</a> থেকে free key নিন।</div>
+      <button class="btn btn-primary btn-sm" onclick="openApiKeyModal()">🔑 API Key দিন</button>
+    </div>`;
+    return null;
+  }
 
   const canRun = await Engine.checkLimit();
   if(!canRun){ resultEl.innerHTML=await R.limitReached(); return null; }
@@ -927,7 +996,8 @@ async function runTool(promptFn, inputs, resultId) {
   resultEl.innerHTML = R.skeleton(2);
   try{
     const data = await Engine.call(promptFn(inputs));
-    await FB.incUsage();
+    /* Only count usage if using system key (user key = unlimited) */
+    if(!userKey) await FB.incUsage();
     await updateUsageDisplay();
     return data;
   }catch(e){
@@ -1148,3 +1218,162 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelector('.hamburger')?.addEventListener('click',()=>document.getElementById('mainNav')?.classList.toggle('open'));
   document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o)o.classList.add('hidden'); }));
 });
+
+/* ════════ USER API KEY MODAL ════════ */
+async function openApiKeyModal(){
+  /* Modal নেই তাহলে তৈরি করো */
+  if(!document.getElementById('userApiKeyModal')){
+    const m = document.createElement('div');
+    m.className = 'modal-overlay hidden';
+    m.id = 'userApiKeyModal';
+    m.innerHTML = `
+      <div class="modal-box" style="max-width:500px">
+        <div class="modal-header">
+          <div class="modal-title">🔑 আপনার Gemini API Key</div>
+          <button class="modal-close" onclick="Modal.hide('userApiKeyModal')">✕</button>
+        </div>
+
+        <!-- Status -->
+        <div id="uak_status" style="margin-bottom:18px"></div>
+
+        <!-- Info box -->
+        <div style="background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.15);border-radius:12px;padding:16px;margin-bottom:20px">
+          <div style="font-weight:800;color:var(--a1);margin-bottom:8px">🆓 Gemini API Key সম্পূর্ণ বিনামূল্যে!</div>
+          <div style="font-size:.85rem;color:var(--text2);display:grid;gap:6px">
+            <div>১. <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--a1);font-weight:700">aistudio.google.com/apikey</a> এ যান</div>
+            <div>২. Google account দিয়ে login করুন</div>
+            <div>৩. <strong style="color:#fff">"Create API Key"</strong> বাটন চাপুন</div>
+            <div>৪. Key copy করুন এবং নিচে paste করুন</div>
+          </div>
+          <div style="margin-top:10px;padding:8px 12px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:8px;font-size:.82rem;color:var(--a3)">
+            ✅ নিজস্ব key দিলে আপনার usage <strong>unlimited</strong> হবে!
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Gemini API Key</label>
+          <div style="position:relative">
+            <input class="form-control" id="uak_input" type="password"
+              placeholder="AIzaSy..." style="padding-right:80px"
+              onkeydown="if(event.key==='Enter')saveUserApiKey()">
+            <button onclick="const i=document.getElementById('uak_input');i.type=i.type==='password'?'text':'password'"
+              style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text2);cursor:pointer;font-size:.78rem">
+              👁 Show
+            </button>
+          </div>
+          <div style="font-size:.76rem;color:var(--text2);margin-top:5px">
+            Key আপনার Firebase account এ encrypt হয়ে save হবে। Admin দেখতে পারবে না।
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-primary" style="flex:1" id="uak_save_btn" onclick="saveUserApiKey()">
+            💾 Key Save করুন
+          </button>
+          <button class="btn btn-danger btn-sm" id="uak_del_btn" onclick="deleteUserApiKey()" style="display:none">
+            🗑️ মুছুন
+          </button>
+        </div>
+
+        <div id="uak_result" style="margin-top:14px"></div>
+      </div>`;
+    m.addEventListener('click', e=>{ if(e.target===m) Modal.hide('userApiKeyModal'); });
+    document.body.appendChild(m);
+  }
+
+  /* Current key দেখাও */
+  const existing = await FB.getUserApiKey();
+  const statusEl = document.getElementById('uak_status');
+  const delBtn   = document.getElementById('uak_del_btn');
+  const input    = document.getElementById('uak_input');
+
+  if(existing){
+    statusEl.innerHTML = `<div class="alert alert-success">
+      <span>✅</span>
+      <div><strong>API Key সেট আছে।</strong> Tools unlimited ব্যবহার করতে পারছেন।<br>
+      <span style="font-family:monospace;color:var(--a1)">${existing.substring(0,8)}...${existing.substring(existing.length-4)}</span></div>
+    </div>`;
+    delBtn.style.display = 'inline-flex';
+    input.placeholder = 'নতুন key দিয়ে replace করুন';
+  } else {
+    statusEl.innerHTML = `<div class="alert alert-warning">
+      <span>⚠️</span>
+      <div>API Key নেই। দিনে মাত্র ${CONFIG.FREE_DAILY_LIMIT} বার tool ব্যবহার করতে পারবেন।</div>
+    </div>`;
+    delBtn.style.display = 'none';
+  }
+  document.getElementById('uak_result').innerHTML = '';
+
+  Modal.show('userApiKeyModal');
+}
+
+async function saveUserApiKey(){
+  const key = document.getElementById('uak_input')?.value?.trim();
+  if(!key || key.length < 20){
+    document.getElementById('uak_result').innerHTML =
+      '<div class="alert alert-error">❌ সঠিক API Key দিন (AIzaSy... দিয়ে শুরু হবে)</div>';
+    return;
+  }
+  if(!key.startsWith('AIza')){
+    document.getElementById('uak_result').innerHTML =
+      '<div class="alert alert-error">❌ Gemini key "AIza" দিয়ে শুরু হয়। সঠিক key দিন।</div>';
+    return;
+  }
+
+  const btn = document.getElementById('uak_save_btn');
+  btn.disabled = true; btn.textContent = '⏳ Test করছি...';
+  document.getElementById('uak_result').innerHTML =
+    '<div class="alert alert-info">🔄 Key verify করা হচ্ছে...</div>';
+
+  /* Key test করো */
+  try {
+    const testUrl = `${CONFIG.GEMINI_URL}?key=${key}`;
+    const res = await fetch(testUrl, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        contents:[{parts:[{text:'Say OK'}]}],
+        generationConfig:{maxOutputTokens:5}
+      })
+    });
+
+    if(!res.ok){
+      const err = await res.json().catch(()=>({}));
+      btn.disabled=false; btn.textContent='💾 Key Save করুন';
+      document.getElementById('uak_result').innerHTML =
+        `<div class="alert alert-error">❌ Key কাজ করছে না: ${err.error?.message||'Invalid key'}</div>`;
+      return;
+    }
+
+    /* Key valid — save করো */
+    btn.textContent = '⏳ Saving...';
+    const saved = await FB.setUserApiKey(key);
+    window._userApiKey = key;
+    btn.disabled=false; btn.textContent='💾 Key Save করুন';
+
+    if(saved){
+      document.getElementById('uak_input').value = '';
+      document.getElementById('uak_result').innerHTML =
+        '<div class="alert alert-success">✅ API Key save হয়েছে! এখন unlimited tools ব্যবহার করুন।</div>';
+      await openApiKeyModal(); /* Refresh modal */
+      await updateUsageDisplay();
+      Toast.success('🔑 API Key সেট হয়েছে! Unlimited access চালু।');
+    } else {
+      document.getElementById('uak_result').innerHTML =
+        '<div class="alert alert-error">❌ Save করতে সমস্যা। আবার চেষ্টা করুন।</div>';
+    }
+  } catch(e){
+    btn.disabled=false; btn.textContent='💾 Key Save করুন';
+    document.getElementById('uak_result').innerHTML =
+      `<div class="alert alert-error">❌ Error: ${e.message}</div>`;
+  }
+}
+
+async function deleteUserApiKey(){
+  if(!confirm('API Key মুছবেন? Tools আবার limited হয়ে যাবে।')) return;
+  await FB.removeUserApiKey();
+  window._userApiKey = '';
+  Toast.warning('API Key মুছা হয়েছে।');
+  await openApiKeyModal();
+  await updateUsageDisplay();
+}

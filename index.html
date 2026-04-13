@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NexoraPilot — AI Ecommerce Research Platform</title>
+<title>EcomSpark — AI Ecommerce Research Platform</title>
 <link rel="stylesheet" href="assets/css/style.css">
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
@@ -45,7 +45,7 @@
   <div class="gate-box">
     <div style="text-align:center;margin-bottom:28px">
       <div style="width:56px;height:56px;background:linear-gradient(135deg,var(--a1),var(--a2));border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;margin:0 auto 14px;box-shadow:0 0 30px rgba(0,245,212,.4)">⚡</div>
-      <div style="font-family:var(--font-h);font-size:1.3rem;font-weight:900;color:#fff">NexoraPilot</div>
+      <div style="font-family:var(--font-h);font-size:1.3rem;font-weight:900;color:#fff">EcomSpark</div>
       <div style="font-size:.82rem;color:var(--text2);margin-top:4px">চালু করতে Login বা Register করুন</div>
     </div>
 
@@ -129,7 +129,7 @@
 <!-- HEADER -->
 <header class="header">
   <div class="header-inner">
-    <a href="index.html" class="logo"><div class="logo-icon">⚡</div>NexoraPilot</a>
+    <a href="index.html" class="logo"><div class="logo-icon">⚡</div>EcomSpark</a>
     <nav class="nav" id="mainNav">
       <a class="nav-link active" href="index.html">🏠 Home</a>
       <a class="nav-link" href="#winning">🏆 Products</a>
@@ -350,7 +350,8 @@ function onAuthStateReady(user){
     /* User logged in → hide gate, show app */
     document.getElementById('loginGate').classList.add('hidden');
     document.getElementById('mainApp').style.display='block';
-    updateHeaderUser();
+    /* User এর API key preload করো */
+    FB.getUserApiKey().then(()=>{ updateHeaderUser(); });
     loadProducts();
     const sb=document.getElementById('supportBody');
     if(sb) sb.innerHTML=supportFormHTML();
