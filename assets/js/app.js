@@ -17,6 +17,8 @@ const FB_CONFIG = {
 /* ── App Config ── */
 const CONFIG = {
   GEMINI_URL:       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
+  OPENROUTER_URL:   'https://openrouter.ai/api/v1/chat/completions',
+  OPENROUTER_MODEL: 'mistralai/mistral-7b-instruct:free', /* ফ্রি model */
   FREE_DAILY_LIMIT: 3,
   ADMIN_UID:        'd8uASRNpNVbpPeCKAWI5OQAg1UF2',   /* আপনার UID */
   ADMIN_EMAIL:      'totul01744@gmail.com',             /* আপনার email */
@@ -525,11 +527,27 @@ const Engine = {
     return { key: '', source: 'none' };
   },
 
+  /* Key type detect: Gemini=AIza, OpenRouter=sk-or- */
+  detectKeyType(key){
+    if(!key) return 'none';
+    if(key.startsWith('sk-or-')) return 'openrouter';
+    return 'gemini';
+  },
+
   async call(prompt){
-    const { key: apiKey, source } = await Engine.getActiveKey();
+    const { key: apiKey } = await Engine.getActiveKey();
     if(!apiKey){
-      throw new Error('API Key সেট নেই। Dashboard থেকে আপনার Gemini API Key দিন।');
+      throw new Error('API Key সেট নেই। 🔑 Key দিন বাটনে ক্লিক করুন।');
     }
+    const keyType = Engine.detectKeyType(apiKey);
+    if(keyType === 'openrouter'){
+      return await Engine.callOpenRouter(apiKey, prompt);
+    } else {
+      return await Engine.callGemini(apiKey, prompt);
+    }
+  },
+
+  async callGemini(apiKey, prompt){
     const url=`${CONFIG.GEMINI_URL}?key=${apiKey}`;
     let res;
     try {
@@ -542,22 +560,58 @@ const Engine = {
         }),
       });
     } catch(e){ throw new Error('ইন্টারনেট সংযোগ সমস্যা। আবার চেষ্টা করুন।'); }
-
     if(!res.ok){
       const err=await res.json().catch(()=>({}));
       const msg=err.error?.message||'';
       const status=res.status;
       if(msg.includes('suspended')||msg.includes('Consumer')||status===403)
-        throw new Error('API Key সমস্যা (403)। Key টি সঠিক কিনা দেখুন।');
+        throw new Error('Gemini Key suspended! OpenRouter key ব্যবহার করুন → openrouter.ai/keys থেকে ফ্রি key নিন (sk-or- দিয়ে শুরু)।');
       if(msg.includes('quota')||msg.includes('RESOURCE_EXHAUSTED')||status===429)
-        throw new Error('Gemini API rate limit হয়েছে (429)। ১ মিনিট পরে আবার চেষ্টা করুন।');
+        throw new Error('Gemini rate limit (429)। ১ মিনিট পরে চেষ্টা করুন।');
       if(msg.includes('API_KEY_INVALID')||msg.includes('invalid'))
-        throw new Error('API Key ভুল। Admin panel থেকে সঠিক key দিন।');
-      throw new Error(`API Error (${status}): ${msg||'অজানা সমস্যা'}`);
+        throw new Error('Gemini Key ভুল। সঠিক key দিন।');
+      throw new Error(`Gemini Error (${status}): ${msg||'অজানা সমস্যা'}`);
     }
     const data=await res.json();
     const raw=data.candidates?.[0]?.content?.parts?.[0]?.text||'';
     const clean=raw.replace(/```json|```/g,'').trim();
+    try{ return JSON.parse(clean); }
+    catch{ throw new Error('ফলাফল প্রক্রিয়া করতে সমস্যা। আবার চেষ্টা করুন।'); }
+  },
+
+  async callOpenRouter(apiKey, prompt){
+    let res;
+    try {
+      res = await fetch(CONFIG.OPENROUTER_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`,
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'NexoraPilot'
+        },
+        body: JSON.stringify({
+          model: CONFIG.OPENROUTER_MODEL,
+          messages: [{
+            role: 'user',
+            content: prompt + '\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown, no backticks, no extra text. Raw JSON only.'
+          }],
+          temperature: 0.7,
+          max_tokens: 4000,
+        }),
+      });
+    } catch(e){ throw new Error('ইন্টারনেট সংযোগ সমস্যা। আবার চেষ্টা করুন।'); }
+    if(!res.ok){
+      const err = await res.json().catch(()=>({}));
+      const msg = err.error?.message||'';
+      const status = res.status;
+      if(status===401) throw new Error('OpenRouter Key ভুল। সঠিক key দিন।');
+      if(status===429) throw new Error('Rate limit। ১ মিনিট পরে চেষ্টা করুন।');
+      throw new Error(`OpenRouter Error (${status}): ${msg||'অজানা সমস্যা'}`);
+    }
+    const data = await res.json();
+    const raw = data.choices?.[0]?.message?.content || '';
+    const clean = raw.replace(/```json|```/g,'').trim();
     try{ return JSON.parse(clean); }
     catch{ throw new Error('ফলাফল প্রক্রিয়া করতে সমস্যা। আবার চেষ্টা করুন।'); }
   },
@@ -1236,25 +1290,36 @@ async function openApiKeyModal(){
         <!-- Status -->
         <div id="uak_status" style="margin-bottom:18px"></div>
 
-        <!-- Info box -->
-        <div style="background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.15);border-radius:12px;padding:16px;margin-bottom:20px">
-          <div style="font-weight:800;color:var(--a1);margin-bottom:8px">🆓 Gemini API Key সম্পূর্ণ বিনামূল্যে!</div>
-          <div style="font-size:.85rem;color:var(--text2);display:grid;gap:6px">
+        <!-- Info box — Option 1: Gemini -->
+        <div style="background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.15);border-radius:12px;padding:16px;margin-bottom:12px">
+          <div style="font-weight:800;color:var(--a1);margin-bottom:8px">✅ বিকল্প ১ — Gemini API Key (নতুন Project দিয়ে)</div>
+          <div style="font-size:.84rem;color:var(--text2);display:grid;gap:5px">
             <div>১. <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--a1);font-weight:700">aistudio.google.com/apikey</a> এ যান</div>
-            <div>২. Google account দিয়ে login করুন</div>
-            <div>৩. <strong style="color:#fff">"Create API Key"</strong> বাটন চাপুন</div>
-            <div>৪. Key copy করুন এবং নিচে paste করুন</div>
+            <div>২. পুরনো key থাকলে আগে <strong style="color:#f87171">Delete</strong> করুন</div>
+            <div>৩. <strong style="color:#fff">"Create API Key in new project"</strong> বেছে নিন</div>
+            <div>৪. Key copy করুন → নিচে paste করুন (<span style="color:var(--a1)">AIzaSy...</span> দিয়ে শুরু)</div>
           </div>
-          <div style="margin-top:10px;padding:8px 12px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);border-radius:8px;font-size:.82rem;color:var(--a3)">
-            ✅ নিজস্ব key দিলে আপনার usage <strong>unlimited</strong> হবে!
+        </div>
+
+        <!-- Info box — Option 2: OpenRouter -->
+        <div style="background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.25);border-radius:12px;padding:16px;margin-bottom:20px">
+          <div style="font-weight:800;color:#a78bfa;margin-bottom:8px">🆓 বিকল্প ২ — OpenRouter Key (Gemini suspend হলে এটা ব্যবহার করুন)</div>
+          <div style="font-size:.84rem;color:var(--text2);display:grid;gap:5px">
+            <div>১. <a href="https://openrouter.ai/keys" target="_blank" style="color:#a78bfa;font-weight:700">openrouter.ai/keys</a> এ যান</div>
+            <div>২. Google/GitHub দিয়ে signup করুন (ফ্রি)</div>
+            <div>৩. <strong style="color:#fff">"Create Key"</strong> চাপুন</div>
+            <div>৪. Key copy করুন → নিচে paste করুন (<span style="color:#a78bfa">sk-or-...</span> দিয়ে শুরু)</div>
+          </div>
+          <div style="margin-top:8px;padding:7px 10px;background:rgba(124,58,237,.12);border-radius:7px;font-size:.8rem;color:#a78bfa">
+            🆓 OpenRouter-এ ফ্রি model পাওয়া যায় — suspend হয় না!
           </div>
         </div>
 
         <div class="form-group">
-          <label class="form-label">Gemini API Key</label>
+          <label class="form-label">API Key (Gemini বা OpenRouter যেকোনো একটা)</label>
           <div style="position:relative">
             <input class="form-control" id="uak_input" type="password"
-              placeholder="AIzaSy..." style="padding-right:80px"
+              placeholder="AIzaSy... অথবা sk-or-..." style="padding-right:80px"
               onkeydown="if(event.key==='Enter')saveUserApiKey()">
             <button onclick="const i=document.getElementById('uak_input');i.type=i.type==='password'?'text':'password'"
               style="position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:var(--text2);cursor:pointer;font-size:.78rem">
@@ -1262,7 +1327,7 @@ async function openApiKeyModal(){
             </button>
           </div>
           <div style="font-size:.76rem;color:var(--text2);margin-top:5px">
-            Key আপনার Firebase account এ encrypt হয়ে save হবে। Admin দেখতে পারবে না।
+            Key Firebase-এ save হবে। Admin দেখতে পারবে না।
           </div>
         </div>
 
@@ -1311,12 +1376,14 @@ async function saveUserApiKey(){
   const key = document.getElementById('uak_input')?.value?.trim();
   if(!key || key.length < 20){
     document.getElementById('uak_result').innerHTML =
-      '<div class="alert alert-error">❌ সঠিক API Key দিন (AIzaSy... দিয়ে শুরু হবে)</div>';
+      '<div class="alert alert-error">❌ সঠিক API Key দিন</div>';
     return;
   }
-  if(!key.startsWith('AIza')){
+  const isGemini     = key.startsWith('AIza');
+  const isOpenRouter = key.startsWith('sk-or-');
+  if(!isGemini && !isOpenRouter){
     document.getElementById('uak_result').innerHTML =
-      '<div class="alert alert-error">❌ Gemini key "AIza" দিয়ে শুরু হয়। সঠিক key দিন।</div>';
+      '<div class="alert alert-error">❌ Gemini key "AIza" অথবা OpenRouter key "sk-or-" দিয়ে শুরু হওয়া উচিত।</div>';
     return;
   }
 
@@ -1327,40 +1394,71 @@ async function saveUserApiKey(){
 
   /* Key test করো */
   try {
-    const testUrl = `${CONFIG.GEMINI_URL}?key=${key}`;
-    const res = await fetch(testUrl, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({
-        contents:[{parts:[{text:'Say OK'}]}],
-        generationConfig:{maxOutputTokens:5}
-      })
-    });
-
-    if(!res.ok){
-      const err = await res.json().catch(()=>({}));
-      btn.disabled=false; btn.textContent='💾 Key Save করুন';
-      document.getElementById('uak_result').innerHTML =
-        `<div class="alert alert-error">❌ Key কাজ করছে না: ${err.error?.message||'Invalid key'}</div>`;
-      return;
+    let testOk = false;
+    if(isOpenRouter){
+      /* OpenRouter test */
+      const res = await fetch(CONFIG.OPENROUTER_URL, {
+        method: 'POST',
+        headers: {
+          'Content-Type':'application/json',
+          'Authorization': `Bearer ${key}`,
+          'HTTP-Referer': window.location.origin,
+          'X-Title': 'NexoraPilot'
+        },
+        body: JSON.stringify({
+          model: CONFIG.OPENROUTER_MODEL,
+          messages:[{role:'user',content:'Say OK'}],
+          max_tokens: 5
+        })
+      });
+      if(!res.ok){
+        const err = await res.json().catch(()=>({}));
+        btn.disabled=false; btn.textContent='💾 Key Save করুন';
+        document.getElementById('uak_result').innerHTML =
+          `<div class="alert alert-error">❌ OpenRouter Key কাজ করছে না: ${err.error?.message||'Invalid key'}</div>`;
+        return;
+      }
+      testOk = true;
+    } else {
+      /* Gemini test */
+      const testUrl = `${CONFIG.GEMINI_URL}?key=${key}`;
+      const res = await fetch(testUrl, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({
+          contents:[{parts:[{text:'Say OK'}]}],
+          generationConfig:{maxOutputTokens:5}
+        })
+      });
+      if(!res.ok){
+        const err = await res.json().catch(()=>({}));
+        btn.disabled=false; btn.textContent='💾 Key Save করুন';
+        const msg = err.error?.message||'Invalid key';
+        const hint = msg.includes('suspended') ? ' — OpenRouter key ব্যবহার করুন (openrouter.ai/keys)' : '';
+        document.getElementById('uak_result').innerHTML =
+          `<div class="alert alert-error">❌ Gemini Key কাজ করছে না: ${msg}${hint}</div>`;
+        return;
+      }
+      testOk = true;
     }
 
-    /* Key valid — save করো */
-    btn.textContent = '⏳ Saving...';
-    const saved = await FB.setUserApiKey(key);
-    window._userApiKey = key;
-    btn.disabled=false; btn.textContent='💾 Key Save করুন';
+    if(testOk){
+      btn.textContent = '⏳ Saving...';
+      const saved = await FB.setUserApiKey(key);
+      window._userApiKey = key;
+      btn.disabled=false; btn.textContent='💾 Key Save করুন';
 
-    if(saved){
-      document.getElementById('uak_input').value = '';
-      document.getElementById('uak_result').innerHTML =
-        '<div class="alert alert-success">✅ API Key save হয়েছে! এখন unlimited tools ব্যবহার করুন।</div>';
-      await openApiKeyModal(); /* Refresh modal */
-      await updateUsageDisplay();
-      Toast.success('🔑 API Key সেট হয়েছে! Unlimited access চালু।');
-    } else {
-      document.getElementById('uak_result').innerHTML =
-        '<div class="alert alert-error">❌ Save করতে সমস্যা। আবার চেষ্টা করুন।</div>';
+      if(saved){
+        document.getElementById('uak_input').value = '';
+        document.getElementById('uak_result').innerHTML =
+          '<div class="alert alert-success">✅ API Key save হয়েছে! এখন unlimited tools ব্যবহার করুন।</div>';
+        await openApiKeyModal(); /* Refresh modal */
+        await updateUsageDisplay();
+        Toast.success('🔑 API Key সেট হয়েছে! Unlimited access চালু।');
+      } else {
+        document.getElementById('uak_result').innerHTML =
+          '<div class="alert alert-error">❌ Save করতে সমস্যা। আবার চেষ্টা করুন।</div>';
+      }
     }
   } catch(e){
     btn.disabled=false; btn.textContent='💾 Key Save করুন';
