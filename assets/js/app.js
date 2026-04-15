@@ -18,7 +18,7 @@ const FB_CONFIG = {
 const CONFIG = {
   GEMINI_URL:       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
   OPENROUTER_URL:   'https://openrouter.ai/api/v1/chat/completions',
-  OPENROUTER_MODEL: 'mistralai/mistral-7b-instruct:free', /* ফ্রি model */
+  OPENROUTER_MODEL: 'openai/gpt-oss-120b:free',
   FREE_DAILY_LIMIT: 3,
   ADMIN_UID:        'd8uASRNpNVbpPeCKAWI5OQAg1UF2',   /* আপনার UID */
   ADMIN_EMAIL:      'totul01744@gmail.com',             /* আপনার email */
