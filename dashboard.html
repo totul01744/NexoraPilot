@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Dashboard — NexoraPilot</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<style>
+.dash-stat{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:14px;padding:18px;text-align:center}
+.dash-stat .num{font-family:var(--font-h);font-size:1.6rem;font-weight:900;color:#fff}
+.dash-stat .lbl{font-size:.78rem;color:var(--text2);margin-top:4px}
+.dash-section{background:rgba(255,255,255,.02);border:1px solid var(--border);border-radius:16px;padding:22px;margin-bottom:20px}
+.dash-section h3{font-family:var(--font-h);font-size:1rem;color:#fff;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <a href="index.html" class="logo"><div class="logo-icon">⚡</div>NexoraPilot</a>
+    <nav class="nav" id="mainNav">
+      <a class="nav-link" href="index.html">🏠 Home</a>
+      <a class="nav-link" href="index.html#winning">🏆 Products</a>
+      <a class="nav-link" href="index.html#tools">🛠️ Tools</a>
+      <a class="nav-link" href="marketplace.html">🛍️ Marketplace</a>
+      <a class="nav-link active" href="dashboard.html">📊 Dashboard</a>
+      <a class="nav-link" href="help.html">💬 Support</a>
+    </nav>
+    <div id="headerUserArea" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"></div>
+    <button class="hamburger" onclick="document.getElementById('mainNav').classList.toggle('open')">☰</button>
+  </div>
+</header>
+
+<!-- LOGIN REQUIRED CARD -->
+<div id="dashLoginRequired" class="hidden" style="padding:100px 20px;text-align:center">
+  <div style="font-size:3rem;margin-bottom:16px">🔒</div>
+  <h2 style="margin-bottom:10px">Dashboard দেখতে Login করুন</h2>
+  <p style="color:var(--text2);margin-bottom:24px">আপনার membership, usage ও notifications দেখতে আগে account-এ login করুন।</p>
+  <button class="btn btn-primary" onclick="openAuthModal('login')">🔐 Login করুন</button>
+</div>
+
+<!-- DASHBOARD CONTENT -->
+<div id="dashContent" class="hidden">
+<section style="padding:50px 0 20px">
+  <div class="container">
+    <div class="section-header" style="text-align:left;margin-bottom:24px">
+      <div class="section-label">📊 My Dashboard</div>
+      <h2 class="section-title" id="dashWelcome" style="font-size:1.8rem">স্বাগতম!</h2>
+    </div>
+
+    <!-- MEMBERSHIP STATUS CARD -->
+    <div class="dash-section" id="membershipCard"></div>
+
+    <!-- WHATSAPP COMMUNITY -->
+    <div class="dash-section" style="background:linear-gradient(135deg,rgba(34,197,94,.06),rgba(0,245,212,.04));border-color:rgba(34,197,94,.18);display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:12px">
+        <span style="font-size:1.6rem">📱</span>
+        <div>
+          <div style="font-weight:800;color:#fff;font-size:.92rem">WhatsApp Community Group</div>
+          <div style="font-size:.8rem;color:var(--text2)">নতুন Product ও Announcement সবার আগে জানুন</div>
+        </div>
+      </div>
+      <a href="https://chat.whatsapp.com/EV4u4W3KRLq9EhouPeyvmk" target="_blank" class="btn btn-sm" style="background:linear-gradient(135deg,#25D366,#128C7E);color:#fff">📲 জয়েন করুন</a>
+    </div>
+
+    <!-- QUICK STATS -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:20px">
+      <div class="dash-stat"><div class="num" id="d-usage">0/3</div><div class="lbl">🤖 AI Usage</div></div>
+      <div class="dash-stat"><div class="num" id="d-purchased">0</div><div class="lbl">📦 Purchased Products</div></div>
+      <div class="dash-stat"><div class="num" id="d-requested">0</div><div class="lbl">📥 Requested Products</div></div>
+      <div class="dash-stat"><div class="num" id="d-notif">0</div><div class="lbl">🔔 Unread Notifications</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:20px" id="dashGrid">
+      <!-- LEFT: Requested Products + Notifications -->
+      <div>
+        <div class="dash-section">
+          <h3>📥 আমার Requested Products</h3>
+          <div id="myRequestsList"></div>
+        </div>
+      </div>
+      <!-- RIGHT: Notifications -->
+      <div>
+        <div class="dash-section">
+          <h3>🔔 Notifications <button onclick="markAllNotifRead()" style="margin-left:auto;background:none;border:none;color:var(--a1);font-size:.75rem;cursor:pointer">সব Read করুন</button></h3>
+          <div id="dashNotifList"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+</div>
+
+<!-- AUTH MODAL -->
+<div class="modal-overlay hidden" id="authModal">
+  <div class="modal-box" style="max-width:460px">
+    <div class="modal-header">
+      <div style="display:flex;gap:0">
+        <button id="authTabLogin" class="tab-btn active" onclick="switchAuthTab('login')" style="border-radius:8px 0 0 8px">🔐 Login</button>
+        <button id="authTabReg" class="tab-btn" onclick="switchAuthTab('register')" style="border-radius:0 8px 8px 0">✅ Register</button>
+      </div>
+      <button class="modal-close" onclick="Modal.hideAll()">✕</button>
+    </div>
+    <div id="authLoginForm" style="padding-top:8px">
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="loginEmail" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="form-group"><label class="form-label">পাসওয়ার্ড</label><input class="form-control" id="loginPass" type="password" placeholder="পাসওয়ার্ড" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn btn-primary btn-full" id="loginBtn" onclick="doLogin()">🔐 Login করুন</button>
+      <div style="text-align:center;margin-top:12px">
+        <button style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:.82rem" onclick="document.getElementById('authLoginForm').classList.add('hidden');document.getElementById('authForgotForm').classList.remove('hidden')">পাসওয়ার্ড ভুলে গেছেন?</button>
+      </div>
+    </div>
+    <div id="authRegForm" class="hidden" style="padding-top:8px">
+      <div class="form-group"><label class="form-label">পূর্ণ নাম *</label><input class="form-control" id="regName" placeholder="আপনার নাম"></div>
+      <div class="form-group"><label class="form-label">ঠিকানা *</label><input class="form-control" id="regAddress" placeholder="জেলা, বিভাগ"></div>
+      <div class="form-group"><label class="form-label">📱 WhatsApp নম্বর *</label><input class="form-control" id="re_whatsapp" type="tel" placeholder="01XXXXXXXXX"></div>
+      <div class="form-group"><label class="form-label">Facebook Username <span style="font-weight:400;color:var(--text2);text-transform:none">(optional)</span></label><input class="form-control" id="re_facebook" placeholder="fb.com/username"></div>
+      <div class="form-group"><label class="form-label">Email *</label><input class="form-control" id="regEmail" type="email" placeholder="you@example.com"></div>
+      <div class="form-group"><label class="form-label">পাসওয়ার্ড * (৬+ অক্ষর)</label><input class="form-control" id="regPass" type="password" placeholder="পাসওয়ার্ড"></div>
+      <div class="form-group"><label class="form-label">পাসওয়ার্ড নিশ্চিত করুন *</label><input class="form-control" id="regPass2" type="password" placeholder="আবার দিন"></div>
+      <button class="btn btn-primary btn-full" id="regBtn" onclick="doRegister()">✅ Account তৈরি করুন</button>
+    </div>
+    <div id="authForgotForm" class="hidden" style="padding-top:8px">
+      <p style="font-size:.85rem;color:var(--text2);margin-bottom:14px">আপনার email দিন, password reset link পাঠানো হবে।</p>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="forgotEmail" type="email" placeholder="you@example.com"></div>
+      <button class="btn btn-primary btn-full" onclick="doForgotPassword()">📧 Reset Link পাঠান</button>
+      <div style="text-align:center;margin-top:10px">
+        <button style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:.82rem" onclick="document.getElementById('authForgotForm').classList.add('hidden');document.getElementById('authLoginForm').classList.remove('hidden')">← Login-এ ফিরুন</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL (Pro Upgrade) -->
+<div class="modal-overlay hidden" id="paymentModal">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header"><div class="modal-title">🚀 Pro Membership নিন</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
+    <div id="paymentContent"></div>
+  </div>
+</div>
+
+<!-- NOTIFICATION PANEL MODAL (header bell uses this too) -->
+<div class="modal-overlay hidden" id="notificationModal">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">🔔 Notifications</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="markAllNotifRead()" style="background:none;border:none;color:var(--a1);font-size:.78rem;cursor:pointer">সব Read করুন</button>
+        <button class="modal-close" onclick="Modal.hideAll()">✕</button>
+      </div>
+    </div>
+    <div id="notificationListContent" style="max-height:60vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<script src="assets/js/app.js"></script>
+<script>
+function renderMembershipCard(){
+  const isPro = FB.isPro();
+  const card = document.getElementById('membershipCard');
+  if(isPro){
+    const exp = currentUserData?.expiryDate;
+    card.innerHTML = `
+      <h3>⭐ Membership Status</h3>
+      <div style="display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <span class="tag tag-mint" style="font-size:.9rem;padding:8px 16px">⭐ PRO MEMBER</span>
+        <span style="color:var(--text2);font-size:.88rem">Plan: <strong style="color:#fff">${currentUserData?.plan||'Pro'}</strong></span>
+        <span style="color:var(--text2);font-size:.88rem">মেয়াদ শেষ: <strong style="color:${exp?'#fff':'var(--a1)'}">${exp?new Date(exp).toLocaleDateString('bn-BD',{year:'numeric',month:'long',day:'numeric'}):'∞ Lifetime'}</strong></span>
+      </div>`;
+  } else {
+    card.innerHTML = `
+      <h3>👤 Membership Status</h3>
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px">
+        <div>
+          <span class="tag tag-green" style="font-size:.9rem;padding:8px 16px">Normal User</span>
+          <p style="color:var(--text2);font-size:.85rem;margin-top:10px">Pro হলে Winning Products-এর সব product ও Unlimited AI Tool ব্যবহার করতে পারবেন।</p>
+        </div>
+        <button class="btn btn-primary" onclick="showPaymentModal()">🚀 Upgrade to Pro</button>
+      </div>`;
+  }
+}
+
+async function renderDashboardStats(){
+  const r = await Engine.remaining();
+  const isPro = FB.isPro();
+  document.getElementById('d-usage').textContent = isPro ? '∞' : `${CONFIG.AI_TOOL_FREE_LIMIT - r}/${CONFIG.AI_TOOL_FREE_LIMIT}`;
+
+  const myRequests = await FB.getMyProductRequests();
+  const purchased = myRequests.filter(r=>r.status==='approved').length;
+  document.getElementById('d-purchased').textContent = purchased;
+  document.getElementById('d-requested').textContent = myRequests.length;
+
+  const unread = await FB.getUnreadNotificationCount();
+  document.getElementById('d-notif').textContent = unread;
+
+  /* Requested Products list */
+  const reqList = document.getElementById('myRequestsList');
+  if(!myRequests.length){
+    reqList.innerHTML = `<div style="text-align:center;padding:24px;color:var(--text2)">
+      <p>এখনো কোনো product request করেননি।</p>
+      <a href="marketplace.html" class="btn btn-secondary btn-sm" style="margin-top:10px;display:inline-flex">🛍️ Marketplace দেখুন</a>
+    </div>`;
+  } else {
+    myRequests.sort((a,b)=>new Date(b.date||0)-new Date(a.date||0));
+    const statusTag = s => s==='approved'?'tag-green':s==='rejected'?'tag-red':'tag-amber';
+    const statusLabel = s => s==='approved'?'✅ Approved':s==='rejected'?'❌ Rejected':'⏳ Pending';
+    reqList.innerHTML = myRequests.map(r=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)">
+        <div>
+          <div style="font-weight:800;color:#fff;font-size:.88rem">${r.productName}</div>
+          <div style="font-size:.76rem;color:var(--text2);margin-top:2px">${r.productType==='paid'?'💰 Paid':'🆓 Free'} · ${new Date(r.date).toLocaleDateString('bn-BD')}</div>
+          ${r.status==='approved'&&r.deliveryContent?`<div style="font-size:.78rem;color:var(--a1);margin-top:6px;background:rgba(0,245,212,.06);padding:8px 10px;border-radius:8px">${r.deliveryMethod==='email'?'📧':'📱'} ${r.deliveryContent}</div>`:''}
+          ${r.status==='rejected'&&r.rejectReason?`<div style="font-size:.78rem;color:#f87171;margin-top:6px">কারণ: ${r.rejectReason}</div>`:''}
+        </div>
+        <span class="tag ${statusTag(r.status)}" style="white-space:nowrap">${statusLabel(r.status)}</span>
+      </div>`).join('');
+  }
+
+  /* Notifications mini-list */
+  const notifs = await FB.getMyNotifications(8);
+  document.getElementById('dashNotifList').innerHTML = renderNotificationList(notifs);
+}
+
+function onAuthStateReady(user){
+  updateUsageDisplay();
+  if(user){
+    document.getElementById('dashLoginRequired').classList.add('hidden');
+    document.getElementById('dashContent').classList.remove('hidden');
+    document.getElementById('dashWelcome').textContent = `স্বাগতম, ${(currentUserData?.name||'').split(' ')[0]||'বন্ধু'}! 👋`;
+    renderMembershipCard();
+    renderDashboardStats();
+  } else {
+    document.getElementById('dashLoginRequired').classList.remove('hidden');
+    document.getElementById('dashContent').classList.add('hidden');
+  }
+}
+</script>
+</body>
+</html>

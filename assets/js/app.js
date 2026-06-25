@@ -19,10 +19,15 @@ const CONFIG = {
   GEMINI_URL:       'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent',
   OPENROUTER_URL:   'https://openrouter.ai/api/v1/chat/completions',
   OPENROUTER_MODEL: 'openai/gpt-oss-120b:free',
-  FREE_DAILY_LIMIT: 3,
   ADMIN_UID:        'd8uASRNpNVbpPeCKAWI5OQAg1UF2',   /* আপনার UID */
   ADMIN_EMAIL:      'totul01744@gmail.com',             /* আপনার email */
   BKASH_NUMBER:     '01859-393487',
+
+  /* ── নতুন Feature Config ── */
+  WINNING_LOCKED_COUNT: 10,        /* Winning Products এর প্রথম কতটি Pro-only */
+  AI_TOOL_FREE_LIMIT:   3,         /* Normal User এর lifetime AI tool ব্যবহার limit */
+  WHATSAPP_GROUP_LINK:  'https://chat.whatsapp.com/EV4u4W3KRLq9EhouPeyvmk',
+  EXPIRY_REMINDER_DAYS: [7, 3, 0], /* মেয়াদ শেষের কত দিন আগে reminder (0 = expiry day) */
 };
 
 /* ── Firebase Instances ── */
@@ -49,6 +54,7 @@ function initFirebase() {
         currentUser = user;
         if (user) {
           await loadUserData(user.uid);
+          await FB.checkAndApplyExpiry();
         } else {
           currentUserData = null;
         }
@@ -182,6 +188,54 @@ const FB = {
     } catch(e) { return 1; }
   },
 
+  /* ── AI Tool Lifetime Usage (Normal User: সর্বোচ্চ ৩ বার, Pro User: Unlimited) ──
+     এটা পুরোনো দিন-ভিত্তিক usage থেকে আলাদা — সম্পূর্ণ lifetime count,
+     Firestore এর aiUsage/{uid} ডকুমেন্টে সংরক্ষিত হয়। */
+  async getAiUsageCount() {
+    if(!currentUser) return 0;
+    try {
+      const doc = await db.collection('aiUsage').doc(currentUser.uid).get();
+      return doc.exists ? (doc.data().count||0) : 0;
+    } catch(e) { return 0; }
+  },
+
+  async incAiUsageCount() {
+    if(!currentUser) return 0;
+    try {
+      const ref = db.collection('aiUsage').doc(currentUser.uid);
+      await ref.set({
+        count: firebase.firestore.FieldValue.increment(1),
+        uid: currentUser.uid,
+        email: currentUser.email || '',
+        lastUsedAt: new Date().toISOString(),
+      }, { merge: true });
+      const doc = await ref.get();
+      return doc.data().count || 1;
+    } catch(e) { return 0; }
+  },
+
+  /* Admin Panel থেকে কোনো user এর AI usage reset করা */
+  async resetAiUsage(uid) {
+    try {
+      await db.collection('aiUsage').doc(uid).set({ count: 0, resetAt: new Date().toISOString() }, { merge: true });
+      await FB.logAdminActivity('ai_usage_reset', { uid });
+      return true;
+    } catch(e) { return false; }
+  },
+
+  /* Normal User এর AI Tool ব্যবহার করার অনুমতি আছে কিনা — Pro হলে সবসময় true */
+  async canUseAiTool() {
+    if(FB.isPro()) return true;
+    const count = await FB.getAiUsageCount();
+    return count < CONFIG.AI_TOOL_FREE_LIMIT;
+  },
+
+  async aiToolUsesRemaining() {
+    if(FB.isPro()) return 999;
+    const count = await FB.getAiUsageCount();
+    return Math.max(0, CONFIG.AI_TOOL_FREE_LIMIT - count);
+  },
+
   /* ── Pro check ── */
   isPro() {
     if(!currentUser) return false;
@@ -204,6 +258,71 @@ const FB = {
     if(currentUser.uid === CONFIG.ADMIN_UID) return true;
     if(currentUser.email?.toLowerCase() === CONFIG.ADMIN_EMAIL) return true;
     return currentUserData?.plan === 'admin';
+  },
+
+  /* ── Membership Expiry চেক করে দরকার হলে Auto-Downgrade করে ──
+     Login হওয়ার সময় call হয় — expire হয়ে গেলে Firestore এ লিখে
+     isPro:false করে দেয়, যাতে admin panel ও সব জায়গায় সঠিক status দেখায়। */
+  async checkAndApplyExpiry() {
+    if(!currentUser || !currentUserData) return;
+    if(currentUserData.plan === 'admin') return;
+    if(!currentUserData.isPro) return;
+    if(!currentUserData.expiryDate) return; /* মেয়াদ নির্দিষ্ট না থাকলে (lifetime/manual) skip */
+    const exp = new Date(currentUserData.expiryDate);
+    if(new Date() > exp) {
+      try {
+        await db.collection('users').doc(currentUser.uid).update({
+          isPro: false,
+          plan: 'free',
+          expiredAt: new Date().toISOString(),
+        });
+        currentUserData.isPro = false;
+        currentUserData.plan = 'free';
+        await FB.addNotification(currentUser.uid, 'membership_expired', {
+          title: '⏰ আপনার Pro Membership শেষ হয়ে গেছে',
+          body: 'আপনার মেয়াদ শেষ হয়েছে এবং আপনি এখন Normal User। আবার Pro নিতে চাইলে upgrade করুন।',
+        });
+      } catch(e) { console.warn('Expiry downgrade failed:', e); }
+    } else {
+      /* মেয়াদ এখনো বাকি — Expiry Reminder (৭ দিন/৩ দিন/expiry day) দরকার কিনা চেক করো */
+      await FB.checkExpiryReminders(exp);
+    }
+  },
+
+  /* Expiry এর CONFIG.EXPIRY_REMINDER_DAYS (৭/৩/০ দিন) আগে একবার করে reminder পাঠায়।
+     sentReminders array এ পাঠানো reminder-গুলো track করা হয় যাতে duplicate না হয়। */
+  async checkExpiryReminders(expDate) {
+    if(!currentUser || !currentUserData) return;
+    const daysLeft = Math.ceil((expDate - new Date()) / (24*60*60*1000));
+    const sent = currentUserData.sentReminders || [];
+    for(const threshold of CONFIG.EXPIRY_REMINDER_DAYS) {
+      if(daysLeft === threshold && !sent.includes(threshold)) {
+        const msg = threshold === 0
+          ? '⏰ আজই আপনার Pro Membership শেষ হয়ে যাচ্ছে! মেয়াদ বাড়াতে চাইলে এখনই upgrade করুন।'
+          : `⏰ আপনার Pro Membership আর ${threshold} দিনের মধ্যে শেষ হয়ে যাবে। মেয়াদ শেষ হওয়ার আগে Extend করুন।`;
+        try {
+          await FB.addNotification(currentUser.uid, 'membership_expiry_reminder', {
+            title: threshold === 0 ? '⏰ আজ মেয়াদ শেষ!' : `⏰ আর ${threshold} দিন বাকি`,
+            body: msg,
+          });
+          const newSent = [...sent, threshold];
+          await db.collection('users').doc(currentUser.uid).update({ sentReminders: newSent });
+          currentUserData.sentReminders = newSent;
+        } catch(e) { console.warn('Reminder send failed:', e); }
+      }
+    }
+  },
+
+  /* ── User এর Pro হওয়ার জন্য Payment Pending কিনা ── */
+  async hasPendingProPayment() {
+    if(!currentUser) return false;
+    try {
+      const snap = await db.collection('payments')
+        .where('uid','==',currentUser.uid)
+        .where('status','==','pending')
+        .limit(1).get();
+      return !snap.empty;
+    } catch(e) { return false; }
   },
 
   /* ── User Personal API Key ── */
@@ -266,6 +385,7 @@ const FB = {
 
   async deleteProduct(id) {
     await db.collection('products').doc(id).delete();
+    await FB.logAdminActivity('winning_product_deleted', { id });
   },
 
   /* ── Help Requests ── */
@@ -336,33 +456,83 @@ const FB = {
     await db.collection('users').doc(uid).set(data, { merge: true });
   },
 
-  async addProUserByEmail(email, name, plan) {
-    /* Search user by email */
+  /* duration: '7' | '15' | '30' | '90' | 'custom' | 'lifetime', customDate: ISO string (যখন duration==='custom') */
+  computeExpiryDate(duration, customDate) {
+    if(duration === 'lifetime') return null;
+    if(duration === 'custom' && customDate) return new Date(customDate).toISOString();
+    const days = parseInt(duration) || 30;
+    return new Date(Date.now() + days*24*60*60*1000).toISOString();
+  },
+
+  /* email দিয়ে Pro activate করে — duration অনুযায়ী expiry সেট করে।
+     Return: 'activated' (user পাওয়া গেছে ও activate হয়েছে) | 'pending' (register করেনি) | 'error' */
+  async addProUserByEmail(email, name, plan, duration='30', customDate=null) {
     try {
       const snap = await db.collection('users').where('email','==',email).get();
+      const expiryDate = FB.computeExpiryDate(duration, customDate);
       if(!snap.empty) {
         const doc = snap.docs[0];
-        const expiryDate = plan.includes('Annual')
-          ? new Date(Date.now() + 365*24*60*60*1000).toISOString()
-          : new Date(Date.now() + 30*24*60*60*1000).toISOString();
-        await db.collection('users').doc(doc.id).update({
-          isPro: true, plan, expiryDate, proActivatedAt: new Date().toISOString()
+        const updateData = {
+          isPro: true, plan, proActivatedAt: new Date().toISOString(),
+          expiryDate: expiryDate, /* null হলে lifetime */
+          sentReminders: [], /* নতুন মেয়াদের জন্য reminder track রিসেট */
+        };
+        await db.collection('users').doc(doc.id).update(updateData);
+        await FB.addNotification(doc.id, 'pro_approved', {
+          title: '🎉 আপনার Pro Membership Activate হয়েছে!',
+          body: `Plan: ${plan}${expiryDate ? ' — মেয়াদ শেষ: ' + new Date(expiryDate).toLocaleDateString('bn-BD') : ' — Lifetime'}`,
         });
-        return true;
+        await FB.logAdminActivity('pro_activated', { email, plan, duration });
+        return 'activated';
       } else {
-        /* User not registered yet — create pending pro record */
-        await db.collection('pendingPro').add({ email, name, plan, date: new Date().toISOString() });
-        return false;
+        await db.collection('pendingPro').add({ email, name, plan, duration, customDate, date: new Date().toISOString() });
+        return 'pending';
       }
+    } catch(e) { console.warn('addProUserByEmail error:', e); return 'error'; }
+  },
+
+  /* Subscription extend করা — বর্তমান expiry তে দিন যোগ হবে (expiry না থাকলে আজ থেকে শুরু হবে) */
+  async extendProUser(uid, extraDays) {
+    try {
+      const doc = await db.collection('users').doc(uid).get();
+      const data = doc.data() || {};
+      const base = data.expiryDate ? new Date(data.expiryDate) : new Date();
+      const newExpiry = new Date(base.getTime() + extraDays*24*60*60*1000).toISOString();
+      await db.collection('users').doc(uid).update({ isPro:true, expiryDate:newExpiry, sentReminders: [] });
+      await FB.addNotification(uid, 'pro_approved', {
+        title: '⏳ আপনার Pro Membership Extend হয়েছে',
+        body: `নতুন মেয়াদ শেষ: ${new Date(newExpiry).toLocaleDateString('bn-BD')}`,
+      });
+      await FB.logAdminActivity('pro_extended', { uid, extraDays });
+      return true;
     } catch(e) { return false; }
   },
 
+  /* Admin Panel থেকে Normal User কে Pro করা (manual control) */
+  async upgradeToProManual(uid, plan, duration, customDate) {
+    const expiryDate = FB.computeExpiryDate(duration, customDate);
+    try {
+      await db.collection('users').doc(uid).update({
+        isPro: true, plan: plan || 'Pro Monthly', expiryDate, proActivatedAt: new Date().toISOString(), sentReminders: [],
+      });
+      await FB.addNotification(uid, 'pro_approved', {
+        title: '🎉 Admin আপনাকে Pro Member করেছেন!',
+        body: expiryDate ? `মেয়াদ শেষ: ${new Date(expiryDate).toLocaleDateString('bn-BD')}` : 'Lifetime Pro Access',
+      });
+      await FB.logAdminActivity('pro_manual_upgrade', { uid, plan, duration });
+      return true;
+    } catch(e) { return false; }
+  },
+
+  /* Admin Panel থেকে Pro User কে Normal করা (manual control) */
   async removeProUser(uid) {
-    await db.collection('users').doc(uid).update({ isPro: false, plan: 'free' });
+    await db.collection('users').doc(uid).update({ isPro: false, plan: 'free', expiryDate: null });
+    await FB.logAdminActivity('pro_removed', { uid });
   },
 
   async banUser(uid) {
     await db.collection('users').doc(uid).update({ banned: true });
+    await FB.logAdminActivity('user_banned', { uid });
   },
 
   /* ── Events / Analytics ── */
@@ -386,12 +556,17 @@ const FB = {
   /* ── Stats for dashboard ── */
   async getStats() {
     try {
-      const [prods, helps, agency, payments, proUsers] = await Promise.all([
+      const [prods, helps, agency, payments, proUsers, allUsers, mktProds, pendingReq, approvedReq, rejectedReq] = await Promise.all([
         db.collection('products').get(),
         db.collection('help').where('status','==','pending').get(),
         db.collection('agency').get(),
         db.collection('payments').where('status','==','pending').get(),
         db.collection('users').where('isPro','==',true).get(),
+        db.collection('users').get(),
+        db.collection('marketplaceProducts').get(),
+        db.collection('productRequests').where('status','==','pending').get(),
+        db.collection('productRequests').where('status','==','approved').get(),
+        db.collection('productRequests').where('status','==','rejected').get(),
       ]);
       return {
         products: prods.size,
@@ -399,8 +574,241 @@ const FB = {
         agency: agency.size,
         paymentsPending: payments.size,
         proUsers: proUsers.size,
+        totalUsers: allUsers.size,
+        normalUsers: Math.max(0, allUsers.size - proUsers.size),
+        marketplaceProducts: mktProds.size,
+        requestsPending: pendingReq.size,
+        requestsApproved: approvedReq.size,
+        requestsRejected: rejectedReq.size,
       };
-    } catch(e) { return { products:0, helpPending:0, agency:0, paymentsPending:0, proUsers:0 }; }
+    } catch(e) {
+      return { products:0, helpPending:0, agency:0, paymentsPending:0, proUsers:0, totalUsers:0, normalUsers:0, marketplaceProducts:0, requestsPending:0, requestsApproved:0, requestsRejected:0 };
+    }
+  },
+
+  /* ════════ ADMIN ACTIVITY LOGGING ════════ */
+  async logAdminActivity(action, data={}) {
+    if(!db) return;
+    try {
+      await db.collection('adminLogs').add({
+        action, data,
+        adminUid: currentUser?.uid || 'unknown',
+        adminEmail: currentUser?.email || 'unknown',
+        date: new Date().toISOString(),
+      });
+    } catch(e) { console.warn('Admin log failed:', e); }
+  },
+
+  async getAdminLogs(limit=100) {
+    try {
+      const snap = await db.collection('adminLogs').orderBy('date','desc').limit(limit).get();
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch(e) { return []; }
+  },
+
+  /* ════════ DIGITAL PRODUCT MARKETPLACE ════════ */
+
+  /* ── Marketplace Products (Admin CRUD) ── */
+  async getMarketplaceProducts() {
+    try {
+      const snap = await db.collection('marketplaceProducts').orderBy('createdAt','desc').get();
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch(e) {
+      /* createdAt না থাকা পুরোনো ডকুমেন্ট থাকলে fallback */
+      try { const snap = await db.collection('marketplaceProducts').get(); return snap.docs.map(d=>({id:d.id,...d.data()})); }
+      catch(e2){ return []; }
+    }
+  },
+
+  async getMarketplaceProduct(id) {
+    try {
+      const doc = await db.collection('marketplaceProducts').doc(id).get();
+      return doc.exists ? { id: doc.id, ...doc.data() } : null;
+    } catch(e) { return null; }
+  },
+
+  /* type: 'free' | 'paid' */
+  async addMarketplaceProduct(data) {
+    try {
+      await db.collection('marketplaceProducts').add({
+        name: data.name || '',
+        description: data.description || '',
+        image: data.image || '',
+        category: data.category || '',
+        price: data.type === 'paid' ? (data.price || '') : '',
+        type: data.type === 'paid' ? 'paid' : 'free',
+        createdAt: new Date().toISOString(),
+      });
+      await FB.logAdminActivity('marketplace_product_added', { name: data.name });
+      return true;
+    } catch(e) { console.warn('addMarketplaceProduct error:', e); return false; }
+  },
+
+  async updateMarketplaceProduct(id, data) {
+    try {
+      await db.collection('marketplaceProducts').doc(id).update(data);
+      await FB.logAdminActivity('marketplace_product_updated', { id });
+      return true;
+    } catch(e) { return false; }
+  },
+
+  async deleteMarketplaceProduct(id) {
+    try {
+      await db.collection('marketplaceProducts').doc(id).delete();
+      await FB.logAdminActivity('marketplace_product_deleted', { id });
+      return true;
+    } catch(e) { return false; }
+  },
+
+  /* ── Product Requests (User submits → Admin reviews) ── */
+  /* data: { productId, productName, productType, fullName, email, whatsapp, bkashNumber, transactionId } */
+  async submitProductRequest(data) {
+    if(!currentUser) return false;
+    try {
+      await db.collection('productRequests').add({
+        uid: currentUser.uid,
+        productId: data.productId,
+        productName: data.productName,
+        productType: data.productType,        /* free | paid */
+        fullName: data.fullName,
+        email: data.email,
+        whatsapp: data.whatsapp,
+        bkashNumber: data.bkashNumber || '',
+        transactionId: data.transactionId || '',
+        status: 'pending',                     /* pending | approved | rejected */
+        deliveryMethod: '',
+        deliveryContent: '',
+        date: new Date().toISOString(),
+      });
+      return true;
+    } catch(e) { console.warn('submitProductRequest error:', e); return false; }
+  },
+
+  async getProductRequests(status='all') {
+    try {
+      let q = db.collection('productRequests');
+      if(status !== 'all') q = q.where('status','==',status);
+      const snap = await q.orderBy('date','desc').get();
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch(e) {
+      /* orderBy index না থাকলে fallback (unsorted) */
+      try {
+        let q = db.collection('productRequests');
+        if(status !== 'all') q = q.where('status','==',status);
+        const snap = await q.get();
+        return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch(e2) { return []; }
+    }
+  },
+
+  async getMyProductRequests() {
+    if(!currentUser) return [];
+    try {
+      const snap = await db.collection('productRequests').where('uid','==',currentUser.uid).get();
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch(e) { return []; }
+  },
+
+  /* Admin Approve — Delivery Method ('email'|'whatsapp') ও content/link/message সহ */
+  async approveProductRequest(id, { deliveryMethod, deliveryContent } = {}) {
+    try {
+      const doc = await db.collection('productRequests').doc(id).get();
+      const data = doc.data();
+      await db.collection('productRequests').doc(id).update({
+        status: 'approved',
+        deliveryMethod: deliveryMethod || '',
+        deliveryContent: deliveryContent || '',
+        approvedAt: new Date().toISOString(),
+      });
+      if(data?.uid) {
+        await FB.addNotification(data.uid, 'product_request_approved', {
+          title: '✅ আপনার Product Request Approved!',
+          body: `"${data.productName}" approve হয়েছে। Delivery: ${deliveryMethod==='email'?'📧 Email':'📱 WhatsApp'} এ পাঠানো হবে।`,
+        });
+        await FB.addNotification(data.uid, 'product_delivered', {
+          title: '🚀 আপনার Product পাঠানো হয়েছে',
+          body: deliveryContent || 'আপনার product পাঠানো হয়েছে, দেখে নিন।',
+        });
+      }
+      await FB.logAdminActivity('product_request_approved', { id, productName: data?.productName });
+      return true;
+    } catch(e) { console.warn('approveProductRequest error:', e); return false; }
+  },
+
+  async rejectProductRequest(id, reason='') {
+    try {
+      const doc = await db.collection('productRequests').doc(id).get();
+      const data = doc.data();
+      await db.collection('productRequests').doc(id).update({
+        status: 'rejected', rejectReason: reason, rejectedAt: new Date().toISOString(),
+      });
+      if(data?.uid) {
+        await FB.addNotification(data.uid, 'product_request_rejected', {
+          title: '❌ আপনার Product Request Reject হয়েছে',
+          body: reason || `"${data.productName}" এর জন্য আপনার request reject করা হয়েছে।`,
+        });
+      }
+      await FB.logAdminActivity('product_request_rejected', { id, productName: data?.productName });
+      return true;
+    } catch(e) { return false; }
+  },
+
+  /* ════════ NOTIFICATION SYSTEM ════════ */
+  /* type: 'pro_approved' | 'pro_rejected' | 'product_request_approved' |
+           'product_request_rejected' | 'product_delivered' |
+           'membership_expiry_reminder' | 'membership_expired' */
+  async addNotification(uid, type, { title, body, link='' } = {}) {
+    if(!uid || !db) return;
+    try {
+      await db.collection('notifications').add({
+        uid, type,
+        title: title || '',
+        body:  body  || '',
+        link,
+        read: false,
+        date: new Date().toISOString(),
+      });
+    } catch(e) { console.warn('Notification create failed:', e); }
+  },
+
+  async getMyNotifications(limit=30) {
+    if(!currentUser) return [];
+    try {
+      const snap = await db.collection('notifications')
+        .where('uid','==',currentUser.uid)
+        .orderBy('date','desc')
+        .limit(limit).get();
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    } catch(e) { return []; }
+  },
+
+  async getUnreadNotificationCount() {
+    if(!currentUser) return 0;
+    try {
+      const snap = await db.collection('notifications')
+        .where('uid','==',currentUser.uid)
+        .where('read','==',false)
+        .get();
+      return snap.size;
+    } catch(e) { return 0; }
+  },
+
+  async markNotificationRead(id) {
+    try { await db.collection('notifications').doc(id).update({ read: true }); }
+    catch(e){}
+  },
+
+  async markAllNotificationsRead() {
+    if(!currentUser) return;
+    try {
+      const snap = await db.collection('notifications')
+        .where('uid','==',currentUser.uid)
+        .where('read','==',false)
+        .get();
+      const batch = db.batch();
+      snap.docs.forEach(d => batch.update(d.ref, { read: true }));
+      await batch.commit();
+    } catch(e){}
   },
 };
 
@@ -408,7 +816,7 @@ const FB = {
 async function registerUser(name, address, whatsapp, facebook, email, password) {
   try {
     const cred = await auth.createUserWithEmailAndPassword(email, password);
-    await db.collection('users').doc(cred.user.uid).set({
+    let userData = {
       uid: cred.user.uid,
       name, address,
       whatsapp: whatsapp||'',
@@ -418,9 +826,32 @@ async function registerUser(name, address, whatsapp, facebook, email, password) 
       plan: 'free',
       banned: false,
       createdAt: new Date().toISOString(),
-    });
+    };
+
+    /* এই email এর জন্য কোনো Pending Pro request আছে কিনা চেক করো — থাকলে এখনই activate করো */
+    try {
+      const pendingSnap = await db.collection('pendingPro').where('email','==',email).get();
+      if(!pendingSnap.empty) {
+        const pend = pendingSnap.docs[0].data();
+        const expiryDate = FB.computeExpiryDate(pend.duration||'30', pend.customDate);
+        userData.isPro = true;
+        userData.plan = pend.plan || 'Pro Monthly';
+        userData.expiryDate = expiryDate;
+        userData.proActivatedAt = new Date().toISOString();
+        /* ব্যবহৃত pending request(গুলো) মুছে ফেলো */
+        for(const d of pendingSnap.docs) await db.collection('pendingPro').doc(d.id).delete();
+      }
+    } catch(e) { console.warn('pendingPro check failed:', e); }
+
+    await db.collection('users').doc(cred.user.uid).set(userData);
     await cred.user.updateProfile({ displayName: name });
-    currentUserData = { uid:cred.user.uid, name, address, whatsapp, facebook, email, isPro:false, plan:'free', banned:false };
+    currentUserData = userData;
+    if(userData.isPro) {
+      await FB.addNotification(cred.user.uid, 'pro_approved', {
+        title: '🎉 আপনার আগের Payment থেকে Pro Activate হয়েছে!',
+        body: `Plan: ${userData.plan}${userData.expiryDate?' — মেয়াদ শেষ: '+new Date(userData.expiryDate).toLocaleDateString('bn-BD'):' — Lifetime'}`,
+      });
+    }
     return { success: true, ok: true };
   } catch(e) {
     return { success: false, ok: false, error: getAuthError(e.code), msg: getAuthError(e.code) };
@@ -616,24 +1047,18 @@ const Engine = {
     catch{ throw new Error('ফলাফল প্রক্রিয়া করতে সমস্যা। আবার চেষ্টা করুন।'); }
   },
 
+  /* AI Tools Usage Limitation System:
+     Pro User → Unlimited (কোনো limit নেই)
+     Normal User → Lifetime সর্বোচ্চ CONFIG.AI_TOOL_FREE_LIMIT (৩) বার, তারপর Locked */
   async checkLimit(){
-    /* User এর নিজস্ব key থাকলে unlimited */
-    const userKey = await FB.getUserApiKey();
-    if(userKey) return true;
-    if(!Store.getApiKey()) return false;
     if(FB.isPro()) return true;
-    const usage = await FB.getUsage();
-    return usage.count < CONFIG.FREE_DAILY_LIMIT;
+    if(!Store.getApiKey() && !(await FB.getUserApiKey())) return false; /* কোনো key ছাড়া চলবে না */
+    return await FB.canUseAiTool();
   },
 
   async remaining(){
-    /* User এর নিজস্ব key থাকলে unlimited */
-    const userKey = await FB.getUserApiKey();
-    if(userKey) return 999;
     if(FB.isPro()) return 999;
-    if(!Store.getApiKey()) return 0;
-    const usage = await FB.getUsage();
-    return Math.max(0, CONFIG.FREE_DAILY_LIMIT - usage.count);
+    return await FB.aiToolUsesRemaining();
   },
 };
 
@@ -663,7 +1088,7 @@ const Prompts = {
 const R = {
   skeleton(n=3){ return Array(n).fill(0).map(()=>`<div class="card mb-2" style="padding:18px"><div class="skeleton mb-2" style="height:13px;width:55%"></div><div class="skeleton mb-1" style="height:11px;width:88%"></div><div class="skeleton" style="height:11px;width:70%"></div></div>`).join(''); },
   error(msg){ return `<div class="alert alert-error"><span>⚠️</span><div><strong>সমস্যা হয়েছে:</strong> ${msg}</div></div>`; },
-  limitReached(){ return `<div class="alert alert-warning" style="flex-direction:column;gap:12px"><div>⚠️ <strong>আজকের বিনামূল্যে ব্যবহার শেষ (${CONFIG.FREE_DAILY_LIMIT}/দিন)</strong></div><div style="font-size:.85rem;color:var(--text2)">আগামীকাল আবার ব্যবহার করুন বা Pro membership নিন।</div><button class="btn btn-primary btn-sm" onclick="showPaymentModal()">🚀 মাত্র ৳১৯৯/মাসে Pro নিন</button></div>`; },
+  limitReached(){ return `<div class="alert alert-warning" style="flex-direction:column;gap:12px"><div>🔒 <strong>আপনার ফ্রি ব্যবহার শেষ (${CONFIG.AI_TOOL_FREE_LIMIT}/${CONFIG.AI_TOOL_FREE_LIMIT})</strong></div><div style="font-size:.85rem;color:var(--text2)">Normal User হিসেবে আপনি সর্বোচ্চ ${CONFIG.AI_TOOL_FREE_LIMIT} বার AI Tool ব্যবহার করতে পারেন। Unlimited ব্যবহারের জন্য Pro Membership নিন।</div><button class="btn btn-primary btn-sm" onclick="showPaymentModal()">🚀 মাত্র ৳১৯৯/মাসে Pro নিন</button></div>`; },
   noKey(){ return `<div class="alert alert-warning"><span>⚙️</span><div>সিস্টেম এখনো প্রস্তুত নয়। Admin-এর সাথে যোগাযোগ করুন।</div></div>`; },
   scoreBar(score,color='var(--a1)'){ const p=Math.min(100,Math.max(0,score)); const c=p>=75?'var(--a1)':p>=50?'var(--a3)':'#f87171'; return `<div class="meter-row"><div class="progress-bar"><div class="progress-fill" style="width:${p}%;background:${color||c}"></div></div><span class="meter-val" style="color:${color||c}">${p}</span></div>`; },
   scoreCircle(s){ const c=s>=75?'var(--a1)':s>=50?'var(--a3)':'#f87171'; return `<div class="score-ring" style="background:rgba(0,0,0,.28);border:3px solid ${c};color:${c}">${s}</div>`; },
@@ -692,7 +1117,7 @@ async function updateUsageDisplay(){
   const isLoggedIn = !!currentUser;
   const hasUserKey = !!(await FB.getUserApiKey());
   document.querySelectorAll('.usage-display').forEach(el=>{
-    el.textContent = isPro ? '∞ Pro' : `${r}/${CONFIG.FREE_DAILY_LIMIT}`;
+    el.textContent = isPro ? '∞ Pro' : `${r}/${CONFIG.AI_TOOL_FREE_LIMIT}`;
     el.style.color  = isPro ? 'var(--a1)' : r>0 ? 'var(--a3)' : '#f87171';
   });
   const badge=document.getElementById('proBadge');
@@ -705,10 +1130,14 @@ async function updateUsageDisplay(){
   if(userDisplay){
     if(isLoggedIn && currentUserData){
       const nm = (currentUserData.name||'User').split(' ')[0];
+      const unreadCount = await FB.getUnreadNotificationCount();
       userDisplay.innerHTML=`
+        <button class="notif-bell-btn" onclick="openNotificationPanel()" title="Notifications" style="position:relative;background:none;border:1px solid var(--border);border-radius:10px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);margin-right:2px">
+          🔔${unreadCount>0?`<span style="position:absolute;top:-4px;right:-4px;background:#f87171;color:#fff;border-radius:10px;font-size:.6rem;font-weight:900;padding:1px 5px;min-width:16px">${unreadCount}</span>`:''}
+        </button>
         <div class="usage-pill" style="margin-right:4px">
           <span class="glow-dot ${isPro?'mint':'violet'}"></span>
-          <span style="color:${isPro?'var(--a1)':r>0?'var(--a3)':'#f87171'}">${isPro?'∞ Pro':hasUserKey?'∞ নিজস্ব Key':`${r}/${CONFIG.FREE_DAILY_LIMIT}`}</span>
+          <span style="color:${isPro?'var(--a1)':r>0?'var(--a3)':'#f87171'}">${isPro?'∞ Pro':`${r}/${CONFIG.AI_TOOL_FREE_LIMIT}`}</span>
           বাকি
         </div>
         <div style="display:flex;align-items:center;gap:8px">
@@ -716,6 +1145,7 @@ async function updateUsageDisplay(){
           <span style="font-size:.84rem;font-weight:700;color:#fff;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${nm}</span>
           ${isPro?'<span class="tag tag-mint" style="font-size:.65rem;padding:2px 7px">PRO</span>':''}
           ${hasUserKey?'<span class="tag tag-green" style="font-size:.65rem;padding:2px 7px;cursor:pointer" onclick="openApiKeyModal()" title="নিজস্ব API Key সেট আছে">🔑 Key</span>':'<span class="tag tag-amber" style="font-size:.65rem;padding:2px 7px;cursor:pointer" onclick="openApiKeyModal()" title="API Key দিন">🔑 Key দিন</span>'}
+          <a href="dashboard.html" class="btn btn-sm btn-secondary" style="padding:4px 10px;font-size:.75rem">📊 Dashboard</a>
           <button class="btn btn-sm btn-secondary" style="padding:4px 10px;font-size:.75rem" onclick="authLogout()">Logout</button>
         </div>`;
     } else {
@@ -803,9 +1233,35 @@ async function doRegister(){
   if(res.success||res.ok){
     Modal.hideAll();
     Toast.success('Account তৈরি হয়েছে! স্বাগতম 🎉');
+    showWhatsappWelcomeModal();
   } else {
     Toast.error(res.error||res.msg||'সমস্যা হয়েছে');
   }
+}
+
+/* নতুন Register করা User কে WhatsApp Community Group এ জয়েন করার invite দেখায় */
+function showWhatsappWelcomeModal(){
+  if(!document.getElementById('waWelcomeModal')){
+    const m = document.createElement('div');
+    m.className = 'modal-overlay hidden';
+    m.id = 'waWelcomeModal';
+    m.innerHTML = `
+      <div class="modal-box" style="max-width:420px;text-align:center">
+        <div class="modal-header" style="justify-content:flex-end;border:none;padding-bottom:0">
+          <button class="modal-close" onclick="Modal.hideAll()">✕</button>
+        </div>
+        <div style="padding:0 8px 8px">
+          <div style="font-size:2.5rem;margin-bottom:12px">🎉</div>
+          <h3 style="margin-bottom:8px">স্বাগতম NexoraPilot-এ!</h3>
+          <p style="color:var(--text2);font-size:.86rem;margin-bottom:20px">নতুন Product, Update বা Announcement সবার আগে জানতে আমাদের WhatsApp Community Group এ জয়েন করুন।</p>
+          <a href="${CONFIG.WHATSAPP_GROUP_LINK}" target="_blank" class="btn btn-primary btn-full" style="background:linear-gradient(135deg,#25D366,#128C7E)" onclick="Modal.hideAll()">📲 WhatsApp Group এ জয়েন করুন</a>
+          <button style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:.8rem;margin-top:12px" onclick="Modal.hideAll()">পরে করব</button>
+        </div>
+      </div>`;
+    document.body.appendChild(m);
+    m.addEventListener('click', e=>{ if(e.target===m) m.classList.add('hidden'); });
+  }
+  Modal.show('waWelcomeModal');
 }
 
 async function doForgotPassword(){
@@ -1009,8 +1465,71 @@ async function submitSupportMsg(){
   setTimeout(()=>{ if(body) body.innerHTML=supportBodyHTML(); },5000);
 }
 
-/* ════════ BANNER SLIDER ════════ */
-let bannerIdx=0;
+/* ════════ NOTIFICATION CENTER (UI) ════════ */
+const NOTIF_ICONS = {
+  pro_approved: '🎉', pro_rejected: '❌',
+  product_request_approved: '📦', product_request_rejected: '🚫',
+  product_delivered: '🚀', membership_expiry_reminder: '⏰',
+  membership_expired: '⌛',
+};
+
+function notifTimeAgo(iso){
+  try{
+    const diffMs = Date.now() - new Date(iso).getTime();
+    const mins = Math.floor(diffMs/60000);
+    if(mins < 1) return 'এখনই';
+    if(mins < 60) return `${mins} মিনিট আগে`;
+    const hrs = Math.floor(mins/60);
+    if(hrs < 24) return `${hrs} ঘণ্টা আগে`;
+    const days = Math.floor(hrs/24);
+    return `${days} দিন আগে`;
+  }catch(e){ return ''; }
+}
+
+function renderNotificationList(items){
+  if(!items.length){
+    return `<div style="text-align:center;padding:40px 20px;color:var(--text2)">
+      <div style="font-size:2.5rem;margin-bottom:10px">🔔</div>
+      <p>কোনো notification নেই।</p>
+    </div>`;
+  }
+  return items.map(n=>`
+    <div onclick="handleNotifClick('${n.id}','${n.link||''}')" style="display:flex;gap:12px;padding:14px 6px;border-bottom:1px solid var(--border);cursor:pointer;${n.read?'opacity:.6':''}">
+      <div style="width:38px;height:38px;border-radius:50%;background:rgba(0,245,212,.08);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0">${NOTIF_ICONS[n.type]||'🔔'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:800;color:#fff;font-size:.86rem;display:flex;align-items:center;gap:6px">${n.title||''}${!n.read?'<span style="width:7px;height:7px;border-radius:50%;background:var(--a1);flex-shrink:0"></span>':''}</div>
+        <div style="font-size:.8rem;color:var(--text2);margin-top:3px;line-height:1.5">${n.body||''}</div>
+        <div style="font-size:.7rem;color:var(--text2);margin-top:5px">${notifTimeAgo(n.date)}</div>
+      </div>
+    </div>`).join('');
+}
+
+async function openNotificationPanel(){
+  const el = document.getElementById('notificationListContent');
+  if(!el) return; /* এই page এ panel না থাকলে skip */
+  el.innerHTML = '<div style="padding:30px;text-align:center;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
+  Modal.show('notificationModal');
+  const items = await FB.getMyNotifications();
+  el.innerHTML = renderNotificationList(items);
+}
+
+async function handleNotifClick(id, link){
+  await FB.markNotificationRead(id);
+  await updateUsageDisplay();
+  if(link){ window.location.href = link; }
+}
+
+async function markAllNotifRead(){
+  await FB.markAllNotificationsRead();
+  await updateUsageDisplay();
+  const el = document.getElementById('notificationListContent');
+  if(el){
+    const items = await FB.getMyNotifications();
+    el.innerHTML = renderNotificationList(items);
+  }
+  Toast.success('সব Notification Read করা হয়েছে।');
+}
+
 function initBanners(){
   const banners=Store.getBanners().filter(b=>b.active);
   const container=document.getElementById('bannerSlider');
@@ -1027,6 +1546,7 @@ async function runTool(promptFn, inputs, resultId) {
   const resultEl = document.getElementById(resultId);
   if(!resultEl) return null;
 
+  /* Pro User: Unlimited — কোনো limit check লাগবে না, key থাকলেই চলবে */
   /* Priority: user personal key → system key → error */
   const userKey = await FB.getUserApiKey();
   let apiKey = userKey;
@@ -1044,14 +1564,15 @@ async function runTool(promptFn, inputs, resultId) {
     return null;
   }
 
+  /* Normal User: lifetime সর্বোচ্চ ৩ বার, Pro: unlimited */
   const canRun = await Engine.checkLimit();
-  if(!canRun){ resultEl.innerHTML=await R.limitReached(); return null; }
+  if(!canRun){ resultEl.innerHTML=R.limitReached(); return null; }
 
   resultEl.innerHTML = R.skeleton(2);
   try{
     const data = await Engine.call(promptFn(inputs));
-    /* Only count usage if using system key (user key = unlimited) */
-    if(!userKey) await FB.incUsage();
+    /* Normal User হলে lifetime AI usage counter বাড়াও (Pro হলে কখনোই বাড়বে না) */
+    if(!FB.isPro()) await FB.incAiUsageCount();
     await updateUsageDisplay();
     return data;
   }catch(e){
@@ -1355,7 +1876,7 @@ async function openApiKeyModal(){
   if(existing){
     statusEl.innerHTML = `<div class="alert alert-success">
       <span>✅</span>
-      <div><strong>API Key সেট আছে।</strong> Tools unlimited ব্যবহার করতে পারছেন।<br>
+      <div><strong>API Key সেট আছে।</strong> ${FB.isPro()?'আপনি Pro User — Unlimited ব্যবহার করতে পারছেন।':'মনে রাখবেন: Normal User হিসেবে সর্বোচ্চ '+CONFIG.AI_TOOL_FREE_LIMIT+' বার ব্যবহার করতে পারবেন, এরপর Pro লাগবে।'}<br>
       <span style="font-family:monospace;color:var(--a1)">${existing.substring(0,8)}...${existing.substring(existing.length-4)}</span></div>
     </div>`;
     delBtn.style.display = 'inline-flex';
@@ -1363,7 +1884,7 @@ async function openApiKeyModal(){
   } else {
     statusEl.innerHTML = `<div class="alert alert-warning">
       <span>⚠️</span>
-      <div>API Key নেই। দিনে মাত্র ${CONFIG.FREE_DAILY_LIMIT} বার tool ব্যবহার করতে পারবেন।</div>
+      <div>API Key নেই। ${FB.isPro()?'Key দিলে আপনার নিজস্ব quota ব্যবহার হবে।':'Normal User হিসেবে সর্বোচ্চ '+CONFIG.AI_TOOL_FREE_LIMIT+' বার tool ব্যবহার করতে পারবেন।'}</div>
     </div>`;
     delBtn.style.display = 'none';
   }

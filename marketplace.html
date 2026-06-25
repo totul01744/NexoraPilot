@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Marketplace — NexoraPilot</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <a href="index.html" class="logo"><div class="logo-icon">⚡</div>NexoraPilot</a>
+    <nav class="nav" id="mainNav">
+      <a class="nav-link" href="index.html">🏠 Home</a>
+      <a class="nav-link" href="index.html#winning">🏆 Products</a>
+      <a class="nav-link" href="index.html#tools">🛠️ Tools</a>
+      <a class="nav-link active" href="marketplace.html">🛍️ Marketplace</a>
+      <a class="nav-link" href="dashboard.html">📊 Dashboard</a>
+      <a class="nav-link" href="help.html">💬 Support</a>
+    </nav>
+    <div id="headerUserArea" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"></div>
+    <button class="hamburger" onclick="document.getElementById('mainNav').classList.toggle('open')">☰</button>
+  </div>
+</header>
+
+<section style="padding:50px 0 20px">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">🛍️ Digital Marketplace</div>
+      <h2 class="section-title">Digital Products নিন — Free অথবা Paid</h2>
+      <p class="section-sub">Course, eBook, Template ও আরও অনেক digital product — request করুন, Admin approve করলেই পেয়ে যাবেন।</p>
+    </div>
+  </div>
+</section>
+
+<section style="padding:0 0 80px">
+  <div class="container">
+    <div class="product-grid" id="marketplaceGrid">
+      <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">⏳ লোড হচ্ছে...</div>
+    </div>
+  </div>
+</section>
+
+<!-- PRODUCT DETAIL MODAL -->
+<div class="modal-overlay hidden" id="mktProductModal">
+  <div class="modal-box modal-box-lg" style="max-width:600px">
+    <div class="modal-header">
+      <div class="modal-title" id="mktModalTitle">Product</div>
+      <button class="modal-close" onclick="Modal.hideAll()">✕</button>
+    </div>
+    <div id="mktModalContent"></div>
+  </div>
+</div>
+
+<!-- PRODUCT REQUEST FORM MODAL -->
+<div class="modal-overlay hidden" id="productRequestModal">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">📝 Product Request করুন</div>
+      <button class="modal-close" onclick="Modal.hideAll()">✕</button>
+    </div>
+    <div style="background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.15);border-radius:10px;padding:12px 14px;margin-bottom:16px;font-size:.85rem" id="pr-product-info"></div>
+    <input type="hidden" id="pr-productId">
+    <input type="hidden" id="pr-productName">
+    <input type="hidden" id="pr-productType">
+    <div class="form-group"><label class="form-label">Full Name *</label><input class="form-control" id="pr-fullname" placeholder="আপনার পূর্ণ নাম"></div>
+    <div class="form-group"><label class="form-label">Email Address *</label><input class="form-control" id="pr-email" type="email" placeholder="you@example.com"></div>
+    <div class="form-group"><label class="form-label">📱 WhatsApp Number *</label><input class="form-control" id="pr-whatsapp" type="tel" placeholder="01XXXXXXXXX"></div>
+
+    <div id="pr-paid-fields" class="hidden">
+      <div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:10px;padding:14px;margin:14px 0">
+        <strong style="font-size:.85rem;color:var(--a3)">💰 Payment করুন bKash এ</strong>
+        <div style="margin-top:8px;font-size:.86rem">bKash Number: <strong id="pr-bkash-number" style="color:#fff"></strong> (Send Money)</div>
+      </div>
+      <div class="form-group"><label class="form-label">আপনার bKash Number *</label><input class="form-control" id="pr-bkash" type="tel" placeholder="01XXXXXXXXX"></div>
+      <div class="form-group"><label class="form-label">Transaction ID *</label><input class="form-control" id="pr-trxid" placeholder="e.g., 9XX1A2B3C4"></div>
+    </div>
+
+    <div id="prFormResult" style="margin-bottom:10px"></div>
+    <button class="btn btn-primary btn-full" id="prSubmitBtn" onclick="submitProductRequestForm()">📤 Request পাঠান</button>
+  </div>
+</div>
+
+<!-- AUTH MODAL (Login/Register) -->
+<div class="modal-overlay hidden" id="authModal">
+  <div class="modal-box" style="max-width:460px">
+    <div class="modal-header">
+      <div style="display:flex;gap:0">
+        <button id="authTabLogin" class="tab-btn active" onclick="switchAuthTab('login')" style="border-radius:8px 0 0 8px">🔐 Login</button>
+        <button id="authTabReg" class="tab-btn" onclick="switchAuthTab('register')" style="border-radius:0 8px 8px 0">✅ Register</button>
+      </div>
+      <button class="modal-close" onclick="Modal.hideAll()">✕</button>
+    </div>
+
+    <div id="authLoginForm" style="padding-top:8px">
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="loginEmail" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="form-group"><label class="form-label">পাসওয়ার্ড</label><input class="form-control" id="loginPass" type="password" placeholder="পাসওয়ার্ড" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn btn-primary btn-full" id="loginBtn" onclick="doLogin()">🔐 Login করুন</button>
+      <div style="text-align:center;margin-top:12px">
+        <button style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:.82rem" onclick="document.getElementById('authLoginForm').classList.add('hidden');document.getElementById('authForgotForm').classList.remove('hidden')">পাসওয়ার্ড ভুলে গেছেন?</button>
+      </div>
+      <p style="text-align:center;font-size:.8rem;color:var(--text2);margin-top:14px">Product নিতে হলে আগে Login/Register করতে হবে।</p>
+    </div>
+
+    <div id="authRegForm" class="hidden" style="padding-top:8px">
+      <div class="form-group"><label class="form-label">পূর্ণ নাম *</label><input class="form-control" id="regName" placeholder="আপনার নাম"></div>
+      <div class="form-group"><label class="form-label">ঠিকানা *</label><input class="form-control" id="regAddress" placeholder="জেলা, বিভাগ"></div>
+      <div class="form-group"><label class="form-label">📱 WhatsApp নম্বর *</label><input class="form-control" id="re_whatsapp" type="tel" placeholder="01XXXXXXXXX"></div>
+      <div class="form-group"><label class="form-label">Facebook Username <span style="font-weight:400;color:var(--text2);text-transform:none">(optional)</span></label><input class="form-control" id="re_facebook" placeholder="fb.com/username"></div>
+      <div class="form-group"><label class="form-label">Email *</label><input class="form-control" id="regEmail" type="email" placeholder="you@example.com"></div>
+      <div class="form-group"><label class="form-label">পাসওয়ার্ড * (৬+ অক্ষর)</label><input class="form-control" id="regPass" type="password" placeholder="পাসওয়ার্ড"></div>
+      <div class="form-group"><label class="form-label">পাসওয়ার্ড নিশ্চিত করুন *</label><input class="form-control" id="regPass2" type="password" placeholder="আবার দিন"></div>
+      <button class="btn btn-primary btn-full" id="regBtn" onclick="doRegister()">✅ Account তৈরি করুন</button>
+    </div>
+
+    <div id="authForgotForm" class="hidden" style="padding-top:8px">
+      <p style="font-size:.85rem;color:var(--text2);margin-bottom:14px">আপনার email দিন, password reset link পাঠানো হবে।</p>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="forgotEmail" type="email" placeholder="you@example.com"></div>
+      <button class="btn btn-primary btn-full" onclick="doForgotPassword()">📧 Reset Link পাঠান</button>
+      <div style="text-align:center;margin-top:10px">
+        <button style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:.82rem" onclick="document.getElementById('authForgotForm').classList.add('hidden');document.getElementById('authLoginForm').classList.remove('hidden')">← Login-এ ফিরুন</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION PANEL MODAL -->
+<div class="modal-overlay hidden" id="notificationModal">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">🔔 Notifications</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="markAllNotifRead()" style="background:none;border:none;color:var(--a1);font-size:.78rem;cursor:pointer">সব Read করুন</button>
+        <button class="modal-close" onclick="Modal.hideAll()">✕</button>
+      </div>
+    </div>
+    <div id="notificationListContent" style="max-height:60vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<script src="assets/js/app.js"></script>
+<script>
+const CONFIG_BKASH = '01859-393487'; /* fallback display, will sync with CONFIG */
+
+let _mktProducts = [];
+
+async function loadMarketplace(){
+  const grid = document.getElementById('marketplaceGrid');
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
+  try {
+    const products = await FB.getMarketplaceProducts();
+    _mktProducts = products;
+    if(!products.length){
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">এখনো কোনো digital product যোগ করা হয়নি। শীঘ্রই আসছে! 🚀</div>';
+      return;
+    }
+    grid.innerHTML = products.map(p => `
+      <div class="card product-card" onclick="showMktProduct('${p.id}')">
+        <div style="position:relative">
+          ${p.image?`<img class="product-card-img" src="${p.image}" alt="${p.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}
+          <div class="product-card-img-ph" style="${p.image?'display:none':'display:flex'}">🛍️</div>
+          <div style="position:absolute;top:10px;right:10px"><span class="tag ${p.type==='paid'?'tag-amber':'tag-green'}">${p.type==='paid'?'💰 Paid':'🆓 Free'}</span></div>
+        </div>
+        <div class="product-card-body">
+          <div class="product-card-title">${p.name}</div>
+          <div class="product-card-desc">${(p.description||'').substring(0,90)}${(p.description||'').length>90?'…':''}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+            ${p.category?`<span class="tag tag-violet" style="font-size:.72rem">${p.category}</span>`:'<span></span>'}
+            ${p.type==='paid'?`<strong style="color:var(--a3)">${p.price||''}</strong>`:`<span style="font-size:.78rem;color:var(--a1)">নিন এখনই →</span>`}
+          </div>
+        </div>
+      </div>`).join('');
+  } catch(e){
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#f87171">⚠️ লোড হয়নি। আবার চেষ্টা করুন।</div>`;
+    console.error('loadMarketplace error:', e);
+  }
+}
+
+function showMktProduct(id){
+  const p = _mktProducts.find(x=>x.id===id); if(!p) return;
+  document.getElementById('mktModalTitle').textContent = p.name;
+  document.getElementById('mktModalContent').innerHTML = `
+    <div style="display:grid;gap:16px">
+      ${p.image?`<img src="${p.image}" style="width:100%;border-radius:12px;max-height:260px;object-fit:cover" onerror="this.style.display='none'">`:''}
+      <div style="display:flex;gap:10px;align-items:center">
+        <span class="tag ${p.type==='paid'?'tag-amber':'tag-green'}">${p.type==='paid'?'💰 Paid Product':'🆓 Free Product'}</span>
+        ${p.category?`<span class="tag tag-violet">${p.category}</span>`:''}
+        ${p.type==='paid'&&p.price?`<strong style="color:var(--a3);font-size:1.05rem;margin-left:auto">${p.price}</strong>`:''}
+      </div>
+      <p style="font-size:.9rem;line-height:1.7;color:var(--text2)">${p.description||'কোনো বিবরণ নেই।'}</p>
+      <button class="btn btn-primary btn-full" onclick="startProductRequest('${p.id}')">${p.type==='paid'?'💰 Buy / Request করুন':'🆓 ফ্রি নিন'}</button>
+    </div>`;
+  Modal.show('mktProductModal');
+}
+
+function startProductRequest(id){
+  const p = _mktProducts.find(x=>x.id===id); if(!p) return;
+  Modal.hideAll();
+  if(!currentUser){
+    /* Login না থাকলে আগে Login/Register করতে হবে */
+    Toast.info('Product নিতে আগে Login/Register করুন।');
+    window._pendingProductRequestId = id;
+    openAuthModal('login');
+    return;
+  }
+  openProductRequestForm(id);
+}
+
+function openProductRequestForm(id){
+  const p = _mktProducts.find(x=>x.id===id); if(!p) return;
+  document.getElementById('pr-productId').value = p.id;
+  document.getElementById('pr-productName').value = p.name;
+  document.getElementById('pr-productType').value = p.type;
+  document.getElementById('pr-product-info').innerHTML = `<strong style="color:#fff">${p.name}</strong> — <span class="tag ${p.type==='paid'?'tag-amber':'tag-green'}" style="font-size:.7rem">${p.type==='paid'?'💰 Paid '+(p.price||''):'🆓 Free'}</span>`;
+  /* Pre-fill known user info */
+  document.getElementById('pr-fullname').value = currentUserData?.name || '';
+  document.getElementById('pr-email').value = currentUser?.email || '';
+  document.getElementById('pr-whatsapp').value = currentUserData?.whatsapp || currentUserData?.phone || '';
+  const paidFields = document.getElementById('pr-paid-fields');
+  if(p.type === 'paid'){
+    paidFields.classList.remove('hidden');
+    document.getElementById('pr-bkash-number').textContent = CONFIG?.BKASH_NUMBER || CONFIG_BKASH;
+  } else {
+    paidFields.classList.add('hidden');
+  }
+  document.getElementById('prFormResult').innerHTML = '';
+  Modal.show('productRequestModal');
+}
+
+async function submitProductRequestForm(){
+  const fullName = document.getElementById('pr-fullname')?.value?.trim();
+  const email    = document.getElementById('pr-email')?.value?.trim();
+  const whatsapp = document.getElementById('pr-whatsapp')?.value?.trim();
+  const productId   = document.getElementById('pr-productId')?.value;
+  const productName = document.getElementById('pr-productName')?.value;
+  const productType = document.getElementById('pr-productType')?.value;
+  const result = document.getElementById('prFormResult');
+
+  if(!fullName || !email || !whatsapp){
+    result.innerHTML = '<div class="alert alert-warning">Full Name, Email ও WhatsApp Number আবশ্যক।</div>';
+    return;
+  }
+
+  let bkashNumber = '', transactionId = '';
+  if(productType === 'paid'){
+    bkashNumber = document.getElementById('pr-bkash')?.value?.trim();
+    transactionId = document.getElementById('pr-trxid')?.value?.trim();
+    if(!bkashNumber || !transactionId){
+      result.innerHTML = '<div class="alert alert-warning">bKash Number ও Transaction ID দিন।</div>';
+      return;
+    }
+  }
+
+  const btn = document.getElementById('prSubmitBtn');
+  btn.disabled = true; btn.textContent = '⏳ পাঠানো হচ্ছে...';
+  result.innerHTML = '';
+
+  const ok = await FB.submitProductRequest({
+    productId, productName, productType, fullName, email, whatsapp, bkashNumber, transactionId,
+  });
+
+  btn.disabled = false; btn.textContent = '📤 Request পাঠান';
+
+  if(ok){
+    Modal.hideAll();
+    Toast.success('✅ Request পাঠানো হয়েছে! Admin approve করলে আপনাকে জানানো হবে।');
+  } else {
+    result.innerHTML = '<div class="alert alert-error">❌ সমস্যা হয়েছে। আবার চেষ্টা করুন।</div>';
+  }
+}
+
+/* Auth modal থেকে successfully login/register করার পর — pending request থাকলে সেটা চালু করো */
+function onAuthStateReady(user){
+  updateUsageDisplay();
+  if(user && window._pendingProductRequestId){
+    const id = window._pendingProductRequestId;
+    window._pendingProductRequestId = null;
+    Modal.hideAll();
+    setTimeout(()=>openProductRequestForm(id), 200);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadMarketplace);
+</script>
+</body>
+</html>

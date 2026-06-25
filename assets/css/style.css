@@ -247,8 +247,27 @@ select.form-control{cursor:pointer}
 .product-card-body{padding:18px}
 .product-card-title{font-family:var(--font-h);font-weight:800;color:#fff;font-size:.95rem;margin-bottom:6px;line-height:1.35}
 .product-card-desc{font-size:.82rem;color:var(--text2);line-height:1.5;margin-bottom:12px}
-/* Locked card — নতুন solid block style (পুরাপুরি লুকানো) */
+/* Locked card — Position-based Premium Gate (নাম/ছবি ঝাপসা, কোনো content দেখাবে না) */
 .product-locked-full{position:relative;overflow:hidden}
+.product-locked-full .product-card-img,
+.product-locked-full .product-card-img-ph{filter:blur(11px) brightness(.55);user-select:none;pointer-events:none}
+.product-locked-full .product-card-body{filter:blur(6px) brightness(.6);user-select:none;pointer-events:none}
+.product-lock-overlay{
+  position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:8px;text-align:center;padding:16px;
+  background:linear-gradient(160deg,rgba(4,8,15,.32),rgba(4,8,15,.62));
+}
+.product-lock-overlay .plo-icon{
+  width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+  background:rgba(245,158,11,.16);border:1px solid rgba(245,158,11,.4);font-size:1.3rem;
+  box-shadow:0 0 24px rgba(245,158,11,.25);
+}
+.product-lock-overlay .plo-label{font-family:var(--font-h);font-weight:800;font-size:.82rem;color:#fff}
+.product-lock-overlay .plo-sub{font-size:.72rem;color:var(--text3)}
+.product-lock-overlay .plo-btn{
+  margin-top:4px;background:linear-gradient(135deg,var(--a3),var(--a4));color:#1a0e02;font-weight:800;
+  border:none;border-radius:var(--radius-xs);padding:7px 16px;font-size:.76rem;cursor:pointer;
+}
 
 /* Select & Option dark theme fix */
 select.form-control{

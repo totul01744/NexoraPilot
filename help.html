@@ -19,6 +19,8 @@
       <a class="nav-link" href="index.html">🏠 Home</a>
       <a class="nav-link" href="index.html#winning">🏆 Products</a>
       <a class="nav-link" href="index.html#tools">🛠️ Tools</a>
+      <a class="nav-link" href="marketplace.html">🛍️ Marketplace</a>
+      <a class="nav-link" href="dashboard.html">📊 Dashboard</a>
       <a class="nav-link active" href="help.html">💬 Support</a>
       <div class="usage-pill" style="margin-left:6px"><span class="glow-dot mint"></span><span class="usage-display">3/3</span> বাকি</div>
     </nav>
@@ -109,7 +111,7 @@
         </div>
         <div style="display:flex;gap:14px;align-items:flex-start">
           <div style="width:30px;height:30px;border-radius:50%;background:rgba(0,245,212,.12);border:1px solid rgba(0,245,212,.3);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.84rem;color:var(--a1);flex-shrink:0">✓</div>
-          <div><strong style="color:var(--a1)">Free plan = দিনে ৩ বার। Pro = unlimited।</strong></div>
+          <div><strong style="color:var(--a1)">Free plan = সর্বোচ্চ ৩ বার (Lifetime)। Pro = unlimited।</strong></div>
         </div>
       </div>
     </div>
@@ -158,6 +160,20 @@
         <button style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:.82rem" onclick="document.getElementById('authForgotForm').classList.add('hidden');document.getElementById('authLoginForm').classList.remove('hidden')">← Login-এ ফিরুন</button>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- NOTIFICATION PANEL MODAL -->
+<div class="modal-overlay hidden" id="notificationModal">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">🔔 Notifications</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="markAllNotifRead()" style="background:none;border:none;color:var(--a1);font-size:.78rem;cursor:pointer">সব Read করুন</button>
+        <button class="modal-close" onclick="Modal.hideAll()">✕</button>
+      </div>
+    </div>
+    <div id="notificationListContent" style="max-height:60vh;overflow-y:auto"></div>
   </div>
 </div>
 

@@ -134,6 +134,8 @@
       <a class="nav-link active" href="index.html">🏠 Home</a>
       <a class="nav-link" href="#winning">🏆 Products</a>
       <a class="nav-link" href="#tools">🛠️ Tools</a>
+      <a class="nav-link" href="marketplace.html">🛍️ Marketplace</a>
+      <a class="nav-link" href="dashboard.html">📊 Dashboard</a>
       <a class="nav-link" href="help.html">💬 Support</a>
     </nav>
     <div id="headerUserArea" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"></div>
@@ -154,7 +156,7 @@
     <div class="hero-stats">
       <div class="hero-stat"><div class="hero-stat-num mint">১৮+</div><div class="hero-stat-label">AI Tools</div></div>
       <div class="hero-stat"><div class="hero-stat-num">১০০%</div><div class="hero-stat-label">বাংলায়</div></div>
-      <div class="hero-stat"><div class="hero-stat-num violet">Free</div><div class="hero-stat-label">দিনে ৩ বার</div></div>
+      <div class="hero-stat"><div class="hero-stat-num violet">Free</div><div class="hero-stat-label">৩ বার ব্যবহার</div></div>
     </div>
   </div>
 </section>
@@ -203,7 +205,7 @@
         <div style="font-family:var(--font-h);font-size:.9rem;color:var(--text2);margin-bottom:12px">🆓 Free</div>
         <div class="price-amt">৳০</div><div class="price-period">সবসময়</div>
         <div class="price-divider"></div>
-        <div class="price-feat"><div class="price-feat-icon yes">✓</div>দিনে ৩টি AI generation</div>
+        <div class="price-feat"><div class="price-feat-icon yes">✓</div>সর্বোচ্চ ৩টি AI generation (Lifetime)</div>
         <div class="price-feat"><div class="price-feat-icon yes">✓</div>সব tools access</div>
         <div class="price-feat"><div class="price-feat-icon no">✗</div>Premium products locked</div>
         <button class="btn btn-outline btn-full" style="margin-top:20px" disabled>✅ আপনি এখানে আছেন</button>
@@ -232,6 +234,18 @@
   </div>
 </section>
 
+<!-- WHATSAPP COMMUNITY GROUP -->
+<section style="padding:0 0 70px">
+  <div class="container">
+    <div class="card" style="padding:32px;text-align:center;background:linear-gradient(135deg,rgba(34,197,94,.08),rgba(0,245,212,.05));border-color:rgba(34,197,94,.2)">
+      <div style="font-size:2.2rem;margin-bottom:10px">📱</div>
+      <h3 style="margin-bottom:8px">আমাদের WhatsApp Community Group এ জয়েন করুন</h3>
+      <p style="color:var(--text2);font-size:.88rem;margin-bottom:18px;max-width:560px;margin-left:auto;margin-right:auto">নতুন Product Add, System Update বা গুরুত্বপূর্ণ Announcement — সব আগে জানতে গ্রুপে জয়েন থাকুন।</p>
+      <a href="https://chat.whatsapp.com/EV4u4W3KRLq9EhouPeyvmk" target="_blank" class="btn btn-primary" style="background:linear-gradient(135deg,#25D366,#128C7E)">📲 WhatsApp Group এ জয়েন করুন</a>
+    </div>
+  </div>
+</section>
+
 <!-- PRODUCT DETAIL MODAL -->
 <div class="modal-overlay hidden" id="productModal">
   <div class="modal-box modal-box-lg" style="max-width:680px">
@@ -245,6 +259,20 @@
   <div class="modal-box" style="max-width:480px">
     <div class="modal-header"><div class="modal-title">🚀 Pro Membership নিন</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
     <div id="paymentContent"></div>
+  </div>
+</div>
+
+<!-- NOTIFICATION PANEL MODAL -->
+<div class="modal-overlay hidden" id="notificationModal">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <div class="modal-title">🔔 Notifications</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <button onclick="markAllNotifRead()" style="background:none;border:none;color:var(--a1);font-size:.78rem;cursor:pointer">সব Read করুন</button>
+        <button class="modal-close" onclick="Modal.hideAll()">✕</button>
+      </div>
+    </div>
+    <div id="notificationListContent" style="max-height:60vh;overflow-y:auto"></div>
   </div>
 </div>
 
@@ -408,7 +436,9 @@ function openTool(id){
 }
 
 /* ═══════════════════════════════════════
-   PRODUCTS
+   PRODUCTS — Winning Products Premium Access Control
+   প্রথম WINNING_LOCKED_COUNT (১০টি) প্রোডাক্ট শুধু Pro User দেখবে।
+   Normal User এর জন্য নাম/ছবি ঝাপসা — কোনো content দেখাবে না।
 ═══════════════════════════════════════ */
 window._products=[];
 async function loadProducts(){
@@ -423,13 +453,35 @@ async function loadProducts(){
       return;
     }
     const isPro = FB.isPro();
-    grid.innerHTML = products.map(p=>{
-      const locked = p.premium && !isPro;
+    grid.innerHTML = products.map((p,idx)=>{
+      /* position-based lock: প্রথম N টি Pro-only, তারপর individual premium flag অনুযায়ী */
+      const positionLocked = idx < CONFIG.WINNING_LOCKED_COUNT;
+      const locked = (positionLocked || p.premium) && !isPro;
+
+      if(positionLocked && !isPro){
+        /* সম্পূর্ণ ঝাপসা — নাম/ছবি/কনটেন্ট কিছুই দেখাবে না */
+        return `<div class="card product-card product-locked-full" onclick="showProduct('${p.id}')">
+          <div style="position:relative">
+            ${p.image?`<img class="product-card-img" src="${p.image}" alt="">`:`<div class="product-card-img-ph">🏆</div>`}
+          </div>
+          <div class="product-card-body">
+            <div class="product-card-title">∎∎∎∎∎∎∎∎∎∎∎∎</div>
+            <div class="product-card-desc">∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎</div>
+          </div>
+          <div class="product-lock-overlay">
+            <div class="plo-icon">🔒</div>
+            <div class="plo-label">Pro Exclusive Product</div>
+            <div class="plo-sub">দেখতে ও বিস্তারিত জানতে Pro Membership নিন</div>
+            <button class="plo-btn" onclick="event.stopPropagation();Modal.hideAll();showPaymentModal()">⭐ Upgrade to Pro</button>
+          </div>
+        </div>`;
+      }
+
       return `<div class="card product-card" onclick="showProduct('${p.id}')">
         <div style="position:relative">
           ${p.image?`<img class="product-card-img" src="${p.image}" alt="${p.name}" onerror="this.style.display='none';this.parentElement.querySelector('.product-card-img-ph').style.display='flex'">`:''}
           <div class="product-card-img-ph" style="${p.image?'display:none':'display:flex'}">🏆</div>
-          ${p.premium?`<div style="position:absolute;top:10px;right:10px"><span class="tag tag-amber">⭐ Pro</span></div>`:`<div style="position:absolute;top:10px;right:10px"><span class="tag tag-green">Free</span></div>`}
+          ${(positionLocked||p.premium)?`<div style="position:absolute;top:10px;right:10px"><span class="tag tag-amber">⭐ Pro</span></div>`:`<div style="position:absolute;top:10px;right:10px"><span class="tag tag-green">Free</span></div>`}
         </div>
         <div class="product-card-body">
           <div class="product-card-title">${p.name}</div>
@@ -450,17 +502,26 @@ async function loadProducts(){
   }
 }
 
-function showProduct(id){
+async function showProduct(id){
   const p=window._products.find(x=>x.id===id); if(!p)return;
-  const locked=p.premium&&!FB.isPro();
-  document.getElementById('prodModalTitle').textContent=p.name;
-  document.getElementById('prodModalContent').innerHTML=locked?`
+  const idx=window._products.findIndex(x=>x.id===id);
+  const positionLocked = idx > -1 && idx < CONFIG.WINNING_LOCKED_COUNT;
+  const locked=(positionLocked||p.premium)&&!FB.isPro();
+  document.getElementById('prodModalTitle').textContent=locked?'🔒 Pro Exclusive Product':p.name;
+  if(locked){
+    Modal.show('productModal');
+    document.getElementById('prodModalContent').innerHTML=`<div style="text-align:center;padding:40px 20px">⏳ Checking status...</div>`;
+    const isPending = await FB.hasPendingProPayment();
+    document.getElementById('prodModalContent').innerHTML=`
     <div style="text-align:center;padding:40px 20px">
-      <div style="font-size:3rem;margin-bottom:16px">🔒</div>
-      <h3 style="color:#fff;margin-bottom:8px">Premium Content</h3>
-      <p style="margin-bottom:24px">সম্পূর্ণ ad strategy দেখতে Pro membership নিন।</p>
-      <button class="btn btn-primary" onclick="Modal.hideAll();showPaymentModal()">🚀 মাত্র ৳১৯৯/মাসে Pro নিন</button>
-    </div>`:`
+      <div style="font-size:3rem;margin-bottom:16px">${isPending?'⏳':'🔒'}</div>
+      <h3 style="color:#fff;margin-bottom:8px">${isPending?'Payment Review হচ্ছে':'Premium Content'}</h3>
+      <p style="margin-bottom:24px">${isPending?'আপনার Pro Membership Payment Admin review করছেন। Approve হলেই এই Product দেখতে পারবেন।':(positionLocked?'এই Winning Product টি শুধুমাত্র Pro Member-দের জন্য সংরক্ষিত।':'সম্পূর্ণ ad strategy দেখতে Pro membership নিন।')}</p>
+      ${isPending?'':`<button class="btn btn-primary" onclick="Modal.hideAll();showPaymentModal()">🚀 মাত্র ৳১৯৯/মাসে Pro নিন</button>`}
+    </div>`;
+    return;
+  }
+  document.getElementById('prodModalContent').innerHTML=`
     <div style="display:grid;gap:18px">
       ${p.image?`<img src="${p.image}" style="width:100%;border-radius:12px;max-height:280px;object-fit:cover" onerror="this.style.display='none'">`:''}
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">

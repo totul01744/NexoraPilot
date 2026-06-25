@@ -50,6 +50,10 @@
       <button class="sidebar-link" data-page="products" onclick="showPage('products',this)"><span class="s-icon">🏆</span> Winning Products</button>
       <button class="sidebar-link" data-page="banners" onclick="showPage('banners',this)"><span class="s-icon">🖼️</span> Banners</button>
 
+      <div class="sidebar-section">Marketplace</div>
+      <button class="sidebar-link" data-page="marketplace" onclick="showPage('marketplace',this)"><span class="s-icon">🛍️</span> Digital Products</button>
+      <button class="sidebar-link" data-page="productRequests" onclick="showPage('productRequests',this)"><span class="s-icon">📥</span> Product Requests <span class="s-badge" id="sb-req">0</span></button>
+
       <div class="sidebar-section">Users</div>
       <button class="sidebar-link" data-page="payments" onclick="showPage('payments',this)"><span class="s-icon">💳</span> Payments <span class="s-badge" id="sb-pay">0</span></button>
       <button class="sidebar-link" data-page="help" onclick="showPage('help',this)"><span class="s-icon">🆘</span> Help Requests <span class="s-badge" id="sb-help">0</span></button>
@@ -60,6 +64,7 @@
       <div class="sidebar-section">System</div>
       <button class="sidebar-link" data-page="apikey" onclick="showPage('apikey',this)"><span class="s-icon">🔑</span> System API Key</button>
       <button class="sidebar-link" data-page="analytics" onclick="showPage('analytics',this)"><span class="s-icon">📈</span> Analytics</button>
+      <button class="sidebar-link" data-page="adminLogs" onclick="showPage('adminLogs',this)"><span class="s-icon">🗂️</span> Activity Log</button>
       <button class="sidebar-link" data-page="settings" onclick="showPage('settings',this)"><span class="s-icon">⚙️</span> Settings</button>
 
       <div style="position:absolute;bottom:16px;left:10px;right:10px">
@@ -96,6 +101,14 @@
         <div class="stat-card"><div class="stat-num amber" id="s-pay">0</div><div class="stat-label">Pending Payments</div></div>
         <div class="stat-card"><div class="stat-num" id="s-users">0</div><div class="stat-label">Pro Users</div></div>
         <div class="stat-card"><div class="stat-num mint" id="s-allUsers">0</div><div class="stat-label">Total Users</div></div>
+      </div>
+      <div class="stats-grid" style="margin-top:14px">
+        <div class="stat-card"><div class="stat-num" id="s-normalUsers">0</div><div class="stat-label">Normal Users</div></div>
+        <div class="stat-card"><div class="stat-num violet" id="s-mktProd">0</div><div class="stat-label">Marketplace Products</div></div>
+        <div class="stat-card"><div class="stat-num amber" id="s-reqPending">0</div><div class="stat-label">Pending Requests</div></div>
+        <div class="stat-card"><div class="stat-num mint" id="s-reqApproved">0</div><div class="stat-label">Approved Requests</div></div>
+        <div class="stat-card"><div class="stat-num" id="s-reqRejected">0</div><div class="stat-label">Rejected Requests</div></div>
+        <div class="stat-card"><div class="stat-num amber" id="s-expSoon">0</div><div class="stat-label">⏰ ৭ দিনে Expire হবে</div></div>
       </div>
       <div class="table-card">
         <div class="table-header"><div class="table-title">💳 সাম্প্রতিক Payments</div><button class="btn btn-sm btn-secondary" onclick="showPage('payments',document.querySelector('[data-page=payments]'))">সব দেখুন</button></div>
@@ -159,6 +172,10 @@
           <button class="btn btn-primary" onclick="openProductForm()">+ Product যোগ করুন</button>
         </div>
       </div>
+      <div class="alert alert-info" style="margin-bottom:16px">
+        <span>ℹ️</span>
+        <div>সর্বপ্রথম <strong id="winLockNote">১০টি</strong> Product (নিচের list এর ক্রম অনুযায়ী) স্বয়ংক্রিয়ভাবে শুধু <strong>Pro User</strong> দেখতে পারবে — Normal User দের জন্য ঝাপসা/locked দেখাবে। এরপরের সব Product সবাই দেখতে পারবে (Premium flag আলাদাভাবে ON করলে সেটাও lock থাকবে)।</div>
+      </div>
       <div class="table-card"><div id="productsTable"></div></div>
     </div>
 
@@ -169,6 +186,29 @@
         <button class="btn btn-primary" onclick="openBannerForm()">+ Banner যোগ করুন</button>
       </div>
       <div id="bannersGrid" style="display:grid;gap:16px"></div>
+    </div>
+
+    <!-- DIGITAL MARKETPLACE PRODUCTS -->
+    <div id="page-marketplace" class="hidden">
+      <div class="admin-header">
+        <div><div class="page-title">🛍️ Digital Product Marketplace</div><div class="page-subtitle">Free/Paid digital products যা user-রা request করে নিতে পারবে</div></div>
+        <button class="btn btn-primary" onclick="openMarketplaceForm()">+ Product যোগ করুন</button>
+      </div>
+      <div class="table-card"><div id="marketplaceTable"></div></div>
+    </div>
+
+    <!-- PRODUCT REQUESTS -->
+    <div id="page-productRequests" class="hidden">
+      <div class="admin-header">
+        <div><div class="page-title">📥 Product Requests</div></div>
+        <div style="display:flex;gap:8px;align-items:center">
+          <select class="form-control" id="reqFilter" onchange="renderProductRequestsTable()" style="width:auto;padding:7px 12px;font-size:.82rem">
+            <option value="all">সব</option><option value="pending">Pending</option><option value="approved">Approved</option><option value="rejected">Rejected</option>
+          </select>
+          <button class="btn btn-sm btn-secondary" onclick="exportTableCSV('productRequests')">⬇️ CSV</button>
+        </div>
+      </div>
+      <div class="table-card"><div id="productRequestsTable"></div></div>
     </div>
 
     <!-- PAYMENTS -->
@@ -230,6 +270,12 @@
       </div>
     </div>
 
+    <!-- ADMIN ACTIVITY LOG -->
+    <div id="page-adminLogs" class="hidden">
+      <div class="admin-header"><div><div class="page-title">🗂️ Admin Activity Log</div><div class="page-subtitle">Admin Panel থেকে নেওয়া সব গুরুত্বপূর্ণ একশন এর রেকর্ড</div></div></div>
+      <div class="table-card"><div id="adminLogsTable"></div></div>
+    </div>
+
     <!-- SETTINGS -->
     <div id="page-settings" class="hidden">
       <div class="admin-header"><div><div class="page-title">⚙️ Settings</div></div></div>
@@ -287,6 +333,43 @@
   </div>
 </div>
 
+<!-- MARKETPLACE PRODUCT FORM MODAL -->
+<div class="modal-overlay hidden" id="marketplaceFormModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="mktFormTitle">🛍️ Digital Product যোগ করুন</div>
+      <button class="modal-close" onclick="Modal.hideAll()">✕</button>
+    </div>
+    <input type="hidden" id="mkt-id">
+    <div class="form-group"><label class="form-label">Product Name *</label><input class="form-control" id="mkt-name" placeholder="e.g., Facebook Ads Mastery Course"></div>
+    <div class="form-group"><label class="form-label">Product Description</label><textarea class="form-control" id="mkt-desc" rows="3" placeholder="এই product এ কী আছে..."></textarea></div>
+    <div class="form-group"><label class="form-label">Product Image URL</label><input class="form-control" id="mkt-img" placeholder="https://example.com/product-image.jpg"></div>
+    <div class="form-group"><label class="form-label">Product Category</label><input class="form-control" id="mkt-cat" placeholder="e.g., Course, eBook, Template"></div>
+    <div class="form-group"><label class="form-label">Product Type *</label>
+      <select class="form-control" id="mkt-type" onchange="document.getElementById('mkt-price-wrap').style.display=this.value==='paid'?'block':'none'">
+        <option value="free">🆓 Free Product</option>
+        <option value="paid">💰 Paid Product</option>
+      </select>
+    </div>
+    <div class="form-group" id="mkt-price-wrap" style="display:none">
+      <label class="form-label">Product Price</label><input class="form-control" id="mkt-price" placeholder="e.g., ৳৫০০">
+    </div>
+    <div id="mktFormResult" style="margin-bottom:10px"></div>
+    <div style="display:flex;gap:10px;margin-top:4px">
+      <button class="btn btn-primary" style="flex:1" onclick="saveMarketplaceProduct()">💾 Save করুন</button>
+      <button class="btn btn-secondary" onclick="Modal.hideAll()">বাতিল</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRODUCT REQUEST DETAIL / DELIVERY MODAL -->
+<div class="modal-overlay hidden" id="requestDetailModal">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title">📥 Request বিস্তারিত</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
+    <div id="requestDetailContent"></div>
+  </div>
+</div>
+
 <!-- BANNER FORM MODAL -->
 <div class="modal-overlay hidden" id="bannerFormModal">
   <div class="modal-box">
@@ -323,8 +406,41 @@
         <option>Pro Monthly</option><option>Pro Annual</option><option>Agency</option>
       </select>
     </div>
+    <div class="form-group"><label class="form-label">মেয়াদ (Duration)</label>
+      <select class="form-control" id="nu-duration" onchange="document.getElementById('nu-customdate-wrap').style.display=this.value==='custom'?'block':'none'">
+        <option value="7">৭ দিন</option>
+        <option value="15">১৫ দিন</option>
+        <option value="30" selected>৩০ দিন</option>
+        <option value="90">৯০ দিন</option>
+        <option value="custom">Custom Date</option>
+        <option value="lifetime">Lifetime (মেয়াদ নেই)</option>
+      </select>
+    </div>
+    <div class="form-group" id="nu-customdate-wrap" style="display:none">
+      <label class="form-label">Custom Expiry Date</label>
+      <input class="form-control" id="nu-customdate" type="date">
+    </div>
     <div id="addUserResult" style="margin-bottom:10px"></div>
     <button class="btn btn-primary btn-full" onclick="addProUserManual()">⭐ Pro Activate করুন</button>
+  </div>
+</div>
+
+<!-- EXTEND SUBSCRIPTION MODAL -->
+<div class="modal-overlay hidden" id="extendUserModal">
+  <div class="modal-box">
+    <div class="modal-header"><div class="modal-title">⏳ Subscription Extend করুন</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
+    <p style="font-size:.85rem;color:var(--text2);margin-bottom:16px" id="extendUserInfo"></p>
+    <input type="hidden" id="ext-uid">
+    <div class="form-group"><label class="form-label">কত দিন Extend করবেন?</label>
+      <select class="form-control" id="ext-days">
+        <option value="7">৭ দিন</option>
+        <option value="15">১৫ দিন</option>
+        <option value="30" selected>৩০ দিন</option>
+        <option value="90">৯০ দিন</option>
+      </select>
+    </div>
+    <div id="extendUserResult" style="margin-bottom:10px"></div>
+    <button class="btn btn-primary btn-full" onclick="extendUserSubmit()">⏳ Extend করুন</button>
   </div>
 </div>
 
@@ -402,10 +518,22 @@ async function initAdmin(){
     document.getElementById('s-users').textContent   = stats.proUsers;
     document.getElementById('sb-help').textContent   = stats.helpPending;
     document.getElementById('sb-pay').textContent    = stats.paymentsPending;
+    document.getElementById('s-allUsers').textContent     = stats.totalUsers;
+    document.getElementById('s-normalUsers').textContent  = stats.normalUsers;
+    document.getElementById('s-mktProd').textContent      = stats.marketplaceProducts;
+    document.getElementById('s-reqPending').textContent   = stats.requestsPending;
+    document.getElementById('s-reqApproved').textContent  = stats.requestsApproved;
+    document.getElementById('s-reqRejected').textContent  = stats.requestsRejected;
+    document.getElementById('sb-req').textContent         = stats.requestsPending;
 
-    /* Total users */
-    const allU = await db.collection('users').get();
-    document.getElementById('s-allUsers').textContent = allU.size;
+    /* ৭ দিনের মধ্যে Expire হবে এমন Pro user সংখ্যা */
+    const proSnap = await db.collection('users').where('isPro','==',true).get();
+    const now = new Date(); const soon = new Date(now.getTime()+7*24*60*60*1000);
+    const expSoonCount = proSnap.docs.filter(d=>{
+      const exp = d.data().expiryDate; if(!exp) return false;
+      const ed = new Date(exp); return ed > now && ed <= soon;
+    }).length;
+    document.getElementById('s-expSoon').textContent = expSoonCount;
   } catch(e){}
 
   renderRecentPayments();
@@ -420,12 +548,15 @@ function showPage(name,btn){
   btn?.classList.add('active');
   if(name==='products') renderProductsTable();
   if(name==='banners') renderBanners();
+  if(name==='marketplace') renderMarketplaceTable();
+  if(name==='productRequests') renderProductRequestsTable();
   if(name==='payments') renderPaymentsTable();
   if(name==='help') renderHelpTable();
   if(name==='agency') renderAgencyTable();
   if(name==='users') renderUsersTable();
   if(name==='allUsers') renderAllUsers();
   if(name==='analytics') renderAnalytics();
+  if(name==='adminLogs') renderAdminLogsTable();
   if(name==='apikey') renderApiKeyStatus();
   if(name==='settings') renderSettings();
 }
@@ -560,21 +691,24 @@ async function renderProductsTable(){
     return;
   }
   document.getElementById('productsTable').innerHTML=`<table>
-    <thead><tr><th>Product</th><th>Category</th><th>Score</th><th>Type</th><th>Date</th><th>Actions</th></tr></thead>
-    <tbody>${products.map(p=>`<tr>
+    <thead><tr><th>#</th><th>Product</th><th>Category</th><th>Score</th><th>Type</th><th>Date</th><th>Actions</th></tr></thead>
+    <tbody>${products.map((p,idx)=>{
+      const positionLocked = idx < CONFIG.WINNING_LOCKED_COUNT;
+      return `<tr>
+      <td><span class="tag ${positionLocked?'tag-amber':'tag-mint'}" title="${positionLocked?'Position-based Pro lock':'সবার জন্য visible'}">${idx+1}${positionLocked?' 🔒':''}</span></td>
       <td><div style="display:flex;align-items:center;gap:10px">
         ${p.image?`<img src="${p.image}" style="width:40px;height:40px;border-radius:8px;object-fit:cover" onerror="this.style.display='none'">`:'<div style="width:40px;height:40px;border-radius:8px;background:rgba(0,245,212,.1);display:flex;align-items:center;justify-content:center">🏆</div>'}
         <div><div style="font-weight:800;color:#fff">${p.name}</div><div style="font-size:.77rem;color:var(--text2)">${p.shortDesc?.substring(0,40)||''}…</div></div>
       </div></td>
       <td><span class="tag tag-mint">${p.category||'—'}</span></td>
       <td><span style="font-weight:900;color:${p.score>=80?'var(--a1)':p.score>=60?'var(--a3)':'#f87171'}">${p.score||'—'}</span></td>
-      <td><span class="tag ${p.premium?'tag-amber':'tag-green'}">${p.premium?'⭐ Premium':'Free'}</span></td>
+      <td><span class="tag ${(positionLocked||p.premium)?'tag-amber':'tag-green'}">${positionLocked?'🔒 Position Lock':p.premium?'⭐ Premium':'Free'}</span></td>
       <td style="font-size:.79rem;color:var(--text2)">${fd(p.date)}</td>
       <td>
         <button class="action-btn" onclick="openProductForm('${p.id}')">✏️ Edit</button>
         <button class="action-btn" style="color:#f87171;margin-left:4px" onclick="delProduct('${p.id}')">🗑️</button>
       </td>
-    </tr>`).join('')}</tbody>
+    </tr>`}).join('')}</tbody>
   </table>`;
 }
 
@@ -591,6 +725,211 @@ async function addSampleProducts(){
   ];
   for(const s of samples) await FB.addProduct(s);
   renderProductsTable(); initAdmin(); Toast.success('Sample products যোগ হয়েছে! ✅');
+}
+
+/* ════════ DIGITAL MARKETPLACE — Admin Products ════════ */
+let editingMarketplaceId=null;
+function openMarketplaceForm(id=null){
+  editingMarketplaceId=id;
+  ['mkt-name','mkt-desc','mkt-img','mkt-cat','mkt-price'].forEach(k=>{const el=document.getElementById(k); if(el)el.value='';});
+  document.getElementById('mkt-type').value='free';
+  document.getElementById('mkt-price-wrap').style.display='none';
+  document.getElementById('mktFormResult').innerHTML='';
+  document.getElementById('mktFormTitle').textContent = id ? '✏️ Product Edit করুন' : '🛍️ Digital Product যোগ করুন';
+  if(id){
+    const p = (window._adminMarketplace||[]).find(x=>x.id===id);
+    if(p){
+      document.getElementById('mkt-name').value=p.name||'';
+      document.getElementById('mkt-desc').value=p.description||'';
+      document.getElementById('mkt-img').value=p.image||'';
+      document.getElementById('mkt-cat').value=p.category||'';
+      document.getElementById('mkt-type').value=p.type||'free';
+      document.getElementById('mkt-price').value=p.price||'';
+      document.getElementById('mkt-price-wrap').style.display = p.type==='paid'?'block':'none';
+    }
+  }
+  Modal.show('marketplaceFormModal');
+}
+
+async function saveMarketplaceProduct(){
+  const name = document.getElementById('mkt-name')?.value?.trim();
+  const result = document.getElementById('mktFormResult');
+  if(!name){ result.innerHTML='<div class="alert alert-warning">Product Name দিন।</div>'; return; }
+  const data = {
+    name,
+    description: document.getElementById('mkt-desc')?.value?.trim()||'',
+    image: document.getElementById('mkt-img')?.value?.trim()||'',
+    category: document.getElementById('mkt-cat')?.value?.trim()||'',
+    type: document.getElementById('mkt-type')?.value||'free',
+    price: document.getElementById('mkt-price')?.value?.trim()||'',
+  };
+  result.innerHTML='<div class="alert alert-info">⏳ Saving...</div>';
+  let ok;
+  if(editingMarketplaceId){ ok = await FB.updateMarketplaceProduct(editingMarketplaceId, data); }
+  else { ok = await FB.addMarketplaceProduct(data); }
+  if(ok){
+    Toast.success(editingMarketplaceId?'✅ Update হয়েছে!':'✅ Product যোগ হয়েছে!');
+    Modal.hideAll();
+    renderMarketplaceTable(); initAdmin();
+  } else {
+    result.innerHTML='<div class="alert alert-error">❌ সমস্যা হয়েছে।</div>';
+  }
+}
+
+async function renderMarketplaceTable(){
+  document.getElementById('marketplaceTable').innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
+  const products = await FB.getMarketplaceProducts();
+  window._adminMarketplace = products;
+  if(!products.length){
+    document.getElementById('marketplaceTable').innerHTML=`<div style="padding:30px;text-align:center;color:var(--text2)"><p>এখনো কোনো digital product নেই।</p></div>`;
+    return;
+  }
+  document.getElementById('marketplaceTable').innerHTML=`<table>
+    <thead><tr><th>Product</th><th>Category</th><th>Type</th><th>Price</th><th>Actions</th></tr></thead>
+    <tbody>${products.map(p=>`<tr>
+      <td><div style="display:flex;align-items:center;gap:10px">
+        ${p.image?`<img src="${p.image}" style="width:40px;height:40px;border-radius:8px;object-fit:cover" onerror="this.style.display='none'">`:'<div style="width:40px;height:40px;border-radius:8px;background:rgba(124,58,237,.1);display:flex;align-items:center;justify-content:center">🛍️</div>'}
+        <div style="font-weight:800;color:#fff">${p.name}</div>
+      </div></td>
+      <td><span class="tag tag-violet">${p.category||'—'}</span></td>
+      <td><span class="tag ${p.type==='paid'?'tag-amber':'tag-green'}">${p.type==='paid'?'💰 Paid':'🆓 Free'}</span></td>
+      <td>${p.type==='paid'?(p.price||'—'):'—'}</td>
+      <td>
+        <button class="action-btn" onclick="openMarketplaceForm('${p.id}')">✏️ Edit</button>
+        <button class="action-btn" style="color:#f87171;margin-left:4px" onclick="delMarketplaceProduct('${p.id}')">🗑️</button>
+      </td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+async function delMarketplaceProduct(id){
+  if(!confirm('এই digital product মুছবেন?'))return;
+  await FB.deleteMarketplaceProduct(id);
+  renderMarketplaceTable(); initAdmin(); Toast.success('Deleted');
+}
+
+/* ════════ PRODUCT REQUESTS ════════ */
+async function renderProductRequestsTable(){
+  document.getElementById('productRequestsTable').innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
+  const filter = document.getElementById('reqFilter')?.value || 'all';
+  const requests = await FB.getProductRequests(filter);
+  /* date দিয়ে sort (orderBy fail হলেও যাতে ঠিকমতো দেখায়) */
+  requests.sort((a,b)=> new Date(b.date||0) - new Date(a.date||0));
+  window._adminRequests = requests;
+  if(!requests.length){
+    document.getElementById('productRequestsTable').innerHTML=`<div style="padding:30px;text-align:center;color:var(--text2)"><p>কোনো request নেই।</p></div>`;
+    return;
+  }
+  const statusTag = s => s==='approved'?'tag-green':s==='rejected'?'tag-red':'tag-amber';
+  const statusLabel = s => s==='approved'?'✅ Approved':s==='rejected'?'❌ Rejected':'⏳ Pending';
+  document.getElementById('productRequestsTable').innerHTML=`<table>
+    <thead><tr><th>User</th><th>Product</th><th>Type</th><th>Payment</th><th>Status</th><th>তারিখ</th><th>Actions</th></tr></thead>
+    <tbody>${requests.map(r=>`<tr>
+      <td><div style="font-weight:800;color:#fff">${r.fullName||'—'}</div><div style="font-size:.78rem;color:var(--text2)">${r.email||''}</div><div style="font-size:.78rem;color:var(--text2)">📱 ${r.whatsapp||''}</div></td>
+      <td>${r.productName||'—'}</td>
+      <td><span class="tag ${r.productType==='paid'?'tag-amber':'tag-green'}">${r.productType==='paid'?'💰 Paid':'🆓 Free'}</span></td>
+      <td style="font-size:.78rem">${r.productType==='paid'?`bKash: ${r.bkashNumber||'—'}<br>TrxID: ${r.transactionId||'—'}`:'—'}</td>
+      <td><span class="tag ${statusTag(r.status)}">${statusLabel(r.status)}</span></td>
+      <td style="font-size:.78rem;color:var(--text2)">${fd(r.date)}</td>
+      <td style="white-space:nowrap">
+        <button class="action-btn" onclick="viewRequestDetail('${r.id}')">👁️ দেখুন</button>
+      </td>
+    </tr>`).join('')}</tbody>
+  </table>`;
+}
+
+function viewRequestDetail(id){
+  const r = (window._adminRequests||[]).find(x=>x.id===id); if(!r) return;
+  const content = document.getElementById('requestDetailContent');
+  const isPending = r.status==='pending';
+  content.innerHTML = `
+    <div style="display:grid;gap:10px;margin-bottom:18px;font-size:.88rem">
+      <div><strong style="color:var(--text2)">নাম:</strong> ${r.fullName||'—'}</div>
+      <div><strong style="color:var(--text2)">Email:</strong> ${r.email||'—'}</div>
+      <div><strong style="color:var(--text2)">WhatsApp:</strong> ${r.whatsapp||'—'}</div>
+      <div><strong style="color:var(--text2)">Product:</strong> ${r.productName} <span class="tag ${r.productType==='paid'?'tag-amber':'tag-green'}" style="margin-left:6px">${r.productType==='paid'?'💰 Paid':'🆓 Free'}</span></div>
+      ${r.productType==='paid'?`<div><strong style="color:var(--text2)">bKash Number:</strong> ${r.bkashNumber||'—'}</div><div><strong style="color:var(--text2)">Transaction ID:</strong> ${r.transactionId||'—'}</div>`:''}
+      <div><strong style="color:var(--text2)">Request Date:</strong> ${fd(r.date)}</div>
+      <div><strong style="color:var(--text2)">Status:</strong> ${r.status}</div>
+    </div>
+    ${isPending?`
+    <div class="settings-section" style="padding:16px">
+      <h3 style="font-size:.9rem">✅ Approve করুন — Delivery দিন</h3>
+      <div class="form-group"><label class="form-label">Delivery Method</label>
+        <select class="form-control" id="rd-method">
+          <option value="email">📧 Email Delivery</option>
+          <option value="whatsapp">📱 WhatsApp Delivery</option>
+        </select>
+      </div>
+      <div class="form-group"><label class="form-label">Product File / Download Link / Message</label>
+        <textarea class="form-control" id="rd-content" rows="3" placeholder="Download link বা message লিখুন..."></textarea>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-primary" style="flex:1" onclick="approveRequestSubmit('${r.id}')">✅ Approve & Deliver</button>
+        <button class="btn btn-danger" onclick="rejectRequestPrompt('${r.id}')">❌ Reject</button>
+      </div>
+      <div id="rdResult" style="margin-top:10px"></div>
+    </div>`:`
+    <div class="alert ${r.status==='approved'?'alert-success':'alert-error'}">
+      ${r.status==='approved'?`✅ Approved — ${r.deliveryMethod==='email'?'📧 Email':'📱 WhatsApp'} এ পাঠানো হয়েছে।<br><div style="margin-top:6px;font-size:.85rem">${r.deliveryContent||''}</div>`:`❌ Rejected — ${r.rejectReason||'কোনো কারণ উল্লেখ নেই'}`}
+    </div>`}
+  `;
+  Modal.show('requestDetailModal');
+}
+
+async function approveRequestSubmit(id){
+  const method = document.getElementById('rd-method')?.value;
+  const content = document.getElementById('rd-content')?.value?.trim();
+  const result = document.getElementById('rdResult');
+  if(!content){ result.innerHTML='<div class="alert alert-warning">Delivery content/link/message দিন।</div>'; return; }
+  result.innerHTML='<div class="alert alert-info">⏳ Processing...</div>';
+  const ok = await FB.approveProductRequest(id, { deliveryMethod: method, deliveryContent: content });
+  if(ok){
+    Toast.success('✅ Request Approved & Delivered!');
+    Modal.hideAll();
+    renderProductRequestsTable(); initAdmin();
+  } else {
+    result.innerHTML='<div class="alert alert-error">❌ সমস্যা হয়েছে।</div>';
+  }
+}
+
+async function rejectRequestPrompt(id){
+  const reason = prompt('Reject করার কারণ লিখুন (User কে জানানো হবে):','');
+  if(reason===null) return;
+  const ok = await FB.rejectProductRequest(id, reason);
+  if(ok){
+    Toast.warning('Request reject করা হয়েছে।');
+    Modal.hideAll();
+    renderProductRequestsTable(); initAdmin();
+  } else {
+    Toast.error('সমস্যা হয়েছে।');
+  }
+}
+
+/* ════════ ADMIN ACTIVITY LOG ════════ */
+async function renderAdminLogsTable(){
+  document.getElementById('adminLogsTable').innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
+  const logs = await FB.getAdminLogs(150);
+  if(!logs.length){
+    document.getElementById('adminLogsTable').innerHTML=`<div style="padding:30px;text-align:center;color:var(--text2)"><p>এখনো কোনো activity log নেই।</p></div>`;
+    return;
+  }
+  const actionLabel = {
+    pro_activated:'⭐ Pro Activated', pro_extended:'⏳ Subscription Extended', pro_manual_upgrade:'⭐ Manual Pro Upgrade',
+    pro_removed:'🔻 Pro Removed', payment_rejected:'❌ Payment Rejected', ai_usage_reset:'🔄 AI Usage Reset',
+    user_banned:'🚫 User Banned', marketplace_product_added:'🛍️ Product Added', marketplace_product_updated:'✏️ Product Updated',
+    marketplace_product_deleted:'🗑️ Product Deleted', product_request_approved:'✅ Request Approved', product_request_rejected:'❌ Request Rejected',
+    winning_product_deleted:'🗑️ Winning Product Deleted',
+  };
+  document.getElementById('adminLogsTable').innerHTML=`<table>
+    <thead><tr><th>Action</th><th>Admin</th><th>বিস্তারিত</th><th>তারিখ</th></tr></thead>
+    <tbody>${logs.map(l=>`<tr>
+      <td><span class="tag tag-mint">${actionLabel[l.action]||l.action}</span></td>
+      <td style="font-size:.79rem;color:var(--text2)">${l.adminEmail||'—'}</td>
+      <td style="font-size:.78rem;color:var(--text2)">${Object.entries(l.data||{}).map(([k,v])=>`${k}: ${v}`).join(', ')}</td>
+      <td style="font-size:.78rem;color:var(--text2)">${fd(l.date)}</td>
+    </tr>`).join('')}</tbody>
+  </table>`;
 }
 
 /* ════════ BANNERS ════════ */
@@ -668,7 +1007,11 @@ function buildPaymentsHTML(rows, elId, compact){
 async function approvePayment(id, email, name, plan){
   if(!confirm(`${email} কে Pro activate করবেন?\nPlan: ${plan}`))return;
   await FB.updatePayment(id,{status:'approved', approvedAt:new Date().toISOString()});
-  const result = await FB.addProUserByEmail(email||'', name||'', plan||'Pro Monthly');
+  /* planCode থেকে duration বের করা — monthly=30 দিন, yearly=365 দিন, agency=30 দিন */
+  const r = window._adminPayments?.find(x=>x.id===id);
+  const durationMap = { monthly:'30', yearly:'365', agency:'30' };
+  const duration = durationMap[r?.planCode] || '30';
+  const result = await FB.addProUserByEmail(email||'', name||'', plan||'Pro Monthly', duration);
   if(result==='activated'){
     Toast.success(`✅ ${email} এখন Pro! Account activate হয়েছে।`);
   } else if(result==='pending'){
@@ -681,7 +1024,15 @@ async function approvePayment(id, email, name, plan){
 
 async function rejectPayment(id){
   if(!confirm('Payment reject করবেন? User কে জানাবেন।'))return;
+  const r = window._adminPayments?.find(x=>x.id===id);
   await FB.updatePayment(id,{status:'rejected', rejectedAt:new Date().toISOString()});
+  if(r?.uid){
+    await FB.addNotification(r.uid, 'pro_rejected', {
+      title: '❌ আপনার Payment Reject হয়েছে',
+      body: 'Transaction ID যাচাই করতে সমস্যা হয়েছে। সঠিক তথ্য দিয়ে আবার চেষ্টা করুন বা Support এ যোগাযোগ করুন।',
+    });
+  }
+  await FB.logAdminActivity('payment_rejected', { paymentId:id, email:r?.email });
   Toast.warning('Payment rejected।');
   renderPaymentsTable();
 }
@@ -832,8 +1183,14 @@ function viewAgency(id){
   Modal.show('detailModal');
 }
 async function activateFromAgency(email,name,plan){
-  const ok = await FB.addProUserByEmail(email, name, plan);
-  Toast.success(ok ? `✅ ${email} এখন Pro!` : `✅ Recorded! User register করলে Pro হবে।`);
+  const result = await FB.addProUserByEmail(email, name, plan, '30');
+  if(result==='activated'){
+    Toast.success(`✅ ${email} এখন Pro!`);
+  } else if(result==='pending'){
+    Toast.info(`✅ Recorded! User register করলে Pro হবে।`);
+  } else {
+    Toast.error('সমস্যা হয়েছে।');
+  }
   initAdmin();
 }
 
@@ -841,40 +1198,86 @@ async function activateFromAgency(email,name,plan){
 async function renderUsersTable(){
   document.getElementById('usersTable').innerHTML='<div style="padding:20px;text-align:center;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
   const users = await FB.getProUsers();
+  window._adminProUsers = users;
   if(!users.length){ document.getElementById('usersTable').innerHTML=`<div style="padding:28px;text-align:center;color:var(--text2)">কোনো Pro user নেই।</div>`; return; }
   document.getElementById('usersTable').innerHTML=`<table><thead><tr><th>নাম</th><th>Email</th><th>Plan</th><th>Expires</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-    ${users.map(u=>`<tr>
+    ${users.map(u=>{
+      const expSoon = u.expiryDate && (new Date(u.expiryDate) - new Date()) < 3*24*60*60*1000;
+      return `<tr>
       <td><strong>${u.name||'—'}</strong></td>
       <td style="color:var(--text2)">${u.email}</td>
       <td><span class="tag tag-mint">${u.plan||'Pro'}</span></td>
-      <td style="font-size:.79rem;color:var(--text2)">${u.expiryDate?fd(u.expiryDate):'∞'}</td>
+      <td style="font-size:.79rem;color:${expSoon?'#f87171':'var(--text2)'}">${u.expiryDate?fd(u.expiryDate):'∞ Lifetime'}${expSoon?' ⚠️':''}</td>
       <td><span class="tag ${u.banned?'tag-red':'tag-green'}">${u.banned?'Banned':'Active'}</span></td>
-      <td>
-        <button class="action-btn" style="color:#f87171" onclick="removeProUser('${u.id}')">Remove</button>
+      <td style="white-space:nowrap">
+        <button class="action-btn" style="color:var(--a1)" onclick="openExtendModal('${u.id}','${(u.name||'').replace(/[^a-zA-Z0-9\u0980-\u09FF .]/g,'')}','${u.email}')">⏳ Extend</button>
+        <button class="action-btn" style="color:#f87171;margin-left:4px" onclick="removeProUser('${u.id}')">Remove</button>
         <button class="action-btn" style="color:var(--a3);margin-left:4px" onclick="banUserFn('${u.id}')">Ban</button>
       </td>
-    </tr>`).join('')}
+    </tr>`;
+    }).join('')}
   </tbody></table>`;
 }
 async function addProUserManual(){
   const email = document.getElementById('nu-email')?.value?.trim().toLowerCase();
   const plan  = document.getElementById('nu-plan')?.value;
+  const duration = document.getElementById('nu-duration')?.value || '30';
+  const customDate = document.getElementById('nu-customdate')?.value || null;
   const result = document.getElementById('addUserResult');
   if(!email){ Toast.error('Email দিন'); return; }
+  if(duration==='custom' && !customDate){ Toast.error('Custom date দিন'); return; }
   result.innerHTML='<div class="alert alert-info">⏳ Processing...</div>';
-  const ok = await FB.addProUserByEmail(email, email.split('@')[0], plan);
-  if(ok){
+  const res = await FB.addProUserByEmail(email, email.split('@')[0], plan, duration, customDate);
+  if(res==='activated'){
     result.innerHTML=`<div class="alert alert-success">✅ ${email} Pro করা হয়েছে!</div>`;
     Toast.success(`${email} এখন Pro!`);
     renderUsersTable(); initAdmin();
-  } else {
+  } else if(res==='pending'){
     result.innerHTML=`<div class="alert alert-warning">⚠️ User এখনো register করেনি। Register করলে Pro হবে।</div>`;
+  } else {
+    result.innerHTML=`<div class="alert alert-error">❌ সমস্যা হয়েছে। আবার চেষ্টা করুন।</div>`;
   }
 }
 async function removeProUser(uid){
-  if(!confirm('Pro access সরাবেন?'))return;
+  if(!confirm('Pro access সরাবেন? User Normal হয়ে যাবে।'))return;
   await FB.removeProUser(uid);
-  renderUsersTable(); initAdmin(); Toast.success('Pro access সরানো হয়েছে।');
+  renderUsersTable(); initAdmin(); Toast.success('Pro access সরানো হয়েছে। User এখন Normal।');
+}
+
+/* ── Subscription Extend ── */
+function openExtendModal(uid, name, email){
+  document.getElementById('ext-uid').value = uid;
+  document.getElementById('extendUserInfo').textContent = `${name||email} (${email}) এর subscription extend করুন।`;
+  document.getElementById('extendUserResult').innerHTML = '';
+  Modal.show('extendUserModal');
+}
+async function extendUserSubmit(){
+  const uid  = document.getElementById('ext-uid')?.value;
+  const days = parseInt(document.getElementById('ext-days')?.value || '30');
+  if(!uid) return;
+  const result = document.getElementById('extendUserResult');
+  result.innerHTML = '<div class="alert alert-info">⏳ Processing...</div>';
+  const ok = await FB.extendProUser(uid, days);
+  if(ok){
+    Toast.success(`✅ ${days} দিন Extend হয়েছে!`);
+    Modal.hideAll();
+    renderUsersTable();
+  } else {
+    result.innerHTML = '<div class="alert alert-error">❌ সমস্যা হয়েছে।</div>';
+  }
+}
+
+/* ── Normal User কে সরাসরি Pro করা (All Users টেবিল থেকে, duration prompt সহ) ── */
+async function upgradeNormalUserToPro(uid, email, name){
+  const duration = prompt('কত দিনের জন্য Pro করবেন? (7 / 15 / 30 / 90) — lifetime এর জন্য "lifetime" লিখুন', '30');
+  if(!duration) return;
+  const ok = await FB.upgradeToProManual(uid, 'Pro Monthly', duration.trim());
+  if(ok){
+    Toast.success(`✅ ${email} এখন Pro!`);
+    renderAllUsers(); initAdmin();
+  } else {
+    Toast.error('সমস্যা হয়েছে।');
+  }
 }
 async function banUserFn(uid){
   if(!confirm('Ban করবেন?'))return;
@@ -889,24 +1292,44 @@ async function renderAllUsers(){
     const snap = await db.collection('users').orderBy('createdAt','desc').get();
     const users = snap.docs.map(d=>({id:d.id,...d.data()}));
     if(!users.length){ document.getElementById('allUsersTable').innerHTML='<div style="padding:28px;text-align:center;color:var(--text2)">কোনো user নেই।</div>'; return; }
-    document.getElementById('allUsersTable').innerHTML=`<table><thead><tr><th>নাম</th><th>Email</th><th>WhatsApp</th><th>ঠিকানা</th><th>Facebook</th><th>Plan</th><th>যোগ হয়েছে</th><th>Actions</th></tr></thead><tbody>
-      ${users.map(u=>`<tr>
+    /* সব user এর AI usage count একসাথে fetch করো */
+    const usageSnap = await db.collection('aiUsage').get();
+    const usageMap = {};
+    usageSnap.docs.forEach(d=>{ usageMap[d.id] = d.data().count||0; });
+    window._adminAllUsers = users;
+    document.getElementById('allUsersTable').innerHTML=`<table><thead><tr><th>নাম</th><th>Email</th><th>WhatsApp</th><th>ঠিকানা</th><th>Facebook</th><th>Plan</th><th>AI Usage</th><th>যোগ হয়েছে</th><th>Actions</th></tr></thead><tbody>
+      ${users.map(u=>{
+        const usageCount = usageMap[u.id]||0;
+        const isPro = u.isPro || u.plan==='admin';
+        return `<tr>
         <td><strong>${u.name||'—'}</strong></td>
         <td style="font-size:.82rem;color:var(--text2)">${u.email||'—'}</td>
         <td style="font-size:.82rem">${u.whatsapp||u.phone||'—'}</td>
         <td style="font-size:.82rem;color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis">${u.address||'—'}</td>
         <td style="font-size:.78rem">${u.facebook?`<a href="${u.facebook.startsWith('http')?u.facebook:'https://'+u.facebook}" target="_blank" style="color:var(--a1)">🔗 FB</a>`:u.fbLink?`<a href="${u.fbLink}" target="_blank" style="color:var(--a1)">🔗</a>`:'—'}</td>
-        <td style="font-size:.82rem;color:var(--text2);max-width:120px;overflow:hidden;text-overflow:ellipsis">${u.address||'—'}</td>
-        <td style="font-size:.78rem">${u.fbLink?`<a href="${u.fbLink}" target="_blank" style="color:var(--a1)">🔗 Link</a>`:'—'}</td>
-        <td><span class="tag ${u.plan==='admin'?'tag-red':u.isPro?'tag-amber':'tag-green'}">${u.plan||'free'}</span></td>
+        <td><span class="tag ${u.plan==='admin'?'tag-red':isPro?'tag-amber':'tag-green'}">${u.plan||'free'}</span></td>
+        <td>${isPro?'<span style="color:var(--text2);font-size:.8rem">∞ Unlimited</span>':`<span style="font-weight:800;color:${usageCount>=3?'#f87171':'var(--a1)'}">${usageCount}/3</span>`}</td>
         <td style="font-size:.79rem;color:var(--text2)">${fd(u.createdAt)}</td>
-        <td>
-          <button class="action-btn" onclick="activateFromAgency('${u.email}','${u.name}','Pro Monthly')">⭐ Pro</button>
+        <td style="white-space:nowrap">
+          <button class="action-btn" onclick="upgradeNormalUserToPro('${u.id}','${u.email}','${u.name||''}')">⭐ Pro</button>
+          ${!isPro?`<button class="action-btn" style="color:var(--a3);margin-left:4px" onclick="resetUserAiUsage('${u.id}','${u.email}')">🔄 Reset</button>`:''}
         </td>
-      </tr>`).join('')}
+      </tr>`}).join('')}
     </tbody></table>`;
   } catch(e){ document.getElementById('allUsersTable').innerHTML=`<div style="padding:20px;color:#f87171">Error: ${e.message}</div>`; }
 }
+
+async function resetUserAiUsage(uid, email){
+  if(!confirm(`${email} এর AI Tool usage reset করবেন? সে আবার ৩ বার ব্যবহার করতে পারবে।`))return;
+  const ok = await FB.resetAiUsage(uid);
+  if(ok){
+    Toast.success('✅ Usage reset হয়েছে!');
+    renderAllUsers();
+  } else {
+    Toast.error('সমস্যা হয়েছে।');
+  }
+}
+
 
 /* ════════ ANALYTICS ════════ */
 async function renderAnalytics(){
@@ -979,6 +1402,7 @@ async function exportTableCSV(type){
   if(type==='help') data = await FB.getHelp();
   else if(type==='agency') data = await FB.getAgency();
   else if(type==='payments') data = await FB.getPayments();
+  else if(type==='productRequests') data = await FB.getProductRequests('all');
   else data = [];
   if(!data.length){ Toast.warning('কোনো data নেই'); return; }
   const h=Object.keys(data[0]).join(',');
