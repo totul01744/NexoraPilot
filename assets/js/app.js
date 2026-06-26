@@ -1430,7 +1430,15 @@ async function submitPayment(){
 }
 
 /* ════════ SUPPORT CHAT ════════ */
-function toggleSupport(){ document.getElementById('supportPanel')?.classList.toggle('open') }
+function toggleSupport(){
+  const panel = document.getElementById('supportPanel');
+  if(!panel) return;
+  const isOpen = panel.classList.toggle('open');
+  if(isOpen){
+    const body = document.getElementById('supportBody');
+    if(body && !body.innerHTML.trim()) body.innerHTML = supportBodyHTML();
+  }
+}
 function supportBodyHTML(){
   const nm = currentUserData?.name||'';
   const em = currentUser?.email||'';
