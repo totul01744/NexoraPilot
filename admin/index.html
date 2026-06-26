@@ -155,10 +155,6 @@
           <button class="btn btn-primary" onclick="saveAdminApiKey()">🔑 Key Save করুন</button>
           <button class="btn btn-danger btn-sm" onclick="removeAdminApiKey()">🗑️ Key মুছুন</button>
         </div>
-        <details style="margin-top:18px">
-          <summary style="cursor:pointer;color:var(--text2);font-size:.83rem">⚙️ Gemini Key ব্যবহার করতে চান? (ক্লিক করুন)</summary>
-          <p style="font-size:.82rem;color:var(--text2);margin-top:10px">উপরের একই বক্সে Gemini key (<code>AIzaSy...</code> দিয়ে শুরু) দিলেও সিস্টেম স্বয়ংক্রিয়ভাবে সনাক্ত করে সেটা ব্যবহার করবে। <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--a1)">aistudio.google.com/apikey</a> থেকে নিতে পারেন।</p>
-        </details>
       </div>
       <div class="settings-section">
         <h3>🧪 Key Test করুন</h3>
@@ -616,18 +612,10 @@ async function testApiKey(){
   if(!key){ result.innerHTML='<div class="alert alert-error">❌ কোনো key সেট নেই।</div>'; return; }
   btn.disabled=true; btn.textContent='⏳ Test করা হচ্ছে...';
   result.innerHTML='<div class="alert alert-info">🔄 Connection check করা হচ্ছে...</div>';
-  const keyType = Engine.detectKeyType(key);
   try{
-    if(keyType==='openrouter'){
-      const res=await fetch(CONFIG.OPENROUTER_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model:CONFIG.OPENROUTER_MODEL,messages:[{role:'user',content:'Say OK only'}],max_tokens:5})});
-      if(res.ok){ result.innerHTML='<div class="alert alert-success">✅ OpenRouter Connection সফল!</div>'; }
-      else { const err=await res.json().catch(()=>{}); result.innerHTML=`<div class="alert alert-error">❌ Error: ${err?.error?.message||'Invalid key'}</div>`; }
-    } else {
-      const url=`${CONFIG.GEMINI_URL}?key=${key}`;
-      const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:'Say OK only'}]}],generationConfig:{maxOutputTokens:5}})});
-      if(res.ok){ result.innerHTML='<div class="alert alert-success">✅ Gemini Connection সফল!</div>'; }
-      else { const err=await res.json().catch(()=>{}); result.innerHTML=`<div class="alert alert-error">❌ Error: ${err?.error?.message||'Invalid key'}</div>`; }
-    }
+    const res=await fetch(CONFIG.OPENROUTER_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model:CONFIG.OPENROUTER_MODEL,messages:[{role:'user',content:'Say OK only'}],max_tokens:5})});
+    if(res.ok){ result.innerHTML='<div class="alert alert-success">✅ OpenRouter Connection সফল!</div>'; }
+    else { const err=await res.json().catch(()=>{}); result.innerHTML=`<div class="alert alert-error">❌ Error: ${err?.error?.message||'Invalid key'}</div>`; }
   } catch(e){ result.innerHTML=`<div class="alert alert-error">❌ ${e.message}</div>`; }
   btn.disabled=false; btn.textContent='🧪 Connection Test করুন';
 }
