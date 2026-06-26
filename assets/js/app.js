@@ -1009,7 +1009,7 @@ const Engine = {
           model: useModel,
           messages: [{
             role: 'user',
-            content: prompt + '\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown, no backticks, no extra text. Raw JSON only.'
+            content: prompt + '\n\nOUTPUT LANGUAGE: ' + (window._toolLang||'Bengali') + '. Write ALL text content (headlines, body copy, scripts, descriptions, analysis, recommendations, summaries, bullet points, CTAs etc.) in ' + (window._toolLang||'Bengali') + '. Only field NAMES stay in English. JSON structure stays unchanged.\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown, no backticks, no extra text. Raw JSON only.'
           }],
           temperature: 0.7,
           max_tokens: 4000,
@@ -1434,7 +1434,25 @@ function toggleSupport(){ document.getElementById('supportPanel')?.classList.tog
 function supportBodyHTML(){
   const nm = currentUserData?.name||'';
   const em = currentUser?.email||'';
-  return `<div class="form-group"><label class="form-label">আপনার নাম</label><input class="form-control" id="supp-name" placeholder="নাম লিখুন" value="${nm}"></div>
+  const waMsg = encodeURIComponent('NexoraPilot থেকে যোগাযোগ করছি। ' + (nm ? 'আমার নাম '+nm+'।' : '') + ' আমার সমস্যা হলো: ');
+  return `
+<a href="https://wa.me/8801859393487?text=${waMsg}" target="_blank"
+  style="display:flex;align-items:center;gap:12px;background:linear-gradient(135deg,rgba(37,211,102,.12),rgba(18,140,126,.08));border:1.5px solid rgba(37,211,102,.35);border-radius:12px;padding:14px 16px;text-decoration:none;margin-bottom:14px;transition:all .2s"
+  onmouseover="this.style.background='linear-gradient(135deg,rgba(37,211,102,.2),rgba(18,140,126,.14))'"
+  onmouseout="this.style.background='linear-gradient(135deg,rgba(37,211,102,.12),rgba(18,140,126,.08))'">
+  <span style="font-size:1.7rem;line-height:1">📲</span>
+  <div>
+    <div style="font-weight:800;color:#25D366;font-size:.9rem">WhatsApp-এ সরাসরি কথা বলুন</div>
+    <div style="font-size:.78rem;color:var(--text2);margin-top:2px">+880 1859-393487 · সবচেয়ে দ্রুত সাড়া পাবেন</div>
+  </div>
+  <span style="margin-left:auto;color:#25D366;font-size:1.1rem">→</span>
+</a>
+<div style="text-align:center;color:var(--text2);font-size:.76rem;margin-bottom:12px;display:flex;align-items:center;gap:8px">
+  <div style="flex:1;height:1px;background:var(--border)"></div>
+  অথবা বার্তা রেখে যান
+  <div style="flex:1;height:1px;background:var(--border)"></div>
+</div>
+<div class="form-group"><label class="form-label">আপনার নাম</label><input class="form-control" id="supp-name" placeholder="নাম লিখুন" value="${nm}"></div>
 <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="supp-email" type="email" placeholder="you@example.com" value="${em}"></div>
 <div class="form-group"><label class="form-label">বার্তা</label><textarea class="form-control" id="supp-msg" rows="3" placeholder="কীভাবে সাহায্য করতে পারি?"></textarea></div>
 <button class="btn btn-primary btn-full btn-sm" onclick="submitSupportMsg()">📤 বার্তা পাঠান</button>`;

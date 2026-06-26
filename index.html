@@ -431,8 +431,35 @@ const TOOLS=[
 function openTool(id){
   const tool=TOOLS.find(t=>t.id===id); if(!tool) return;
   const c=document.getElementById('toolContainer');
-  c.innerHTML=tool.html;
+  // Build lang toggle HTML
+  const langToggle = `<div id="toolLangBar" style="display:flex;align-items:center;justify-content:flex-end;gap:8px;margin-bottom:14px;padding:0 2px">
+    <span style="font-size:.78rem;color:var(--text2);font-weight:600">ভাষা:</span>
+    <div style="display:flex;border:1px solid var(--border2);border-radius:8px;overflow:hidden">
+      <button id="langBn" onclick="setToolLang('Bengali')"
+        style="padding:5px 14px;font-size:.78rem;font-weight:800;background:linear-gradient(135deg,var(--a1),var(--a2));color:#0a0a14;border:none;cursor:pointer">🇧🇩 বাংলা</button>
+      <button id="langEn" onclick="setToolLang('English')"
+        style="padding:5px 14px;font-size:.78rem;font-weight:700;background:transparent;color:var(--text2);border:none;cursor:pointer">🇬🇧 English</button>
+    </div>
+  </div>`;
+  c.innerHTML = langToggle + tool.html;
+  // Apply current lang selection
+  window._toolLang = window._toolLang || 'Bengali';
+  setToolLang(window._toolLang);
   c.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+function setToolLang(lang){
+  window._toolLang = lang;
+  const bn = document.getElementById('langBn');
+  const en = document.getElementById('langEn');
+  if(!bn || !en) return;
+  if(lang === 'Bengali'){
+    bn.style.cssText = 'padding:5px 14px;font-size:.78rem;font-weight:800;background:linear-gradient(135deg,var(--a1),var(--a2));color:#0a0a14;border:none;cursor:pointer';
+    en.style.cssText = 'padding:5px 14px;font-size:.78rem;font-weight:700;background:transparent;color:var(--text2);border:none;cursor:pointer';
+  } else {
+    en.style.cssText = 'padding:5px 14px;font-size:.78rem;font-weight:800;background:linear-gradient(135deg,var(--a1),var(--a2));color:#0a0a14;border:none;cursor:pointer';
+    bn.style.cssText = 'padding:5px 14px;font-size:.78rem;font-weight:700;background:transparent;color:var(--text2);border:none;cursor:pointer';
+  }
 }
 
 /* ═══════════════════════════════════════
