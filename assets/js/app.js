@@ -978,9 +978,8 @@ const Toast = {
 /* ════════ ENGINE (OpenRouter) ════════ */
 const Engine = {
   async getActiveKey(){
-    /* Priority: 1) User personal key  2) System key */
-    const userKey = await FB.getUserApiKey();
-    if(userKey) return { key: userKey, source: 'user' };
+    /* Admin system key only — user-এর নিজস্ব key লাগবে না */
+    await Store.loadApiKeyFromFirestore();
     const sysKey = Store.getApiKey();
     if(sysKey) return { key: sysKey, source: 'system' };
     return { key: '', source: 'none' };
@@ -1043,7 +1042,7 @@ const Engine = {
      Normal User → Lifetime সর্বোচ্চ CONFIG.AI_TOOL_FREE_LIMIT (৩) বার, তারপর Locked */
   async checkLimit(){
     if(FB.isPro()) return true;
-    if(!Store.getApiKey() && !(await FB.getUserApiKey())) return false; /* কোনো key ছাড়া চলবে না */
+    if(!Store.getApiKey()) return false; /* system key ছাড়া চলবে না */
     return await FB.canUseAiTool();
   },
 
@@ -1123,17 +1122,15 @@ async function updateUsageDisplay(){
       const nm = (currentUserData.name||'User').split(' ')[0];
       const unreadCount = await FB.getUnreadNotificationCount();
       userDisplay.innerHTML=`
-        <button class="notif-bell-btn" onclick="openNotificationPanel()" title="Notifications" style="position:relative;background:none;border:1px solid var(--border);border-radius:10px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);margin-right:2px;flex-shrink:0">
-          🔔${unreadCount>0?`<span style="position:absolute;top:-4px;right:-4px;background:#f87171;color:#fff;border-radius:10px;font-size:.6rem;font-weight:900;padding:1px 5px;min-width:16px">${unreadCount}</span>`:''}
-        </button>
-        <div class="usage-pill" style="margin-right:4px;flex-shrink:0" title="AI Tool ব্যবহার">
+        <button class="notif-bell-btn" onclick="openNotificationPanel()" title="Notifications" style="position:relative;background:none;border:1px solid var(--border);border-radius:10px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text3);flex-shrink:0">
+          🔔${unreadCount>0?`<span style="position:absolute;top:-4px;right:-4px;background:#f87171;color:#fff;border-radius:10px;font-size:.6rem;font-weight:900;padding:1px 5px;min-width:16px">${unreadCount}</span>`:''}</button>
+        <div class="usage-pill" style="flex-shrink:0" title="AI Tool ব্যবহার">
           <span class="glow-dot ${isPro?'mint':'violet'}"></span>
           <span style="color:${isPro?'var(--a1)':r>0?'var(--a3)':'#f87171'}">${isPro?'∞':`${r}/${CONFIG.AI_TOOL_FREE_LIMIT}`}</span>
         </div>
-        <button onclick="openApiKeyModal()" title="${hasUserKey?'নিজস্ব API Key সেট আছে':'API Key দিন'}" style="background:none;border:1px solid ${hasUserKey?'rgba(34,197,94,.3)':'var(--border)'};border-radius:10px;width:34px;height:34px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:${hasUserKey?'#4ade80':'var(--text3)'};flex-shrink:0">🔑</button>
-        <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <div style="display:flex;align-items:center;gap:7px;flex-shrink:0">
           <div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,var(--a1),var(--a2));display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.85rem;color:#0a0a14;flex-shrink:0">${nm.charAt(0).toUpperCase()}</div>
-          <span style="font-size:.84rem;font-weight:700;color:#fff;max-width:80px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${nm}</span>
+          <span class="hdr-username" style="font-size:.84rem;font-weight:700;color:#fff;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${nm}</span>
           ${isPro?'<span class="tag tag-mint" style="font-size:.65rem;padding:2px 7px">PRO</span>':''}
           <button class="btn btn-sm btn-secondary" style="padding:4px 10px;font-size:.75rem" onclick="authLogout()">Logout</button>
         </div>`;
@@ -1535,20 +1532,13 @@ async function runTool(promptFn, inputs, resultId) {
   const resultEl = document.getElementById(resultId);
   if(!resultEl) return null;
 
-  /* Pro User: Unlimited — কোনো limit check লাগবে না, key থাকলেই চলবে */
-  /* Priority: user personal key → system key → error */
-  const userKey = await FB.getUserApiKey();
-  let apiKey = userKey;
-  if(!apiKey){
-    await Store.loadApiKeyFromFirestore();
-    apiKey = Store.getApiKey();
-  }
+  /* Admin system key only — user নিজে key দিতে হবে না */
+  await Store.loadApiKeyFromFirestore();
+  const apiKey = Store.getApiKey();
   if(!apiKey){
     resultEl.innerHTML = `<div class="alert alert-warning" style="flex-direction:column;gap:12px">
-      <div>🔑 <strong>API Key সেট নেই!</strong></div>
-      <div style="font-size:.85rem;color:var(--text2)">Tool ব্যবহার করতে আপনার OpenRouter API Key দিন।<br>
-      <a href="https://openrouter.ai/keys" target="_blank" style="color:var(--a1)">openrouter.ai/keys</a> থেকে ফ্রি key নিন।</div>
-      <button class="btn btn-primary btn-sm" onclick="openApiKeyModal()">🔑 API Key দিন</button>
+      <div>⚙️ <strong>সার্ভিস সাময়িক অনুপলব্ধ</strong></div>
+      <div style="font-size:.85rem;color:var(--text2)">দয়া করে কিছুক্ষণ পরে আবার চেষ্টা করুন অথবা Admin-এর সাথে যোগাযোগ করুন।</div>
     </div>`;
     return null;
   }

@@ -25,7 +25,7 @@
       <div class="usage-pill" style="margin-left:6px"><span class="glow-dot mint"></span><span class="usage-display">3/3</span> বাকি</div>
     </nav>
     <div id="headerUserDisplay" style="display:flex;align-items:center;gap:8px;margin-left:8px"></div>
-    <button class="hamburger" onclick="document.getElementById('mainNav').classList.toggle('open')">☰</button>
+    <button class="hamburger" onclick="openDrawer()" aria-label="Menu">☰</button>
   </div>
 </header>
 
@@ -246,5 +246,50 @@ function onAuthStateReady(user){
   updateUsageDisplay();
 }
 </script>
+
+<!-- MOBILE DRAWER -->
+<div class="mobile-sidebar-overlay" id="mobileOverlay" onclick="closeDrawer()"></div>
+<div class="mobile-drawer" id="mobileDrawer">
+  <div class="mobile-drawer-header">
+    <div class="mobile-drawer-logo">
+      <div class="logo-icon" style="width:34px;height:34px;font-size:.9rem">⚡</div>
+      NexoraPilot
+    </div>
+    <button class="mobile-drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="mobile-drawer-nav" id="drawerNav"></div>
+  <div class="mobile-drawer-user" id="drawerUserArea"></div>
+</div>
+<script>
+function openDrawer(){
+  document.getElementById('mobileDrawer').classList.add('open');
+  var ov=document.getElementById('mobileOverlay');
+  ov.style.display='block';
+  setTimeout(function(){ov.classList.add('open');},10);
+  document.body.style.overflow='hidden';
+}
+function closeDrawer(){
+  document.getElementById('mobileDrawer').classList.remove('open');
+  var ov=document.getElementById('mobileOverlay');
+  ov.classList.remove('open');
+  setTimeout(function(){ov.style.display='none';},300);
+  document.body.style.overflow='';
+}
+</script>
+
+<script>
+document.getElementById('drawerNav').innerHTML = '<a class="nav-link" href="index.html" onclick="closeDrawer()">🏠 Home</a><a class="nav-link" href="index.html#winning" onclick="closeDrawer()">🏆 Products</a><a class="nav-link" href="index.html#tools" onclick="closeDrawer()">🛠️ Tools</a><a class="nav-link" href="marketplace.html" onclick="closeDrawer()">🛍️ Marketplace</a><a class="nav-link" href="dashboard.html" onclick="closeDrawer()">📊 Dashboard</a><a class="nav-link active" href="help.html" onclick="closeDrawer()">💬 Support</a>';
+if(!window._drawerHooked){
+  window._drawerHooked = true;
+  var _origUpdate = window.updateUsageDisplay;
+  window.updateUsageDisplay = async function(){
+    if(_origUpdate) await _origUpdate.call(this);
+    var h = document.getElementById('headerUserArea') || document.getElementById('headerUserDisplay');
+    var d = document.getElementById('drawerUserArea');
+    if(h && d) d.innerHTML = h.innerHTML;
+  };
+}
+</script>
+
 </body>
 </html>
