@@ -147,7 +147,14 @@
 <script>
 const CONFIG_BKASH = '01859-393487'; /* fallback display, will sync with CONFIG */
 
+
 let _mktProducts = [];
+
+function proxyImg(url){
+  if(!url) return '';
+  if(url.startsWith('data:')) return url;
+  return 'https://images.weserv.nl/?url=' + encodeURIComponent(url) + '&w=600&output=jpg&we';
+}
 
 async function loadMarketplace(){
   const grid = document.getElementById('marketplaceGrid');
@@ -162,7 +169,7 @@ async function loadMarketplace(){
     grid.innerHTML = products.map(p => `
       <div class="card product-card" onclick="showMktProduct('${p.id}')">
         <div style="position:relative">
-          ${p.image?`<img class="product-card-img" src="${p.image}" alt="${p.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" referrerpolicy="no-referrer">`:''}
+          ${p.image?`<img class="product-card-img" src="${proxyImg(p.image)}" alt="${p.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}
           <div class="product-card-img-ph" style="${p.image?'display:none':'display:flex'}">🛍️</div>
           <div style="position:absolute;top:10px;right:10px"><span class="tag ${p.type==='paid'?'tag-amber':'tag-green'}">${p.type==='paid'?'💰 Paid':'🆓 Free'}</span></div>
         </div>
@@ -186,7 +193,7 @@ function showMktProduct(id){
   document.getElementById('mktModalTitle').textContent = p.name;
   document.getElementById('mktModalContent').innerHTML = `
     <div style="display:grid;gap:16px">
-      ${p.image?`<img src="${p.image}" style="width:100%;border-radius:12px;max-height:260px;object-fit:cover" referrerpolicy="no-referrer" onerror="this.style.display='none';this.insertAdjacentHTML('afterend','<div style=\"width:100%;height:200px;border-radius:12px;background:rgba(124,58,237,.08);display:flex;align-items:center;justify-content:center;font-size:4rem\">🛍️</div>')">`:''}
+      ${p.image?`<img src="${proxyImg(p.image)}" style="width:100%;border-radius:12px;max-height:260px;object-fit:cover" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div style="display:none;width:100%;height:160px;border-radius:12px;background:rgba(124,58,237,.08);align-items:center;justify-content:center;font-size:3.5rem">🛍️</div>`:''}
       <div style="display:flex;gap:10px;align-items:center">
         <span class="tag ${p.type==='paid'?'tag-amber':'tag-green'}">${p.type==='paid'?'💰 Paid Product':'🆓 Free Product'}</span>
         ${p.category?`<span class="tag tag-violet">${p.category}</span>`:''}
