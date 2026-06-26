@@ -136,25 +136,29 @@
         </div>
       </div>
       <div class="settings-section">
-        <h3>🔑 Gemini API Key সেট করুন</h3>
+        <h3>🔑 OpenRouter API Key সেট করুন</h3>
         <div style="background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.15);border-radius:10px;padding:14px;margin-bottom:18px;font-size:.86rem">
-          <strong style="color:var(--a1)">📋 Gemini API Key পাওয়ার নিয়ম:</strong>
+          <strong style="color:var(--a1)">📋 OpenRouter API Key পাওয়ার নিয়ম:</strong>
           <ol style="margin-top:8px;padding-left:18px;color:var(--text2);display:grid;gap:4px">
-            <li><a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--a1)">aistudio.google.com/apikey</a> এ যান</li>
-            <li>Google account দিয়ে login করুন</li>
-            <li>"Create API Key" ক্লিক করুন</li>
-            <li>Key copy করুন এবং নিচে paste করুন</li>
+            <li><a href="https://openrouter.ai/keys" target="_blank" style="color:var(--a1)">openrouter.ai/keys</a> এ যান</li>
+            <li>Account দিয়ে login করুন</li>
+            <li>"Create Key" ক্লিক করুন</li>
+            <li>Key copy করুন (শুরু হবে <code>sk-or-</code> দিয়ে) এবং নিচে paste করুন</li>
           </ol>
-          <div style="margin-top:10px;padding:8px 12px;background:rgba(245,158,11,.1);border-radius:8px;font-size:.83rem;color:var(--a3)">✅ Gemini API সম্পূর্ণ <strong>বিনামূল্যে</strong></div>
+          <div style="margin-top:10px;padding:8px 12px;background:rgba(245,158,11,.1);border-radius:8px;font-size:.83rem;color:var(--a3)">✅ Model: <strong id="orModelName">openai/gpt-oss-120b:free</strong> ব্যবহার হচ্ছে — সম্পূর্ণ Free</div>
         </div>
         <div class="form-group">
-          <label class="form-label">Gemini API Key</label>
-          <input type="password" class="form-control" id="adminApiKeyInput" placeholder="AIzaSy...">
+          <label class="form-label">OpenRouter API Key (sk-or-...)</label>
+          <input type="password" class="form-control" id="adminApiKeyInput" placeholder="sk-or-v1-...">
         </div>
         <div style="display:flex;gap:10px">
           <button class="btn btn-primary" onclick="saveAdminApiKey()">🔑 Key Save করুন</button>
           <button class="btn btn-danger btn-sm" onclick="removeAdminApiKey()">🗑️ Key মুছুন</button>
         </div>
+        <details style="margin-top:18px">
+          <summary style="cursor:pointer;color:var(--text2);font-size:.83rem">⚙️ Gemini Key ব্যবহার করতে চান? (ক্লিক করুন)</summary>
+          <p style="font-size:.82rem;color:var(--text2);margin-top:10px">উপরের একই বক্সে Gemini key (<code>AIzaSy...</code> দিয়ে শুরু) দিলেও সিস্টেম স্বয়ংক্রিয়ভাবে সনাক্ত করে সেটা ব্যবহার করবে। <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--a1)">aistudio.google.com/apikey</a> থেকে নিতে পারেন।</p>
+        </details>
       </div>
       <div class="settings-section">
         <h3>🧪 Key Test করুন</h3>
@@ -571,6 +575,8 @@ function renderApiKeyStatus(){
   const desc=document.getElementById('apiKeyStatusDesc');
   const display=document.getElementById('apiKeyCurrentDisplay');
   const masked=document.getElementById('apiKeyMasked');
+  const modelEl=document.getElementById('orModelName');
+  if(modelEl) modelEl.textContent = CONFIG.OPENROUTER_MODEL;
   if(key){
     icon.style.background='rgba(0,245,212,.15)'; icon.textContent='✅';
     title.textContent='System Key সক্রিয়';
@@ -580,7 +586,7 @@ function renderApiKeyStatus(){
   } else {
     icon.style.background='rgba(245,158,11,.12)'; icon.textContent='⚠️';
     title.textContent='System Key সেট নেই!';
-    desc.textContent='Tools কাজ করবে না। Gemini API key দিন।';
+    desc.textContent='Tools কাজ করবে না। OpenRouter/Gemini API key দিন।';
     display.style.display='none';
   }
 }
@@ -610,11 +616,18 @@ async function testApiKey(){
   if(!key){ result.innerHTML='<div class="alert alert-error">❌ কোনো key সেট নেই।</div>'; return; }
   btn.disabled=true; btn.textContent='⏳ Test করা হচ্ছে...';
   result.innerHTML='<div class="alert alert-info">🔄 Connection check করা হচ্ছে...</div>';
+  const keyType = Engine.detectKeyType(key);
   try{
-    const url=`${CONFIG.GEMINI_URL}?key=${key}`;
-    const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:'Say OK only'}]}],generationConfig:{maxOutputTokens:5}})});
-    if(res.ok){ result.innerHTML='<div class="alert alert-success">✅ Connection সফল!</div>'; }
-    else { const err=await res.json().catch(()=>{}); result.innerHTML=`<div class="alert alert-error">❌ Error: ${err?.error?.message||'Invalid key'}</div>`; }
+    if(keyType==='openrouter'){
+      const res=await fetch(CONFIG.OPENROUTER_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model:CONFIG.OPENROUTER_MODEL,messages:[{role:'user',content:'Say OK only'}],max_tokens:5})});
+      if(res.ok){ result.innerHTML='<div class="alert alert-success">✅ OpenRouter Connection সফল!</div>'; }
+      else { const err=await res.json().catch(()=>{}); result.innerHTML=`<div class="alert alert-error">❌ Error: ${err?.error?.message||'Invalid key'}</div>`; }
+    } else {
+      const url=`${CONFIG.GEMINI_URL}?key=${key}`;
+      const res=await fetch(url,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:[{parts:[{text:'Say OK only'}]}],generationConfig:{maxOutputTokens:5}})});
+      if(res.ok){ result.innerHTML='<div class="alert alert-success">✅ Gemini Connection সফল!</div>'; }
+      else { const err=await res.json().catch(()=>{}); result.innerHTML=`<div class="alert alert-error">❌ Error: ${err?.error?.message||'Invalid key'}</div>`; }
+    }
   } catch(e){ result.innerHTML=`<div class="alert alert-error">❌ ${e.message}</div>`; }
   btn.disabled=false; btn.textContent='🧪 Connection Test করুন';
 }

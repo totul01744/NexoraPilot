@@ -76,7 +76,29 @@ async function loadUserData(uid) {
     if (doc.exists) {
       currentUserData = doc.data();
     } else {
-      currentUserData = null;
+      /* Firebase Auth এ আছে কিন্তু Firestore এ document নেই (পুরোনো/ভাঙা registration)
+         — login হওয়ার সময় এখনই ঠিক করে দাও, যাতে Admin Panel এ user দেখা যায়। */
+      try {
+        const u = auth.currentUser;
+        const repaired = {
+          uid,
+          name: u?.displayName || (u?.email||'').split('@')[0] || 'User',
+          address: '',
+          whatsapp: '',
+          facebook: '',
+          email: u?.email || '',
+          isPro: false,
+          plan: 'free',
+          banned: false,
+          createdAt: new Date().toISOString(),
+        };
+        await db.collection('users').doc(uid).set(repaired);
+        currentUserData = repaired;
+        console.log('Repaired missing user doc for', u?.email);
+      } catch(e2) {
+        console.warn('User doc repair failed:', e2);
+        currentUserData = null;
+      }
     }
   } catch(e) {
     console.warn('Error loading user data:', e);
@@ -828,30 +850,36 @@ async function registerUser(name, address, whatsapp, facebook, email, password) 
       createdAt: new Date().toISOString(),
     };
 
-    /* এই email এর জন্য কোনো Pending Pro request আছে কিনা চেক করো — থাকলে এখনই activate করো */
+    /* সবার আগে users collection এ লিখে ফেলো — এটা guaranteed হতে হবে,
+       পরের কোনো step fail করলেও যাতে user Firestore এ অবশ্যই থাকে */
+    await db.collection('users').doc(cred.user.uid).set(userData);
+    await cred.user.updateProfile({ displayName: name });
+    currentUserData = userData;
+
+    /* এই email এর জন্য কোনো Pending Pro request আছে কিনা চেক করো — থাকলে activate করো
+       (এটা fail করলেও user creation এ কোনো প্রভাব পড়বে না) */
     try {
       const pendingSnap = await db.collection('pendingPro').where('email','==',email).get();
       if(!pendingSnap.empty) {
         const pend = pendingSnap.docs[0].data();
         const expiryDate = FB.computeExpiryDate(pend.duration||'30', pend.customDate);
-        userData.isPro = true;
-        userData.plan = pend.plan || 'Pro Monthly';
-        userData.expiryDate = expiryDate;
-        userData.proActivatedAt = new Date().toISOString();
-        /* ব্যবহৃত pending request(গুলো) মুছে ফেলো */
+        const proUpdate = {
+          isPro: true,
+          plan: pend.plan || 'Pro Monthly',
+          expiryDate,
+          proActivatedAt: new Date().toISOString(),
+        };
+        await db.collection('users').doc(cred.user.uid).update(proUpdate);
+        Object.assign(userData, proUpdate);
+        currentUserData = userData;
         for(const d of pendingSnap.docs) await db.collection('pendingPro').doc(d.id).delete();
+        await FB.addNotification(cred.user.uid, 'pro_approved', {
+          title: '🎉 আপনার আগের Payment থেকে Pro Activate হয়েছে!',
+          body: `Plan: ${userData.plan}${userData.expiryDate?' — মেয়াদ শেষ: '+new Date(userData.expiryDate).toLocaleDateString('bn-BD'):' — Lifetime'}`,
+        });
       }
-    } catch(e) { console.warn('pendingPro check failed:', e); }
+    } catch(e) { console.warn('pendingPro check failed (non-critical):', e); }
 
-    await db.collection('users').doc(cred.user.uid).set(userData);
-    await cred.user.updateProfile({ displayName: name });
-    currentUserData = userData;
-    if(userData.isPro) {
-      await FB.addNotification(cred.user.uid, 'pro_approved', {
-        title: '🎉 আপনার আগের Payment থেকে Pro Activate হয়েছে!',
-        body: `Plan: ${userData.plan}${userData.expiryDate?' — মেয়াদ শেষ: '+new Date(userData.expiryDate).toLocaleDateString('bn-BD'):' — Lifetime'}`,
-      });
-    }
     return { success: true, ok: true };
   } catch(e) {
     return { success: false, ok: false, error: getAuthError(e.code), msg: getAuthError(e.code) };
@@ -1557,8 +1585,8 @@ async function runTool(promptFn, inputs, resultId) {
   if(!apiKey){
     resultEl.innerHTML = `<div class="alert alert-warning" style="flex-direction:column;gap:12px">
       <div>🔑 <strong>API Key সেট নেই!</strong></div>
-      <div style="font-size:.85rem;color:var(--text2)">Tool ব্যবহার করতে আপনার Gemini API Key দিন।<br>
-      <a href="https://aistudio.google.com/apikey" target="_blank" style="color:var(--a1)">aistudio.google.com/apikey</a> থেকে free key নিন।</div>
+      <div style="font-size:.85rem;color:var(--text2)">Tool ব্যবহার করতে আপনার OpenRouter বা Gemini API Key দিন।<br>
+      <a href="https://openrouter.ai/keys" target="_blank" style="color:var(--a1)">openrouter.ai/keys</a> থেকে ফ্রি key নিন।</div>
       <button class="btn btn-primary btn-sm" onclick="openApiKeyModal()">🔑 API Key দিন</button>
     </div>`;
     return null;
