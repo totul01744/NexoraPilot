@@ -180,6 +180,22 @@
   </div>
 </section>
 
+<!-- DIGITAL PRODUCTS -->
+<section id="digital-products" style="padding:60px 0;background:rgba(124,58,237,.04)">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">🛍️ Digital Marketplace</div>
+      <h2 class="section-title">Digital Products</h2>
+      <p class="section-sub">Course, eBook, Template ও আরও অনেক digital product — <a href="marketplace.html" style="color:var(--a1);text-decoration:none">সব দেখুন →</a></p>
+    </div>
+    <div class="product-grid" id="homeDigitalGrid">
+      <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">⏳ লোড হচ্ছে...</div>
+    </div>
+    <div style="text-align:center;margin-top:28px" id="homeDigitalMore"></div>
+  </div>
+</section>
+
+
 <!-- TOOLS -->
 <section id="tools" style="padding:60px 0 80px">
   <div class="container">
@@ -381,6 +397,7 @@ function onAuthStateReady(user){
     /* User এর API key preload করো */
     FB.getUserApiKey().then(()=>{ updateHeaderUser(); });
     loadProducts();
+    loadHomeDigitalProducts();
     const sb=document.getElementById('supportBody');
     if(sb) sb.innerHTML=supportFormHTML();
     initBanners();
@@ -528,6 +545,48 @@ async function loadProducts(){
     console.error('loadProducts error:', e);
   }
 }
+
+async function loadHomeDigitalProducts(){
+  const grid = document.getElementById('homeDigitalGrid');
+  const moreDiv = document.getElementById('homeDigitalMore');
+  if(!grid) return;
+  try {
+    const products = await FB.getMarketplaceProducts();
+    if(!products || !products.length){
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">এখনো কোনো digital product যোগ করা হয়নি। শীঘ্রই আসছে! 🚀</div>';
+      return;
+    }
+    // Show max 4 on homepage
+    const show = products.slice(0, 4);
+    grid.innerHTML = show.map(p => `
+      <div class="card product-card" onclick="window.location.href='marketplace.html'" style="cursor:pointer">
+        <div style="position:relative">
+          ${p.image ? `<img class="product-card-img" src="${p.image}" alt="${p.name}" referrerpolicy="no-referrer" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">` : ''}
+          <div class="product-card-img-ph" style="${p.image ? 'display:none' : 'display:flex'}">🛍️</div>
+          <div style="position:absolute;top:10px;right:10px">
+            <span class="tag ${p.type==='paid'?'tag-amber':'tag-green'}">${p.type==='paid'?'💰 Paid':'🆓 Free'}</span>
+          </div>
+        </div>
+        <div class="product-card-body">
+          <div class="product-card-title">${p.name}</div>
+          <div class="product-card-desc">${(p.description||'').substring(0,90)}${(p.description||'').length>90?'…':''}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+            ${p.category ? `<span class="tag tag-violet" style="font-size:.72rem">${p.category}</span>` : '<span></span>'}
+            ${p.type==='paid' ? `<strong style="color:var(--a3)">${p.price||''}</strong>` : `<span style="font-size:.78rem;color:var(--a1)">নিন এখনই →</span>`}
+          </div>
+        </div>
+      </div>`).join('');
+    if(products.length > 4 && moreDiv){
+      moreDiv.innerHTML = `<a href="marketplace.html" class="btn btn-outline">🛍️ আরও ${products.length - 4}টি Digital Product দেখুন →</a>`;
+    } else if(moreDiv){
+      moreDiv.innerHTML = `<a href="marketplace.html" class="btn btn-outline">🛍️ Marketplace দেখুন →</a>`;
+    }
+  } catch(e){
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">⚠️ Digital products লোড হয়নি।</div>';
+    console.error('loadHomeDigitalProducts error:', e);
+  }
+}
+
 
 async function showProduct(id){
   const p=window._products.find(x=>x.id===id); if(!p)return;
