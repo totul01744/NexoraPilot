@@ -386,19 +386,63 @@ const FB = {
     } catch(e){}
   },
 
-  /* ── Products ── */
+  /* ── Products — sortOrder দিয়ে manual ordering ── */
   async getProducts() {
     try {
-      const snap = await db.collection('products').orderBy('date','desc').get();
+      const snap = await db.collection('products').orderBy('sortOrder','asc').get();
+      if(snap.empty){
+        const snap2 = await db.collection('products').orderBy('date','desc').get();
+        return snap2.docs.map(d => ({ id: d.id, ...d.data() }));
+      }
       return snap.docs.map(d => ({ id: d.id, ...d.data() }));
-    } catch(e) { return []; }
+    } catch(e) {
+      /* sortOrder field না থাকা product থাকলে fallback */
+      try {
+        const snap2 = await db.collection('products').orderBy('date','desc').get();
+        return snap2.docs.map(d => ({ id: d.id, ...d.data() }));
+      } catch(e2) { return []; }
+    }
   },
 
   async addProduct(data) {
     data.date = new Date().toISOString();
     data.createdBy = currentUser?.uid || 'admin';
+    if(data.sortOrder === undefined){
+      /* নতুন product সবার শেষে — সবচেয়ে বড় sortOrder + 1 */
+      try {
+        const snap = await db.collection('products').orderBy('sortOrder','desc').limit(1).get();
+        data.sortOrder = snap.empty ? 0 : (snap.docs[0].data().sortOrder||0) + 1;
+      } catch(e){ data.sortOrder = Date.now(); }
+    }
     const ref = await db.collection('products').add(data);
     return { id: ref.id, ...data };
+  },
+
+  /* Product টি উপরে/নিচে move করো — দুই product এর sortOrder swap করো */
+  async moveProduct(products, fromIdx, direction) {
+    const toIdx = direction === 'up' ? fromIdx - 1 : fromIdx + 1;
+    if(toIdx < 0 || toIdx >= products.length) return false;
+    const a = products[fromIdx], b = products[toIdx];
+    const aOrder = a.sortOrder ?? fromIdx;
+    const bOrder = b.sortOrder ?? toIdx;
+    await Promise.all([
+      db.collection('products').doc(a.id).update({ sortOrder: bOrder }),
+      db.collection('products').doc(b.id).update({ sortOrder: aOrder }),
+    ]);
+    return true;
+  },
+
+  /* সব product এর sortOrder normalize করো (প্রথমবার migrate করতে) */
+  async normalizeProductOrder() {
+    try {
+      const snap = await db.collection('products').orderBy('date','desc').get();
+      const batch = db.batch();
+      snap.docs.forEach((d, idx) => {
+        batch.update(d.ref, { sortOrder: idx });
+      });
+      await batch.commit();
+      return true;
+    } catch(e){ return false; }
   },
 
   async updateProduct(id, data) {

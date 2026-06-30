@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Winning Products — NexoraPilot</title>
+<link rel="stylesheet" href="assets/css/style.css">
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-inner">
+    <a href="index.html" class="logo"><div class="logo-icon">⚡</div>NexoraPilot</a>
+    <nav class="nav" id="mainNav">
+      <a class="nav-link" href="index.html">🏠 Home</a>
+      <a class="nav-link active" href="winning-products.html">🏆 Products</a>
+      <a class="nav-link" href="index.html#tools">🛠️ Tools</a>
+      <a class="nav-link" href="marketplace.html">🛍️ Marketplace</a>
+      <a class="nav-link" href="dashboard.html">📊 Dashboard</a>
+      <a class="nav-link" href="help.html">💬 Support</a>
+    </nav>
+    <div id="headerUserArea" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"></div>
+    <button class="hamburger" onclick="openDrawer()" aria-label="Menu">☰</button>
+  </div>
+</header>
+
+<section style="padding:50px 0 20px">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">🏆 Admin-Curated</div>
+      <h2 class="section-title">Winning Products</h2>
+      <p class="section-sub">Admin-দের বাছাই করা সেরা ecommerce products — সম্পূর্ণ ad strategy সহ। দেখতে কোনো Login লাগবে না, বিস্তারিত জানতে Login করুন।</p>
+    </div>
+  </div>
+</section>
+
+<section style="padding:0 0 80px">
+  <div class="container">
+    <div class="product-grid" id="winningGrid">
+      <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">⏳ লোড হচ্ছে...</div>
+    </div>
+  </div>
+</section>
+
+<!-- PRODUCT DETAIL MODAL -->
+<div class="modal-overlay hidden" id="productModal">
+  <div class="modal-box modal-box-lg" style="max-width:680px">
+    <div class="modal-header">
+      <div class="modal-title" id="prodModalTitle">Product Details</div>
+      <button class="modal-close" onclick="Modal.hideAll()">✕</button>
+    </div>
+    <div id="prodModalContent"></div>
+  </div>
+</div>
+
+<!-- PAYMENT MODAL -->
+<div class="modal-overlay hidden" id="paymentModal">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header"><div class="modal-title">🚀 Pro Membership নিন</div><button class="modal-close" onclick="Modal.hideAll()">✕</button></div>
+    <div id="paymentContent"></div>
+  </div>
+</div>
+
+<!-- AUTH MODAL (Login/Register) -->
+<div class="modal-overlay hidden" id="authModal">
+  <div class="modal-box" style="max-width:460px">
+    <div class="modal-header">
+      <div style="display:flex;gap:0">
+        <button id="authTabLogin" class="tab-btn active" onclick="switchAuthTab('login')" style="border-radius:8px 0 0 8px">🔐 Login</button>
+        <button id="authTabReg" class="tab-btn" onclick="switchAuthTab('register')" style="border-radius:0 8px 8px 0">✅ Register</button>
+      </div>
+      <button class="modal-close" onclick="Modal.hideAll()">✕</button>
+    </div>
+
+    <div id="authLoginForm" style="padding-top:8px">
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="loginEmail" type="email" placeholder="you@example.com" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <div class="form-group"><label class="form-label">পাসওয়ার্ড</label><input class="form-control" id="loginPass" type="password" placeholder="পাসওয়ার্ড" onkeydown="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn btn-primary btn-full" id="loginBtn" onclick="doLogin()">🔐 Login করুন</button>
+      <div style="text-align:center;margin-top:12px">
+        <button style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:.82rem" onclick="document.getElementById('authLoginForm').classList.add('hidden');document.getElementById('authForgotForm').classList.remove('hidden')">পাসওয়ার্ড ভুলে গেছেন?</button>
+      </div>
+      <p style="text-align:center;font-size:.8rem;color:var(--text2);margin-top:14px">Product বিস্তারিত দেখতে হলে আগে Login/Register করতে হবে।</p>
+    </div>
+
+    <div id="authRegForm" class="hidden" style="padding-top:8px">
+      <div class="form-group"><label class="form-label">পূর্ণ নাম *</label><input class="form-control" id="regName" placeholder="আপনার নাম"></div>
+      <div class="form-group"><label class="form-label">ঠিকানা *</label><input class="form-control" id="regAddress" placeholder="জেলা, বিভাগ"></div>
+      <div class="form-group"><label class="form-label">📱 WhatsApp নম্বর *</label><input class="form-control" id="re_whatsapp" type="tel" placeholder="01XXXXXXXXX"></div>
+      <div class="form-group"><label class="form-label">Facebook Username <span style="font-weight:400;color:var(--text2);text-transform:none">(optional)</span></label><input class="form-control" id="re_facebook" placeholder="fb.com/username"></div>
+      <div class="form-group"><label class="form-label">Email *</label><input class="form-control" id="regEmail" type="email" placeholder="you@example.com"></div>
+      <div class="form-group"><label class="form-label">পাসওয়ার্ড * (৬+ অক্ষর)</label><input class="form-control" id="regPass" type="password" placeholder="পাসওয়ার্ড"></div>
+      <div class="form-group"><label class="form-label">পাসওয়ার্ড নিশ্চিত করুন *</label><input class="form-control" id="regPass2" type="password" placeholder="আবার দিন"></div>
+      <button class="btn btn-primary btn-full" id="regBtn" onclick="doRegister()">✅ Account তৈরি করুন</button>
+    </div>
+
+    <div id="authForgotForm" class="hidden" style="padding-top:8px">
+      <p style="font-size:.85rem;color:var(--text2);margin-bottom:14px">আপনার email দিন, password reset link পাঠানো হবে।</p>
+      <div class="form-group"><label class="form-label">Email</label><input class="form-control" id="forgotEmail" type="email" placeholder="you@example.com"></div>
+      <button class="btn btn-primary btn-full" onclick="doForgotPassword()">📧 Reset Link পাঠান</button>
+      <div style="text-align:center;margin-top:10px">
+        <button style="background:none;border:none;color:var(--text2);cursor:pointer;font-size:.82rem" onclick="document.getElementById('authForgotForm').classList.add('hidden');document.getElementById('authLoginForm').classList.remove('hidden')">← Login-এ ফিরুন</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="assets/js/app.js"></script>
+<script>
+window._products = [];
+
+function proxyImg(url){
+  if(!url) return '';
+  if(url.startsWith('data:')) return url;
+  return 'https://images.weserv.nl/?url=' + encodeURIComponent(url) + '&w=600&output=jpg&we';
+}
+
+/* ── Load Winning Products — Login ছাড়াই দেখা যাবে ── */
+async function loadWinningProducts(){
+  const grid = document.getElementById('winningGrid');
+  grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
+  try {
+    const products = await FB.getProducts();
+    window._products = products;
+    if(!products.length){
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">এখনো কোনো product যোগ করা হয়নি।</div>';
+      return;
+    }
+    const isPro = currentUser ? FB.isPro() : false;
+
+    grid.innerHTML = products.map((p, idx) => {
+      const positionLocked = idx < (CONFIG.WINNING_LOCKED_COUNT||10);
+      const locked = (positionLocked || p.premium) && !isPro;
+
+      if(positionLocked && !isPro){
+        /* ব্লার করা card — শুধু lock দেখাবে, content দেখাবে না */
+        return `<div class="card product-card product-locked-full" onclick="showWinningProduct('${p.id}')">
+          <div style="position:relative">
+            ${p.image?`<img class="product-card-img" src="${proxyImg(p.image)}" alt="">`:`<div class="product-card-img-ph">🏆</div>`}
+          </div>
+          <div class="product-card-body">
+            <div class="product-card-title">∎∎∎∎∎∎∎∎∎∎∎∎</div>
+            <div class="product-card-desc">∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎∎</div>
+          </div>
+          <div class="product-lock-overlay">
+            <div class="plo-icon">🔒</div>
+            <div class="plo-label">Pro Exclusive Product</div>
+            <div class="plo-sub">দেখতে ও বিস্তারিত জানতে Pro Membership নিন</div>
+            <button class="plo-btn" onclick="event.stopPropagation();handleWinningClick('${p.id}')">⭐ বিস্তারিত দেখুন</button>
+          </div>
+        </div>`;
+      }
+
+      return `<div class="card product-card" onclick="showWinningProduct('${p.id}')">
+        <div style="position:relative">
+          ${p.image?`<img class="product-card-img" src="${proxyImg(p.image)}" alt="${p.name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`:''}
+          <div class="product-card-img-ph" style="${p.image?'display:none':'display:flex'}">🏆</div>
+          ${(positionLocked||p.premium)?`<div style="position:absolute;top:10px;right:10px"><span class="tag tag-amber">⭐ Pro</span></div>`:`<div style="position:absolute;top:10px;right:10px"><span class="tag tag-green">Free</span></div>`}
+        </div>
+        <div class="product-card-body">
+          <div class="product-card-title">${p.name}</div>
+          <div class="product-card-desc">${p.shortDesc||''}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px">
+            <div style="display:flex;align-items:center;gap:8px">
+              ${p.price?`<span class="tag tag-mint" style="font-size:.72rem">${p.price}</span>`:''}
+              ${p.score?`<span style="font-family:var(--font-h);font-size:1rem;font-weight:900;color:${p.score>=80?'var(--a1)':p.score>=60?'var(--a3)':'#f87171'}">${p.score}</span>`:''}
+            </div>
+            <span style="font-size:.78rem;color:var(--a1)">বিস্তারিত →</span>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:#f87171">⚠️ Products লোড হয়নি।</div>`;
+    console.error('loadWinningProducts error:', e);
+  }
+}
+
+/* Product card click — Login না থাকলে আগে Login চাইবে */
+function handleWinningClick(id){
+  if(!currentUser){
+    window._pendingWinningProductId = id;
+    Toast.info('Product দেখতে আগে Login/Register করুন।');
+    openAuthModal('login');
+    return;
+  }
+  showWinningProduct(id);
+}
+
+async function showWinningProduct(id){
+  /* Login না থাকলে — প্রথমেই login চাইবে */
+  if(!currentUser){
+    window._pendingWinningProductId = id;
+    Toast.info('বিস্তারিত দেখতে আগে Login/Register করুন।');
+    openAuthModal('login');
+    return;
+  }
+
+  const p = window._products.find(x=>x.id===id); if(!p) return;
+  const idx = window._products.findIndex(x=>x.id===id);
+  const positionLocked = idx > -1 && idx < (CONFIG.WINNING_LOCKED_COUNT||10);
+  const locked = (positionLocked || p.premium) && !FB.isPro();
+
+  document.getElementById('prodModalTitle').textContent = locked ? '🔒 Pro Exclusive Product' : p.name;
+
+  if(locked){
+    Modal.show('productModal');
+    document.getElementById('prodModalContent').innerHTML = `<div style="text-align:center;padding:40px 20px">⏳ Checking status...</div>`;
+    const isPending = await FB.hasPendingProPayment();
+    document.getElementById('prodModalContent').innerHTML = `
+    <div style="text-align:center;padding:40px 20px">
+      <div style="font-size:3rem;margin-bottom:16px">${isPending?'⏳':'🔒'}</div>
+      <h3 style="color:#fff;margin-bottom:8px">${isPending?'Payment Review হচ্ছে':'Premium Content'}</h3>
+      <p style="margin-bottom:24px">${isPending?'আপনার Pro Membership Payment Admin review করছেন। Approve হলেই দেখতে পারবেন।':(positionLocked?'এই Winning Product টি শুধুমাত্র Pro Member-দের জন্য সংরক্ষিত।':'সম্পূর্ণ ad strategy দেখতে Pro membership নিন।')}</p>
+      ${isPending?'':`<button class="btn btn-primary" onclick="Modal.hideAll();showPaymentModal()">🚀 মাত্র ৳১৯৯/মাসে Pro নিন</button>`}
+    </div>`;
+    return;
+  }
+
+  document.getElementById('prodModalContent').innerHTML = `
+    <div style="display:grid;gap:18px">
+      ${p.image?`<img src="${proxyImg(p.image)}" style="width:100%;border-radius:12px;max-height:280px;object-fit:cover" onerror="this.style.display='none'">`:''}
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
+        ${p.price?`<div style="background:rgba(0,245,212,.08);border:1px solid rgba(0,245,212,.15);border-radius:10px;padding:12px;text-align:center"><div style="font-size:.72rem;color:var(--text2)">💰 Price</div><strong style="color:var(--a1)">${p.price}</strong></div>`:''}
+        ${p.score?`<div style="background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center"><div style="font-size:.72rem;color:var(--text2)">📊 Score</div><strong style="font-family:var(--font-h);font-size:1.3rem;color:${p.score>=80?'var(--a1)':p.score>=60?'var(--a3)':'#f87171'}">${p.score}</strong></div>`:''}
+        ${p.category?`<div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.15);border-radius:10px;padding:12px;text-align:center"><div style="font-size:.72rem;color:var(--text2)">📁</div><strong style="color:#a78bfa;font-size:.82rem">${p.category}</strong></div>`:''}
+      </div>
+      ${p.description?`<p style="font-size:.88rem;line-height:1.7">${p.description}</p>`:''}
+      ${p.whereToFind?`<div style="background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.15);border-radius:10px;padding:14px"><strong style="font-size:.83rem;color:var(--a1)">🛒 কোথায় পাবেন</strong><p style="font-size:.86rem;margin-top:6px">${p.whereToFind}</p></div>`:''}
+      ${(p.sellingPoints||[]).length?`<div><strong style="font-size:.83rem;color:var(--text2)">⭐ Selling Points</strong><ul style="list-style:none;padding:0;margin-top:8px">${p.sellingPoints.map(s=>`<li style="padding:5px 0;font-size:.86rem;display:flex;gap:8px;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:var(--a1)">●</span>${s}</li>`).join('')}</ul></div>`:''}
+      ${p.tiktokAd?`<div style="background:rgba(236,72,153,.06);border:1px solid rgba(236,72,153,.15);border-radius:10px;padding:14px"><strong style="font-size:.83rem;color:var(--a4)">🎵 TikTok Strategy</strong><p style="font-size:.86rem;margin-top:8px;white-space:pre-wrap">${p.tiktokAd}</p></div>`:''}
+      ${p.facebookAd?`<div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:10px;padding:14px"><strong style="font-size:.83rem;color:#60a5fa">📘 Facebook Strategy</strong><p style="font-size:.86rem;margin-top:8px;white-space:pre-wrap">${p.facebookAd}</p></div>`:''}
+      ${p.adBudget?`<div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:10px;padding:14px"><strong style="font-size:.83rem;color:var(--a3)">💰 Ad Budget</strong><p style="font-size:.86rem;margin-top:6px">${p.adBudget}</p></div>`:''}
+      ${p.caption?`<div><strong style="font-size:.83rem;color:var(--text2)">💬 Caption</strong><div style="margin-top:8px">${R.copyBox(p.caption,'📋 Copy')}</div></div>`:''}
+      ${p.hashtags?`<div>${R.tags(p.hashtags.split(/[\\s,]+/).filter(Boolean),'tag-violet')}</div>`:''}
+      ${p.notes?`<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:.85rem;color:var(--text2)">${p.notes}</div>`:''}
+    </div>`;
+  Modal.show('productModal');
+}
+
+/* Login সফল হলে pending product থাকলে সেটা খুলো */
+function onAuthStateReady(user){
+  updateUsageDisplay();
+  loadWinningProducts(); /* lock status update করতে আবার load করো */
+  if(user && window._pendingWinningProductId){
+    const id = window._pendingWinningProductId;
+    window._pendingWinningProductId = null;
+    Modal.hideAll();
+    setTimeout(()=>showWinningProduct(id), 250);
+  }
+}
+
+document.addEventListener('DOMContentLoaded', loadWinningProducts);
+document.getElementById('mainNav')?.querySelector('.hamburger');
+document.querySelectorAll('.modal-overlay').forEach(o=>o.addEventListener('click',e=>{ if(e.target===o)o.classList.add('hidden'); }));
+</script>
+
+<!-- MOBILE DRAWER -->
+<div class="mobile-sidebar-overlay" id="mobileOverlay" onclick="closeDrawer()"></div>
+<div class="mobile-drawer" id="mobileDrawer">
+  <div class="mobile-drawer-header">
+    <div class="mobile-drawer-logo">
+      <div class="logo-icon" style="width:34px;height:34px;font-size:.9rem">⚡</div>
+      NexoraPilot
+    </div>
+    <button class="mobile-drawer-close" onclick="closeDrawer()">✕</button>
+  </div>
+  <div class="mobile-drawer-nav" id="drawerNav"></div>
+  <div class="mobile-drawer-user" id="drawerUserArea"></div>
+</div>
+<script>
+function openDrawer(){
+  document.getElementById('mobileDrawer').classList.add('open');
+  var ov=document.getElementById('mobileOverlay');
+  ov.style.display='block';
+  setTimeout(function(){ov.classList.add('open');},10);
+  document.body.style.overflow='hidden';
+}
+function closeDrawer(){
+  document.getElementById('mobileDrawer').classList.remove('open');
+  var ov=document.getElementById('mobileOverlay');
+  ov.classList.remove('open');
+  setTimeout(function(){ov.style.display='none';},300);
+  document.body.style.overflow='';
+}
+</script>
+<script>
+document.getElementById('drawerNav').innerHTML = '<a class="nav-link" href="index.html" onclick="closeDrawer()">🏠 Home</a><a class="nav-link active" href="winning-products.html" onclick="closeDrawer()">🏆 Products</a><a class="nav-link" href="index.html#tools" onclick="closeDrawer()">🛠️ Tools</a><a class="nav-link" href="marketplace.html" onclick="closeDrawer()">🛍️ Marketplace</a><a class="nav-link" href="dashboard.html" onclick="closeDrawer()">📊 Dashboard</a><a class="nav-link" href="help.html" onclick="closeDrawer()">💬 Support</a>';
+if(!window._drawerHooked){
+  window._drawerHooked = true;
+  var _origUpdate = window.updateUsageDisplay;
+  window.updateUsageDisplay = async function(){
+    if(_origUpdate) await _origUpdate.call(this);
+    var h = document.getElementById('headerUserArea') || document.getElementById('headerUserDisplay');
+    var d = document.getElementById('drawerUserArea');
+    if(h && d) d.innerHTML = h.innerHTML;
+  };
+}
+</script>
+
+</body>
+</html>

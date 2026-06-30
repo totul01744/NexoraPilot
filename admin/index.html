@@ -169,6 +169,7 @@
         <div><div class="page-title">🏆 Winning Products</div></div>
         <div style="display:flex;gap:8px">
           <button class="btn btn-sm btn-secondary" onclick="addSampleProducts()">📦 Sample Data</button>
+          <button class="btn btn-sm btn-secondary" onclick="normalizeOrderClick()" title="পুরনো product গুলোর জন্য order ঠিক করো">🔄 Order ঠিক করুন</button>
           <button class="btn btn-primary" onclick="openProductForm()">+ Product যোগ করুন</button>
         </div>
       </div>
@@ -692,11 +693,17 @@ async function renderProductsTable(){
     return;
   }
   document.getElementById('productsTable').innerHTML=`<table>
-    <thead><tr><th>#</th><th>Product</th><th>Category</th><th>Score</th><th>Type</th><th>Date</th><th>Actions</th></tr></thead>
+    <thead><tr><th>#</th><th>Order</th><th>Product</th><th>Category</th><th>Score</th><th>Type</th><th>Date</th><th>Actions</th></tr></thead>
     <tbody>${products.map((p,idx)=>{
       const positionLocked = idx < CONFIG.WINNING_LOCKED_COUNT;
+      const isFirst = idx === 0;
+      const isLast  = idx === products.length - 1;
       return `<tr>
       <td><span class="tag ${positionLocked?'tag-amber':'tag-mint'}" title="${positionLocked?'Position-based Pro lock':'সবার জন্য visible'}">${idx+1}${positionLocked?' 🔒':''}</span></td>
+      <td style="white-space:nowrap">
+        <button class="action-btn" style="padding:4px 8px;${isFirst?'opacity:.3;pointer-events:none':''}" onclick="moveProductUpDown(${idx},'up')" title="উপরে move করো">⬆️</button>
+        <button class="action-btn" style="padding:4px 8px;${isLast?'opacity:.3;pointer-events:none':''}" onclick="moveProductUpDown(${idx},'down')" title="নিচে move করো">⬇️</button>
+      </td>
       <td><div style="display:flex;align-items:center;gap:10px">
         ${p.image?`<img src="${p.image}" style="width:40px;height:40px;border-radius:8px;object-fit:cover" onerror="this.style.display='none'">`:'<div style="width:40px;height:40px;border-radius:8px;background:rgba(0,245,212,.1);display:flex;align-items:center;justify-content:center">🏆</div>'}
         <div><div style="font-weight:800;color:#fff">${p.name}</div><div style="font-size:.77rem;color:var(--text2)">${p.shortDesc?.substring(0,40)||''}…</div></div>
@@ -711,6 +718,26 @@ async function renderProductsTable(){
       </td>
     </tr>`}).join('')}</tbody>
   </table>`;
+}
+
+/* Product এর position উপরে/নিচে move করো */
+async function moveProductUpDown(idx, direction){
+  const products = window._adminProducts;
+  if(!products || !products.length) return;
+  const ok = await FB.moveProduct(products, idx, direction);
+  if(ok){
+    Toast.success(direction==='up' ? '⬆️ উপরে move হয়েছে' : '⬇️ নিচে move হয়েছে');
+    renderProductsTable();
+  } else {
+    Toast.warning('আর move করা যাচ্ছে না।');
+  }
+}
+
+async function normalizeOrderClick(){
+  if(!confirm('সব product এর order বর্তমান list অনুযায়ী reset করবেন?'))return;
+  const ok = await FB.normalizeProductOrder();
+  if(ok){ Toast.success('✅ Order ঠিক করা হয়েছে!'); renderProductsTable(); }
+  else { Toast.error('সমস্যা হয়েছে।'); }
 }
 
 async function delProduct(id){

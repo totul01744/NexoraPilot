@@ -132,7 +132,7 @@
     <a href="index.html" class="logo"><div class="logo-icon">⚡</div>NexoraPilot</a>
     <nav class="nav" id="mainNav">
       <a class="nav-link active" href="index.html">🏠 Home</a>
-      <a class="nav-link" href="#winning">🏆 Products</a>
+      <a class="nav-link" href="winning-products.html">🏆 Products</a>
       <a class="nav-link" href="#tools">🛠️ Tools</a>
       <a class="nav-link" href="marketplace.html">🛍️ Marketplace</a>
       <a class="nav-link" href="dashboard.html">📊 Dashboard</a>
@@ -151,7 +151,7 @@
     <p class="hero-sub">Product research, ad creative, market reports — সব কিছু মিনিটে। বাংলাদেশের সেরা ecommerce AI tool।</p>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
       <a href="#tools" class="btn btn-primary btn-lg">🚀 Tools ব্যবহার করুন</a>
-      <a href="#winning" class="btn btn-outline btn-lg">🏆 Winning Products দেখুন</a>
+      <a href="winning-products.html" class="btn btn-outline btn-lg">🏆 Winning Products দেখুন</a>
     </div>
     <div class="hero-stats">
       <div class="hero-stat"><div class="hero-stat-num mint">১৮+</div><div class="hero-stat-label">AI Tools</div></div>
@@ -166,16 +166,19 @@
   <div class="container"><div class="banner-wrap" id="bannerSlider"></div></div>
 </section>
 
-<!-- WINNING PRODUCTS -->
+<!-- WINNING PRODUCTS PREVIEW -->
 <section id="winning" style="padding:60px 0">
   <div class="container">
     <div class="section-header">
       <div class="section-label">🏆 Admin-Curated</div>
       <h2 class="section-title">Winning Products</h2>
-      <p class="section-sub">Admin-দের বাছাই করা সেরা ecommerce products — সম্পূর্ণ ad strategy সহ</p>
+      <p class="section-sub">Admin-দের বাছাই করা সেরা ecommerce products — <a href="winning-products.html" style="color:var(--a1);text-decoration:none">সব দেখুন →</a></p>
     </div>
-    <div class="product-grid" id="productsGrid">
+    <div class="product-grid" id="homeWinningGrid">
       <div style="grid-column:1/-1;text-align:center;padding:60px;color:var(--text2)">⏳ লোড হচ্ছে...</div>
+    </div>
+    <div style="text-align:center;margin-top:28px">
+      <a href="winning-products.html" class="btn btn-outline">🏆 সব Winning Products দেখুন →</a>
     </div>
   </div>
 </section>
@@ -485,8 +488,9 @@ function setToolLang(lang){
    Normal User এর জন্য নাম/ছবি ঝাপসা — কোনো content দেখাবে না।
 ═══════════════════════════════════════ */
 window._products=[];
+/* Homepage এ শুধু preview (৪টি) — সম্পূর্ণ list winning-products.html এ */
 async function loadProducts(){
-  const grid=document.getElementById('productsGrid');
+  const grid=document.getElementById('homeWinningGrid');
   if(!grid) return;
   grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">⏳ লোড হচ্ছে...</div>';
   try{
@@ -496,15 +500,11 @@ async function loadProducts(){
       grid.innerHTML='<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text2)">এখনো কোনো product যোগ করা হয়নি।</div>';
       return;
     }
-    const isPro = FB.isPro();
-    grid.innerHTML = products.map((p,idx)=>{
-      /* position-based lock: প্রথম N টি Pro-only, তারপর individual premium flag অনুযায়ী */
+    const preview = products.slice(0, 4);
+    grid.innerHTML = preview.map((p,idx)=>{
       const positionLocked = idx < CONFIG.WINNING_LOCKED_COUNT;
-      const locked = (positionLocked || p.premium) && !isPro;
-
-      if(positionLocked && !isPro){
-        /* সম্পূর্ণ ঝাপসা — নাম/ছবি/কনটেন্ট কিছুই দেখাবে না */
-        return `<div class="card product-card product-locked-full" onclick="showProduct('${p.id}')">
+      if(positionLocked){
+        return `<div class="card product-card product-locked-full" onclick="window.location.href='winning-products.html'">
           <div style="position:relative">
             ${p.image?`<img class="product-card-img" src="${p.image}" alt="">`:`<div class="product-card-img-ph">🏆</div>`}
           </div>
@@ -516,16 +516,15 @@ async function loadProducts(){
             <div class="plo-icon">🔒</div>
             <div class="plo-label">Pro Exclusive Product</div>
             <div class="plo-sub">দেখতে ও বিস্তারিত জানতে Pro Membership নিন</div>
-            <button class="plo-btn" onclick="event.stopPropagation();Modal.hideAll();showPaymentModal()">⭐ Upgrade to Pro</button>
+            <button class="plo-btn" onclick="event.stopPropagation();window.location.href='winning-products.html'">⭐ দেখুন</button>
           </div>
         </div>`;
       }
-
-      return `<div class="card product-card" onclick="showProduct('${p.id}')">
+      return `<div class="card product-card" onclick="window.location.href='winning-products.html'" style="cursor:pointer">
         <div style="position:relative">
           ${p.image?`<img class="product-card-img" src="${p.image}" alt="${p.name}" onerror="this.style.display='none';this.parentElement.querySelector('.product-card-img-ph').style.display='flex'">`:''}
           <div class="product-card-img-ph" style="${p.image?'display:none':'display:flex'}">🏆</div>
-          ${(positionLocked||p.premium)?`<div style="position:absolute;top:10px;right:10px"><span class="tag tag-amber">⭐ Pro</span></div>`:`<div style="position:absolute;top:10px;right:10px"><span class="tag tag-green">Free</span></div>`}
+          ${p.premium?`<div style="position:absolute;top:10px;right:10px"><span class="tag tag-amber">⭐ Pro</span></div>`:`<div style="position:absolute;top:10px;right:10px"><span class="tag tag-green">Free</span></div>`}
         </div>
         <div class="product-card-body">
           <div class="product-card-title">${p.name}</div>
@@ -535,13 +534,13 @@ async function loadProducts(){
               ${p.price?`<span class="tag tag-mint" style="font-size:.72rem">${p.price}</span>`:''}
               ${p.score?`<span style="font-family:var(--font-h);font-size:1rem;font-weight:900;color:${p.score>=80?'var(--a1)':p.score>=60?'var(--a3)':'#f87171'}">${p.score}</span>`:''}
             </div>
-            ${locked?`<span style="font-size:.78rem;color:var(--text2)">🔒 Pro only</span>`:`<span style="font-size:.78rem;color:var(--a1)">Details →</span>`}
+            <span style="font-size:.78rem;color:var(--a1)">দেখুন →</span>
           </div>
         </div>
       </div>`;
     }).join('');
   }catch(e){
-    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:#f87171">⚠️ Products লোড হয়নি। Console দেখুন।</div>`;
+    grid.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:40px;color:#f87171">⚠️ Products লোড হয়নি।</div>`;
     console.error('loadProducts error:', e);
   }
 }
@@ -594,45 +593,7 @@ async function loadHomeDigitalProducts(){
 }
 
 
-async function showProduct(id){
-  const p=window._products.find(x=>x.id===id); if(!p)return;
-  const idx=window._products.findIndex(x=>x.id===id);
-  const positionLocked = idx > -1 && idx < CONFIG.WINNING_LOCKED_COUNT;
-  const locked=(positionLocked||p.premium)&&!FB.isPro();
-  document.getElementById('prodModalTitle').textContent=locked?'🔒 Pro Exclusive Product':p.name;
-  if(locked){
-    Modal.show('productModal');
-    document.getElementById('prodModalContent').innerHTML=`<div style="text-align:center;padding:40px 20px">⏳ Checking status...</div>`;
-    const isPending = await FB.hasPendingProPayment();
-    document.getElementById('prodModalContent').innerHTML=`
-    <div style="text-align:center;padding:40px 20px">
-      <div style="font-size:3rem;margin-bottom:16px">${isPending?'⏳':'🔒'}</div>
-      <h3 style="color:#fff;margin-bottom:8px">${isPending?'Payment Review হচ্ছে':'Premium Content'}</h3>
-      <p style="margin-bottom:24px">${isPending?'আপনার Pro Membership Payment Admin review করছেন। Approve হলেই এই Product দেখতে পারবেন।':(positionLocked?'এই Winning Product টি শুধুমাত্র Pro Member-দের জন্য সংরক্ষিত।':'সম্পূর্ণ ad strategy দেখতে Pro membership নিন।')}</p>
-      ${isPending?'':`<button class="btn btn-primary" onclick="Modal.hideAll();showPaymentModal()">🚀 মাত্র ৳১৯৯/মাসে Pro নিন</button>`}
-    </div>`;
-    return;
-  }
-  document.getElementById('prodModalContent').innerHTML=`
-    <div style="display:grid;gap:18px">
-      ${p.image?`<img src="${p.image}" style="width:100%;border-radius:12px;max-height:280px;object-fit:cover" onerror="this.style.display='none'">`:''}
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px">
-        ${p.price?`<div style="background:rgba(0,245,212,.08);border:1px solid rgba(0,245,212,.15);border-radius:10px;padding:12px;text-align:center"><div style="font-size:.72rem;color:var(--text2)">💰 Price</div><strong style="color:var(--a1)">${p.price}</strong></div>`:''}
-        ${p.score?`<div style="background:rgba(0,0,0,.2);border:1px solid var(--border);border-radius:10px;padding:12px;text-align:center"><div style="font-size:.72rem;color:var(--text2)">📊 Score</div><strong style="font-family:var(--font-h);font-size:1.3rem;color:${p.score>=80?'var(--a1)':p.score>=60?'var(--a3)':'#f87171'}">${p.score}</strong></div>`:''}
-        ${p.category?`<div style="background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.15);border-radius:10px;padding:12px;text-align:center"><div style="font-size:.72rem;color:var(--text2)">📁</div><strong style="color:#a78bfa;font-size:.82rem">${p.category}</strong></div>`:''}
-      </div>
-      ${p.description?`<p style="font-size:.88rem;line-height:1.7">${p.description}</p>`:''}
-      ${p.whereToFind?`<div style="background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.15);border-radius:10px;padding:14px"><strong style="font-size:.83rem;color:var(--a1)">🛒 কোথায় পাবেন</strong><p style="font-size:.86rem;margin-top:6px">${p.whereToFind}</p></div>`:''}
-      ${(p.sellingPoints||[]).length?`<div><strong style="font-size:.83rem;color:var(--text2)">⭐ Selling Points</strong><ul style="list-style:none;padding:0;margin-top:8px">${p.sellingPoints.map(s=>`<li style="padding:5px 0;font-size:.86rem;display:flex;gap:8px;border-bottom:1px solid rgba(255,255,255,.05)"><span style="color:var(--a1)">●</span>${s}</li>`).join('')}</ul></div>`:''}
-      ${p.tiktokAd?`<div style="background:rgba(236,72,153,.06);border:1px solid rgba(236,72,153,.15);border-radius:10px;padding:14px"><strong style="font-size:.83rem;color:var(--a4)">🎵 TikTok Strategy</strong><p style="font-size:.86rem;margin-top:8px;white-space:pre-wrap">${p.tiktokAd}</p></div>`:''}
-      ${p.facebookAd?`<div style="background:rgba(59,130,246,.06);border:1px solid rgba(59,130,246,.15);border-radius:10px;padding:14px"><strong style="font-size:.83rem;color:#60a5fa">📘 Facebook Strategy</strong><p style="font-size:.86rem;margin-top:8px;white-space:pre-wrap">${p.facebookAd}</p></div>`:''}
-      ${p.adBudget?`<div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:10px;padding:14px"><strong style="font-size:.83rem;color:var(--a3)">💰 Ad Budget</strong><p style="font-size:.86rem;margin-top:6px">${p.adBudget}</p></div>`:''}
-      ${p.caption?`<div><strong style="font-size:.83rem;color:var(--text2)">💬 Caption</strong><div style="margin-top:8px">${R.copyBox(p.caption,'📋 Copy')}</div></div>`:''}
-      ${p.hashtags?`<div>${R.tags(p.hashtags.split(/[\s,]+/).filter(Boolean),'tag-violet')}</div>`:''}
-      ${p.notes?`<div style="background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:10px;padding:12px;font-size:.85rem;color:var(--text2)">${p.notes}</div>`:''}
-    </div>`;
-  Modal.show('productModal');
-}
+
 
 /* Hamburger */
 document.getElementById('hamburgerBtn')?.addEventListener('click', ()=>document.getElementById('mainNav')?.classList.toggle('open'));
@@ -671,7 +632,7 @@ function closeDrawer(){
 </script>
 
 <script>
-document.getElementById('drawerNav').innerHTML = '<a class="nav-link active" href="index.html" onclick="closeDrawer()">🏠 Home</a><a class="nav-link" href="#winning" onclick="closeDrawer()">🏆 Products</a><a class="nav-link" href="#tools" onclick="closeDrawer()">🛠️ Tools</a><a class="nav-link" href="marketplace.html" onclick="closeDrawer()">🛍️ Marketplace</a><a class="nav-link" href="dashboard.html" onclick="closeDrawer()">📊 Dashboard</a><a class="nav-link" href="help.html" onclick="closeDrawer()">💬 Support</a>';
+document.getElementById('drawerNav').innerHTML = '<a class="nav-link active" href="index.html" onclick="closeDrawer()">🏠 Home</a><a class="nav-link" href="winning-products.html" onclick="closeDrawer()">🏆 Products</a><a class="nav-link" href="#tools" onclick="closeDrawer()">🛠️ Tools</a><a class="nav-link" href="marketplace.html" onclick="closeDrawer()">🛍️ Marketplace</a><a class="nav-link" href="dashboard.html" onclick="closeDrawer()">📊 Dashboard</a><a class="nav-link" href="help.html" onclick="closeDrawer()">💬 Support</a>';
 if(!window._drawerHooked){
   window._drawerHooked = true;
   var _origUpdate = window.updateUsageDisplay;
