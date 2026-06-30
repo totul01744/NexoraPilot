@@ -168,14 +168,9 @@
       <div class="admin-header">
         <div><div class="page-title">🏆 Winning Products</div></div>
         <div style="display:flex;gap:8px">
-          <button class="btn btn-sm btn-secondary" onclick="addSampleProducts()">📦 Sample Data</button>
           <button class="btn btn-sm btn-secondary" onclick="normalizeOrderClick()" title="পুরনো product গুলোর জন্য order ঠিক করো">🔄 Order ঠিক করুন</button>
           <button class="btn btn-primary" onclick="openProductForm()">+ Product যোগ করুন</button>
         </div>
-      </div>
-      <div class="alert alert-info" style="margin-bottom:16px">
-        <span>ℹ️</span>
-        <div>সর্বপ্রথম <strong id="winLockNote">১০টি</strong> Product (নিচের list এর ক্রম অনুযায়ী) স্বয়ংক্রিয়ভাবে শুধু <strong>Pro User</strong> দেখতে পারবে — Normal User দের জন্য ঝাপসা/locked দেখাবে। এরপরের সব Product সবাই দেখতে পারবে (Premium flag আলাদাভাবে ON করলে সেটাও lock থাকবে)।</div>
       </div>
       <div class="table-card"><div id="productsTable"></div></div>
     </div>
@@ -744,15 +739,6 @@ async function delProduct(id){
   if(!confirm('মুছবেন?'))return;
   await FB.deleteProduct(id);
   renderProductsTable(); initAdmin(); Toast.success('Deleted');
-}
-
-async function addSampleProducts(){
-  const samples=[
-    {name:'Posture Corrector Pro',category:'Health & Beauty',score:88,premium:true,price:'৳২,৫০০-৪,৫০০',shortDesc:'Back support brace — TikTok ও Amazon-এ বিশাল চাহিদা',description:'TikTok-এর #১ trending health product।',whereToFind:'AliExpress',sellingPoints:['১০ দিনে পিঠের ব্যথা কমে','সব শরীরের জন্য','Doctor recommended'],tiktokAd:'Before/After content',facebookAd:'Targeting: ৩০-৫৫',adBudget:'দিনে ৳২,০০০',caption:'পিঠের ব্যথার সমাধান 😱 #PostureCorrector',hashtags:'#posturecorrector #backpain',notes:'১৮+ মাস ধরে trending।'},
-    {name:'LED Face Mask',category:'Health & Beauty',score:85,premium:true,price:'৳৩,০০০-৬,০০০',shortDesc:'৭ রঙের LED therapy mask',description:'Professional LED light therapy mask।',whereToFind:'Alibaba',sellingPoints:['৭টি LED mode','Anti-aging','ঘরে বসেই spa'],tiktokAd:'Before/after content',facebookAd:'Audience: ২৫-৪৫',adBudget:'৳৩,০০০/দিন',caption:'৩০ দিনে change ✨',hashtags:'#LEDmask #skincare',notes:'Premium positioning ভালো।'},
-  ];
-  for(const s of samples) await FB.addProduct(s);
-  renderProductsTable(); initAdmin(); Toast.success('Sample products যোগ হয়েছে! ✅');
 }
 
 /* ════════ DIGITAL MARKETPLACE — Admin Products ════════ */
