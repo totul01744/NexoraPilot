@@ -19,11 +19,11 @@ const CONFIG = {
   OPENROUTER_URL:   'https://openrouter.ai/api/v1/chat/completions',
   /* Free models — currently working on OpenRouter */
   OPENROUTER_MODELS: [
-    'meta-llama/llama-3.3-70b-instruct:free',
-    'mistralai/mistral-7b-instruct:free',
-    'google/gemma-3-12b-it:free',
     'meta-llama/llama-3.1-8b-instruct:free',
     'qwen/qwen-2.5-7b-instruct:free',
+    'google/gemma-3-12b-it:free',
+    'microsoft/phi-3-mini-128k-instruct:free',
+    'meta-llama/llama-3.3-70b-instruct:free',
   ],
   get OPENROUTER_MODEL(){ return this.OPENROUTER_MODELS[0]; },
   get OPENROUTER_MODEL_BACKUP(){ return this.OPENROUTER_MODELS[1]; },
@@ -1072,22 +1072,24 @@ const Engine = {
       const err = await res.json().catch(()=>({}));
       const msg = err.error?.message || '';
       const status = res.status;
+
+      /* 401 = key ভুল */
       if(status===401) throw new Error('OpenRouter Key ভুল। Admin panel থেকে সঠিক key দিন।');
-      if(status===429 || msg.toLowerCase().includes('rate') || msg.toLowerCase().includes('limit')){
-        /* পরবর্তী free model দিয়ে চেষ্টা করো */
+
+      /* 404/429/502/503 = model সমস্যা — পরেরটি try করো */
+      const tryNext = status===404 || status===429 || status===502 || status===503 ||
+        msg.toLowerCase().includes('rate') || msg.toLowerCase().includes('limit') ||
+        msg.toLowerCase().includes('provider') || msg.toLowerCase().includes('endpoint') ||
+        msg.toLowerCase().includes('not found');
+
+      if(tryNext){
         if(modelIdx + 1 < models.length){
-          console.log(`Rate limit on ${useModel}, trying ${models[modelIdx+1]}...`);
+          console.log(`[${status}] ${useModel} failed → trying ${models[modelIdx+1]}`);
           return await Engine.callOpenRouter(apiKey, prompt, modelIdx + 1);
         }
-        throw new Error('সব free model এ rate limit। ৫ মিনিট পরে চেষ্টা করুন।');
+        throw new Error('সব AI model এ সমস্যা। ৫ মিনিট পরে চেষ্টা করুন।');
       }
-      if(msg.toLowerCase().includes('provider') || status===503 || status===502){
-        /* Provider error — next model try */
-        if(modelIdx + 1 < models.length){
-          console.log(`Provider error on ${useModel}, trying ${models[modelIdx+1]}...`);
-          return await Engine.callOpenRouter(apiKey, prompt, modelIdx + 1);
-        }
-      }
+
       throw new Error(`AI Error (${status}): ${msg.substring(0,120) || 'অজানা সমস্যা'}`);
     }
 
