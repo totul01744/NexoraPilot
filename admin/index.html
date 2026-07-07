@@ -145,16 +145,7 @@
             <li>"Create Key" ক্লিক করুন</li>
             <li>Key copy করুন (শুরু হবে <code>sk-or-</code> দিয়ে) এবং নিচে paste করুন</li>
           </ol>
-          <div style="margin-top:10px;padding:10px 12px;background:rgba(0,245,212,.08);border:1px solid rgba(0,245,212,.15);border-radius:8px;font-size:.83rem">
-            <div style="color:var(--a1);font-weight:700;margin-bottom:6px">✅ Auto-Fallback Free Models (ক্রমানুসারে চেষ্টা হবে):</div>
-            <div id="orModelList" style="display:grid;gap:4px;color:var(--text2)">
-              <div>① <code style="color:var(--a1)">google/gemini-2.0-flash-exp:free</code></div>
-              <div>② <code style="color:#a78bfa">meta-llama/llama-3.3-70b-instruct:free</code></div>
-              <div>③ <code style="color:var(--a3)">mistralai/mistral-7b-instruct:free</code></div>
-              <div>④ <code style="color:#60a5fa">google/gemma-3-12b-it:free</code></div>
-            </div>
-            <div style="margin-top:6px;font-size:.78rem;color:var(--text2)">একটিতে rate limit হলে স্বয়ংক্রিয়ভাবে পরেরটি দিয়ে চেষ্টা হবে।</div>
-          </div>
+          <div style="margin-top:10px;padding:8px 12px;background:rgba(245,158,11,.1);border-radius:8px;font-size:.83rem;color:var(--a3)">✅ Model: <strong id="orModelName">openai/gpt-oss-120b:free</strong> ব্যবহার হচ্ছে — সম্পূর্ণ Free</div>
         </div>
         <div class="form-group">
           <label class="form-label">OpenRouter API Key (sk-or-...)</label>
@@ -577,7 +568,7 @@ function renderApiKeyStatus(){
   const display=document.getElementById('apiKeyCurrentDisplay');
   const masked=document.getElementById('apiKeyMasked');
   const modelEl=document.getElementById('orModelName');
-  if(modelEl) modelEl.textContent = CONFIG.OPENROUTER_MODEL || 'google/gemini-2.0-flash-exp:free';
+  if(modelEl) modelEl.textContent = CONFIG.OPENROUTER_MODEL;
   if(key){
     icon.style.background='rgba(0,245,212,.15)'; icon.textContent='✅';
     title.textContent='System Key সক্রিয়';
@@ -616,47 +607,13 @@ async function testApiKey(){
   const result=document.getElementById('testResult');
   if(!key){ result.innerHTML='<div class="alert alert-error">❌ কোনো key সেট নেই।</div>'; return; }
   btn.disabled=true; btn.textContent='⏳ Test করা হচ্ছে...';
-  result.innerHTML='<div class="alert alert-info">🔄 সব free model test করা হচ্ছে...</div>';
-
-  const models = CONFIG.OPENROUTER_MODELS || ['google/gemini-2.0-flash-exp:free','meta-llama/llama-3.3-70b-instruct:free'];
-  let successModel = null;
-
-  for(const model of models){
-    try{
-      const res = await fetch(CONFIG.OPENROUTER_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type':  'application/json',
-          'Authorization': `Bearer ${key}`,
-          'HTTP-Referer':  window.location.origin || 'https://nexora-pilot.vercel.app',
-          'X-Title':       'NexoraPilot AI Tools'
-        },
-        body: JSON.stringify({
-          model: model,
-          messages:[{role:'user',content:'Reply with single word: OK'}],
-          max_tokens: 5
-        })
-      });
-      if(res.ok){
-        successModel = model;
-        break;
-      } else {
-        const err = await res.json().catch(()=>({}));
-        const msg = (err?.error?.message||'').toLowerCase();
-        /* Rate limit বা provider error হলে পরের model চেষ্টা করো */
-        if(msg.includes('rate') || msg.includes('limit') || msg.includes('provider') || res.status===503) continue;
-        /* Auth error হলে key-ই ভুল */
-        if(res.status===401){ result.innerHTML=`<div class="alert alert-error">❌ Key ভুল (401): Key টি সঠিক কিনা চেক করুন।</div>`; btn.disabled=false; btn.textContent='🧪 Connection Test করুন'; return; }
-      }
-    } catch(e){ continue; }
-  }
-
+  result.innerHTML='<div class="alert alert-info">🔄 Connection check করা হচ্ছে...</div>';
+  try{
+    const res=await fetch(CONFIG.OPENROUTER_URL,{method:'POST',headers:{'Content-Type':'application/json','Authorization':`Bearer ${key}`},body:JSON.stringify({model:CONFIG.OPENROUTER_MODEL,messages:[{role:'user',content:'Say OK only'}],max_tokens:5})});
+    if(res.ok){ result.innerHTML='<div class="alert alert-success">✅ OpenRouter Connection সফল!</div>'; }
+    else { const err=await res.json().catch(()=>{}); result.innerHTML=`<div class="alert alert-error">❌ Error: ${err?.error?.message||'Invalid key'}</div>`; }
+  } catch(e){ result.innerHTML=`<div class="alert alert-error">❌ ${e.message}</div>`; }
   btn.disabled=false; btn.textContent='🧪 Connection Test করুন';
-  if(successModel){
-    result.innerHTML=`<div class="alert alert-success">✅ Connection সফল!<br><span style="font-size:.82rem;color:var(--text2)">Working model: <strong style="color:var(--a1)">${successModel}</strong></span></div>`;
-  } else {
-    result.innerHTML=`<div class="alert alert-warning">⚠️ সব model এ rate limit বা provider error। Key সঠিক হলে ৫ মিনিট পরে আবার চেষ্টা করুন।<br><span style="font-size:.8rem;color:var(--text2)">এটা key-এর সমস্যা না — free model গুলো temporarily busy।</span></div>`;
-  }
 }
 
 /* ════════ PRODUCTS ════════ */
