@@ -332,6 +332,7 @@ function gShowErr(errId, msg){
 }
 
 async function gLogin(){
+  if(!auth){ Toast.error('সিস্টেম লোড হচ্ছে, একটু অপেক্ষা করুন...'); return; }
   const email = document.getElementById('g_email').value.trim().toLowerCase();
   const pass  = document.getElementById('g_pass').value;
   if(!email||!pass){ gShowErr('g_login_err','Email ও পাসওয়ার্ড দিন'); return; }
@@ -348,6 +349,7 @@ async function gLogin(){
 }
 
 async function gRegister(){
+  if(!auth){ Toast.error('সিস্টেম লোড হচ্ছে, একটু অপেক্ষা করুন...'); return; }
   const name     = document.getElementById('g_name').value.trim();
   const address  = document.getElementById('g_address').value.trim();
   const whatsapp = document.getElementById('g_whatsapp').value.trim();
