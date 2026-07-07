@@ -19,10 +19,11 @@ const CONFIG = {
   OPENROUTER_URL:   'https://openrouter.ai/api/v1/chat/completions',
   /* Free models — currently working on OpenRouter */
   OPENROUTER_MODELS: [
-    'google/gemini-2.0-flash-exp:free',
     'meta-llama/llama-3.3-70b-instruct:free',
     'mistralai/mistral-7b-instruct:free',
     'google/gemma-3-12b-it:free',
+    'meta-llama/llama-3.1-8b-instruct:free',
+    'qwen/qwen-2.5-7b-instruct:free',
   ],
   get OPENROUTER_MODEL(){ return this.OPENROUTER_MODELS[0]; },
   get OPENROUTER_MODEL_BACKUP(){ return this.OPENROUTER_MODELS[1]; },
