@@ -2105,8 +2105,7 @@ async function runAdCopy(){
       </div>
       <div class="mb-1">
         <strong style="font-size:.8rem;color:var(--text2)">DESCRIPTIONS</strong>
-        ${R.copyBox((ad.description1||'')+(ad.description2?'
-'+ad.description2:''),'📋 Copy')}
+        ${R.copyBox((ad.description1||'')+(ad.description2?' | '+ad.description2:''),'📋 Copy')}
       </div>
       ${ad.display_url?`<div style="font-size:.82rem;color:var(--text2);margin-top:6px">🔗 ${ad.display_url}</div>`:''}
     </div>`).join('')}
