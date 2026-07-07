@@ -17,8 +17,15 @@ const FB_CONFIG = {
 /* ── App Config ── */
 const CONFIG = {
   OPENROUTER_URL:   'https://openrouter.ai/api/v1/chat/completions',
-  OPENROUTER_MODEL: 'openai/gpt-oss-120b:free',
-  OPENROUTER_MODEL_BACKUP: 'meta-llama/llama-3.3-70b-instruct:free',
+  /* Free models — currently working on OpenRouter */
+  OPENROUTER_MODELS: [
+    'google/gemini-2.0-flash-exp:free',
+    'meta-llama/llama-3.3-70b-instruct:free',
+    'mistralai/mistral-7b-instruct:free',
+    'google/gemma-3-12b-it:free',
+  ],
+  get OPENROUTER_MODEL(){ return this.OPENROUTER_MODELS[0]; },
+  get OPENROUTER_MODEL_BACKUP(){ return this.OPENROUTER_MODELS[1]; },
   ADMIN_UID:        'd8uASRNpNVbpPeCKAWI5OQAg1UF2',   /* আপনার UID */
   ADMIN_EMAIL:      'totul01744@gmail.com',             /* আপনার email */
   BKASH_NUMBER:     '01859-393487',
@@ -1037,48 +1044,68 @@ const Engine = {
     return await Engine.callOpenRouter(apiKey, prompt);
   },
 
-  async callOpenRouter(apiKey, prompt, model=null){
-    const useModel = model || CONFIG.OPENROUTER_MODEL;
+  async callOpenRouter(apiKey, prompt, modelIdx=0){
+    const models = CONFIG.OPENROUTER_MODELS;
+    const useModel = models[modelIdx] || models[0];
+    const lang = window._toolLang || 'Bengali';
+    const fullPrompt = prompt +
+      `\n\nOUTPUT LANGUAGE: ${lang}. Write ALL text content in ${lang}. Only JSON field names stay in English.` +
+      `\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown, no backticks. Raw JSON only.`;
     let res;
     try {
       res = await fetch(CONFIG.OPENROUTER_URL, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type':  'application/json',
           'Authorization': `Bearer ${apiKey}`,
-          'HTTP-Referer': window.location.origin,
-          'X-Title': 'NexoraPilot'
+          'HTTP-Referer':  window.location.origin || 'https://nexora-pilot.vercel.app',
+          'X-Title':       'NexoraPilot AI Tools'
         },
         body: JSON.stringify({
           model: useModel,
-          messages: [{
-            role: 'user',
-            content: prompt + '\n\nOUTPUT LANGUAGE: ' + (window._toolLang||'Bengali') + '. Write ALL text content (headlines, body copy, scripts, descriptions, analysis, recommendations, summaries, bullet points, CTAs etc.) in ' + (window._toolLang||'Bengali') + '. Only field NAMES stay in English. JSON structure stays unchanged.\n\nIMPORTANT: Respond ONLY with valid JSON. No markdown, no backticks, no extra text. Raw JSON only.'
-          }],
-          temperature: 0.7,
-          max_tokens: 4000,
+          messages: [{ role: 'user', content: fullPrompt }],
+          temperature:  0.75,
+          max_tokens:   4000,
         }),
       });
     } catch(e){ throw new Error('ইন্টারনেট সংযোগ সমস্যা। আবার চেষ্টা করুন।'); }
+
     if(!res.ok){
       const err = await res.json().catch(()=>({}));
-      const msg = err.error?.message||'';
+      const msg = err.error?.message || '';
       const status = res.status;
-      if(status===401) throw new Error('OpenRouter Key ভুল। সঠিক key দিন।');
-      if(status===429){
-        /* প্রধান free model busy থাকলে backup free model দিয়ে একবার চেষ্টা করো */
-        if(useModel !== CONFIG.OPENROUTER_MODEL_BACKUP){
-          return await Engine.callOpenRouter(apiKey, prompt, CONFIG.OPENROUTER_MODEL_BACKUP);
+      if(status===401) throw new Error('OpenRouter Key ভুল। Admin panel থেকে সঠিক key দিন।');
+      if(status===429 || msg.toLowerCase().includes('rate') || msg.toLowerCase().includes('limit')){
+        /* পরবর্তী free model দিয়ে চেষ্টা করো */
+        if(modelIdx + 1 < models.length){
+          console.log(`Rate limit on ${useModel}, trying ${models[modelIdx+1]}...`);
+          return await Engine.callOpenRouter(apiKey, prompt, modelIdx + 1);
         }
-        throw new Error('Rate limit। ১ মিনিট পরে চেষ্টা করুন।');
+        throw new Error('সব free model এ rate limit। ৫ মিনিট পরে চেষ্টা করুন।');
       }
-      throw new Error(`OpenRouter Error (${status}): ${msg||'অজানা সমস্যা'}`);
+      if(msg.toLowerCase().includes('provider') || status===503 || status===502){
+        /* Provider error — next model try */
+        if(modelIdx + 1 < models.length){
+          console.log(`Provider error on ${useModel}, trying ${models[modelIdx+1]}...`);
+          return await Engine.callOpenRouter(apiKey, prompt, modelIdx + 1);
+        }
+      }
+      throw new Error(`AI Error (${status}): ${msg.substring(0,120) || 'অজানা সমস্যা'}`);
     }
+
     const data = await res.json();
-    const raw = data.choices?.[0]?.message?.content || '';
-    const clean = raw.replace(/```json|```/g,'').trim();
-    try{ return JSON.parse(clean); }
-    catch{ throw new Error('ফলাফল প্রক্রিয়া করতে সমস্যা। আবার চেষ্টা করুন।'); }
+    const raw   = data.choices?.[0]?.message?.content || '';
+    const clean = raw.replace(/```json[\s\S]*?```|```[\s\S]*?```/g, m => m.replace(/```json|```/g,'').trim()).trim();
+    /* JSON বের করো */
+    const jsonMatch = clean.match(/[\s\S]*?(\{[\s\S]*\})/); 
+    const jsonStr   = jsonMatch ? jsonMatch[1] : clean;
+    try{ return JSON.parse(jsonStr); }
+    catch{
+      /* Last attempt: find first { and last } */
+      const fi = clean.indexOf('{'); const li = clean.lastIndexOf('}');
+      if(fi>-1 && li>fi){ try{ return JSON.parse(clean.slice(fi,li+1)); }catch{} }
+      throw new Error('ফলাফল parse করতে সমস্যা। আবার চেষ্টা করুন।');
+    }
   },
 
   /* AI Tools Usage Limitation System:
@@ -1098,330 +1125,106 @@ const Engine = {
 
 /* ════════ PROMPTS ════════ */
 const Prompts = {
-  product_research:(v)=>`You are a senior ecommerce/dropshipping product-research analyst with 10+ years of experience launching winning products on Facebook Ads, TikTok Shop and Shopify across South Asian and global markets. A seller is asking you to evaluate ONE specific product idea before they invest money in ads and inventory. Your analysis must be specific, realistic and genuinely decision-useful — never generic boilerplate that could apply to any product.
+  product_research:(v)=>`You are a senior ecommerce product research analyst. Give a DETAILED, ACTIONABLE analysis.
+Product: "${v.product||'posture corrector'}", Category: "${v.category||'health'}", Market: "${v.market||'Bangladesh'}"
+Provide SPECIFIC numbers, real market insights, and concrete advice based on current ecommerce trends.
+Return ONLY this JSON (all text values in the output language):
+{"product_name":"exact product name","overall_score":82,"demand_score":80,"competition_score":65,"saturation_score":55,"trend_direction":"rising","verdict":"winner","summary":"3-4 sentence detailed market summary with specific insights","demand_analysis":"2-3 sentences about current demand with specific reasons","competition_analysis":"2-3 sentences about competition landscape","profit_margin_estimate":"35-55%","suggested_price_range":"specific price range for this market","target_audience":["specific demographic 1","specific demographic 2","specific demographic 3"],"key_selling_points":["compelling point 1 with detail","compelling point 2 with detail","compelling point 3 with detail","compelling point 4 with detail"],"risk_factors":["specific risk 1","specific risk 2","specific risk 3"],"recommendations":["actionable step 1","actionable step 2","actionable step 3","actionable step 4"],"marketing_channels":["best channel 1","best channel 2","best channel 3"],"estimated_monthly_sales":"realistic estimate for this market"}`,
 
-PRODUCT TO ANALYZE:
-- Product: ${v.product||'posture corrector'}
-- Category: ${v.category||'health'}
-- Target market: ${v.market||'US'}
+  tiktok_viral:(v)=>`You are a TikTok ecommerce expert. Find HIGH-POTENTIAL viral products with specific content strategies.
+Niche: "${v.niche||'beauty'}", Budget: "${v.budget||'medium'}", Market: "${v.market||'Bangladesh'}"
+Return ONLY this JSON (all text in output language):
+{"products":[{"rank":1,"product":"specific product name","viral_score":92,"trending_hashtags":["#hashtag1","#hashtag2","#hashtag3","#hashtag4"],"estimated_monthly_searches":45000,"video_view_potential":"high","hooks":["proven hook 1 that works","proven hook 2 that works","proven hook 3 that works"],"content_angle":"specific content strategy explanation","why_viral":"detailed explanation of virality potential","profit_potential":"high","suggested_price":"price range","content_ideas":["idea 1","idea 2","idea 3"]},{"rank":2,"product":"specific product name 2","viral_score":87,"trending_hashtags":["#hashtag1","#hashtag2","#hashtag3"],"estimated_monthly_searches":32000,"video_view_potential":"high","hooks":["hook 1","hook 2","hook 3"],"content_angle":"specific strategy","why_viral":"detailed explanation","profit_potential":"high","suggested_price":"price range","content_ideas":["idea 1","idea 2"]},{"rank":3,"product":"specific product name 3","viral_score":78,"trending_hashtags":["#hashtag1","#hashtag2"],"estimated_monthly_searches":18000,"video_view_potential":"medium","hooks":["hook 1","hook 2"],"content_angle":"strategy","why_viral":"explanation","profit_potential":"medium","suggested_price":"price range","content_ideas":["idea 1","idea 2"]}],"trending_categories":["category 1","category 2","category 3"],"action_plan":["step 1 with detail","step 2 with detail","step 3 with detail","step 4 with detail"]}`,
 
-HOW TO THINK (do this reasoning silently, then output only the final JSON):
-1. Identify what real customer problem this exact product solves, and how strong/urgent that problem is in ${v.market||'US'} specifically.
-2. Judge demand using realistic signals for THIS product (search/interest pattern, impulse-buy potential, repeat-purchase potential, seasonality) — not a generic guess.
-3. Judge competition/saturation by considering whether this is a well-known saturated dropshipping product, a fresh niche find, or somewhere in between. Be honest — if it's an oversaturated product (e.g. generic phone cases, common gadgets), say so clearly instead of inflating the score.
-4. Estimate believable cost/price numbers based on typical sourcing cost for this product type from AliExpress/Alibaba/local wholesale, not made-up round numbers.
-5. Think about who ACTUALLY buys this (be specific — age range, gender skew, lifestyle, pain point) rather than "general audience".
-6. Think about the 2-3 most likely objections a buyer would have, and how a seller should counter them.
-7. Think about whether NOW is a good time to launch this (seasonality, trend direction, market timing).
+  ad_creative:(v)=>`You are an expert ad creative director for ecommerce brands. Create HIGH-CONVERTING ad creatives.
+Product: "${v.product}", Platform: "${v.platform||'TikTok & Facebook'}", Target Audience: "${v.audience||'18-35'}", USP: "${v.usp||'not specified'}"
+Write COMPLETE, READY-TO-USE copy — not templates with "...". Write actual compelling copy.
+Return ONLY this JSON (all copy in output language):
+{"ad_angles":[{"angle":"Pain Point Attack","emotion":"frustration","headline":"compelling headline addressing pain point","body_copy":"complete ad body copy 3-4 sentences addressing the problem and solution","cta":"specific call to action","why_works":"psychological reason this works"},{"angle":"Social Proof","emotion":"trust","headline":"social proof headline","body_copy":"complete copy using social proof","cta":"specific CTA","why_works":"psychological reason"},{"angle":"Curiosity Gap","emotion":"curiosity","headline":"curiosity-driven headline","body_copy":"complete copy that builds curiosity","cta":"specific CTA","why_works":"psychological reason"}],"tiktok_scripts":[{"hook":"attention-grabbing first 3 seconds","script":"complete 30-second script with actions and dialogue","duration":"30s","visual_direction":"specific visual instructions for each scene"},{"hook":"different viral hook","script":"another complete script","duration":"30s","visual_direction":"specific visual instructions"}],"facebook_ads":[{"headline":"facebook headline under 25 chars","primary_text":"complete facebook ad copy 3-5 sentences","cta_button":"Shop Now","image_direction":"specific image/video description"},{"headline":"second headline variant","primary_text":"alternative complete copy","cta_button":"Learn More","image_direction":"specific creative description"}],"ad_hooks":["scroll-stopping hook 1","scroll-stopping hook 2","scroll-stopping hook 3","scroll-stopping hook 4","scroll-stopping hook 5"]}`,
 
-Be strict and honest: if the product is weak, say verdict "avoid" or "risky" — do not always say "winner". Numbers must vary meaningfully based on the actual product, not be the same template every time.
+  ad_script:(v)=>`You are a professional direct response copywriter. Write a COMPLETE, WORD-FOR-WORD ad script.
+Product: "${v.product}", Platform: "${v.platform||'TikTok'}", Duration: "${v.duration||'30s'}", Style: "${v.style||'UGC'}"
+Write ACTUAL script content — not placeholders. Make it compelling and natural.
+Return ONLY this JSON (all content in output language):
+{"script":{"hook":"first 3-5 seconds word-for-word","problem":"15-20 second problem setup word-for-word","solution":"10-15 second solution reveal word-for-word","proof":"social proof or demonstration word-for-word","offer":"irresistible offer statement word-for-word","cta":"final call to action word-for-word","full_script":"COMPLETE script from start to finish, all scenes combined, word-for-word, ready to read on camera"},"b_roll_shots":["shot 1 with exact description","shot 2 with exact description","shot 3 with exact description","shot 4 with exact description","shot 5 with exact description"],"voiceover_tips":"specific delivery and tone instructions","music_suggestions":["mood/genre 1 with example","mood/genre 2","mood/genre 3"],"estimated_ctr":"realistic CTR range","performance_tips":["tip 1","tip 2","tip 3"]}`,
 
-Respond as JSON with this exact structure:
-{"product_name":"...","overall_score":82,"demand_score":80,"competition_score":65,"saturation_score":55,"trend_direction":"rising/stable/declining","verdict":"winner/potential/risky/avoid","summary":"2-3 sentence honest verdict explaining WHY, specific to this product","demand_analysis":"specific reasoning about real demand signals for this exact product in this market","competition_analysis":"specific reasoning about how saturated/competitive this exact product is, name the type of sellers already doing it if relevant","score_reasoning":"1-2 sentences explaining WHY these specific scores were given, not generic","profit_margin_estimate":"realistic % range based on actual likely sourcing cost vs selling price","suggested_price_range":"realistic price range in ${v.market||'US'} currency for this exact product","estimated_sourcing_cost":"realistic per-unit cost estimate from AliExpress/Alibaba/local supplier","target_audience":["3-5 SPECIFIC audience segments, not generic 'everyone'"],"key_selling_points":["4-6 specific, persuasive selling points for THIS product"],"common_buyer_objections":[{"objection":"...","how_to_counter":"..."}],"best_marketing_angles":["3-4 specific ad/content angles tailored to this product's real pain point"],"seasonality_timing":"is now a good time to launch this, and why — mention relevant season/event if applicable","risk_factors":["3-5 specific real risks: saturation, return rate, shipping issues, platform restrictions, ad disapproval risk, etc — specific to this product"],"recommendations":["4-6 concrete next-step actions a seller should take this week"]}`,
-  tiktok_viral:(v)=>`You are a TikTok Shop / TikTok Ads growth strategist who has personally scaled multiple dropshipping and ecommerce brands to viral status. A seller wants real, launch-ready product opportunities in a specific niche — not vague trend talk.
+  product_description:(v)=>`You are an expert ecommerce copywriter. Write COMPLETE, SEO-OPTIMIZED product descriptions.
+Product: "${v.product}", Features: "${v.features||'not specified'}", Target Buyer: "${v.buyer||'general'}", Tone: "${v.tone||'friendly'}"
+Write ACTUAL compelling copy — not templates. All text must be complete and ready to use.
+Return ONLY this JSON (all content in output language):
+{"title":"complete SEO-optimized product title","tagline":"memorable one-line brand tagline","short_description":"2-3 sentence punchy short description for product listing","long_description":"complete 5-7 sentence detailed description covering all benefits, features, and emotional appeal","bullet_points":["benefit-focused point 1 with detail","benefit-focused point 2 with detail","benefit-focused point 3 with detail","benefit-focused point 4 with detail","benefit-focused point 5 with detail"],"seo_description":"150-160 character SEO meta description","emotional_copy":"3-4 sentences of emotional storytelling copy that connects with buyer","faqs":[{"q":"common question 1","a":"detailed answer 1"},{"q":"common question 2","a":"detailed answer 2"},{"q":"common question 3","a":"detailed answer 3"}],"keywords":["keyword 1","keyword 2","keyword 3","keyword 4","keyword 5","keyword 6","keyword 7","keyword 8"]}`,
 
-REQUEST:
-- Niche: ${v.niche||'beauty'}
-- Ad budget level: ${v.budget||'medium'}
-- Target market: ${v.market||'US'}
+  supplier_finder:(v)=>`You are a product sourcing expert. Provide SPECIFIC, ACTIONABLE supplier finding strategy.
+Product: "${v.product}", Budget: "${v.budget||'medium'}", Quality: "${v.quality||'medium'}"
+Return ONLY this JSON (all text in output language):
+{"platforms":[{"name":"Alibaba","search_terms":["exact search term 1","exact search term 2","exact search term 3"],"tips":"specific tips for this platform and product","moq":"typical minimum order quantity","lead_time":"typical lead time"},{"name":"AliExpress","search_terms":["exact search term 1","exact search term 2"],"tips":"specific tips","moq":"typical MOQ","lead_time":"lead time"},{"name":"1688.com","search_terms":["Chinese search terms or phonetic"],"tips":"how to use this platform","moq":"typical MOQ","lead_time":"lead time"}],"verification_checklist":["check 1 with specific detail","check 2 with specific detail","check 3 with specific detail","check 4 with specific detail","check 5 with specific detail"],"red_flags":["red flag 1 to watch for","red flag 2","red flag 3","red flag 4"],"outreach_email":{"subject":"specific email subject for this product","body":"complete professional sourcing inquiry email, 3-4 paragraphs, ready to send"},"negotiation_tips":["negotiation tip 1 with specific tactic","negotiation tip 2","negotiation tip 3"],"estimated_cogs":"realistic cost of goods range","recommended_margin":"recommended profit margin","sample_order_advice":"specific advice on ordering samples"}`,
 
-INSTRUCTIONS:
-1. Suggest 5 DIFFERENT specific products within this niche that currently have strong short-form video potential — vary them across price point, problem solved and target sub-audience. Do not just repeat the niche name as the product.
-2. For each product, give a viral_score reflecting realistic content/ad potential right now, not always 90+. Be honest if a product idea is weaker.
-3. Hooks must be scroll-stopping, written exactly as a creator would say them on camera in the first 2-3 seconds — specific to that product's pain point, not generic ("you need this!").
-4. Content angle should describe a concrete video concept (e.g. before/after, problem-agitate-solve, POV, unboxing storytelling) tailored to that product.
-5. Match recommendations to the stated budget level — low budget should favor organic/UGC-led approach, higher budget can include paid spark ads strategy.
-6. trending_hashtags should look like real TikTok hashtag style for this niche/market (mix of niche + broad + product-specific tags).
+  competitor_analysis:(v)=>`You are a competitive intelligence analyst for ecommerce. Provide DEEP competitor insights.
+Product: "${v.product}", Known Competitors: "${v.competitors||'unknown'}", Platform: "${v.platform||'Facebook/Instagram'}"
+Return ONLY this JSON (all text in output language):
+{"market_overview":"3-4 sentence overview of the competitive landscape","competitors":[{"name":"specific competitor name or type","estimated_monthly_revenue":"realistic revenue estimate","price_range":"price range they operate in","strengths":["strength 1","strength 2","strength 3"],"weaknesses":["weakness 1","weakness 2"],"review_score":4.2,"marketing_strategy":"how they market"},{"name":"competitor 2","estimated_monthly_revenue":"estimate","price_range":"range","strengths":["strength 1","strength 2"],"weaknesses":["weakness 1","weakness 2"],"review_score":3.8,"marketing_strategy":"their approach"},{"name":"competitor 3","estimated_monthly_revenue":"estimate","price_range":"range","strengths":["strength 1"],"weaknesses":["weakness 1","weakness 2","weakness 3"],"review_score":4.0,"marketing_strategy":"their approach"}],"market_gaps":["specific gap 1 you can exploit","specific gap 2","specific gap 3"],"differentiation_opportunities":["opportunity 1 with detail","opportunity 2 with detail","opportunity 3 with detail"],"entry_difficulty":"easy/medium/hard","win_strategy":["strategic step 1","strategic step 2","strategic step 3","strategic step 4"],"pricing_recommendation":"specific pricing strategy to beat competitors"}`,
 
-Respond as JSON:
-{"products":[{"rank":1,"product":"specific product name","viral_score":92,"trending_hashtags":["#..."],"estimated_monthly_searches":45000,"video_view_potential":"high/medium","hooks":["3 ready-to-say hooks for the first 2-3 seconds of video"],"content_angle":"specific video concept and format","creator_type":"what kind of creator/face fits this best (e.g. female 20s lifestyle, male fitness, mom creator)","why_viral":"specific reasoning why this works right now","profit_potential":"high/medium/low with brief reason"}],"trending_categories":["3-4 related trending sub-niches worth exploring"],"posting_strategy":{"best_times":"realistic best posting windows for this market","frequency":"recommended videos per week","budget_tip":"specific tip matched to ${v.budget||'medium'} budget level"},"action_plan":["5-6 concrete first-week actions a seller should take"]}`,
-  ad_creative:(v)=>`You are a senior direct-response media buyer who has spent millions of dollars on Facebook and TikTok ads for ecommerce brands. A seller needs ready-to-launch ad creatives — not generic marketing fluff, but copy that actually converts cold traffic.
+  market_report:(v)=>`You are a senior market research analyst. Create a COMPREHENSIVE market research report.
+Product/Niche: "${v.product}", Target Market: "${v.market||'Bangladesh'}", Budget Level: "${v.budget||'medium'}"
+Return ONLY this JSON (all text in output language):
+{"report_title":"professional report title","executive_summary":"4-5 sentence comprehensive executive summary with key findings","market_size":"specific market size estimate","growth_rate":"annual growth rate estimate","opportunity_score":78,"demand_prediction":"increasing/stable/declining","target_demographics":[{"segment":"specific demographic","size":"size estimate","pain_points":["pain 1","pain 2"],"buying_behavior":"how they buy"},{"segment":"second demographic","size":"estimate","pain_points":["pain 1","pain 2"],"buying_behavior":"how they buy"}],"market_trends":["specific trend 1 with explanation","specific trend 2","specific trend 3","specific trend 4"],"financial_projections":{"month1":"realistic first month projection","month3":"3-month projection","month6":"6-month projection","year1":"1-year projection"},"risk_assessment":[{"risk":"specific risk 1","probability":"high/medium/low","mitigation":"specific mitigation strategy"},{"risk":"specific risk 2","probability":"medium","mitigation":"mitigation strategy"},{"risk":"specific risk 3","probability":"low","mitigation":"mitigation strategy"}],"action_plan":[{"week":1,"actions":["specific action 1","specific action 2"]},{"week":2,"actions":["action 1","action 2"]},{"week":3,"actions":["action 1","action 2"]},{"week":4,"actions":["action 1","action 2"]}],"overall_recommendation":"3-4 sentence final recommendation with specific next steps"}`,
 
-PRODUCT BRIEF:
-- Product: ${v.product}
-- Platform: ${v.platform||'TikTok & Facebook'}
-- Target audience: ${v.audience||'18-35'}
-- USP given by seller: ${v.usp||'(not provided — infer the strongest believable USP for this product)'}
+  post_generator:(v)=>`You are a social media expert for ecommerce brands. Write COMPLETE, ENGAGING posts ready to publish.
+Product: "${v.product}", Features: "${v.features||''}", Language: "${v.lang||'Bengali'}"
+Write ACTUAL post content in ${v.lang||'Bengali'} — not templates. Posts must be compelling and ready to copy-paste.
+Return ONLY this JSON:
+{"posts":[{"type":"emotional_storytelling","title":"post title","body":"complete engaging post body 4-6 lines with emojis, storytelling, and clear value proposition","cta":"specific call to action"},{"type":"problem_solution","title":"post title","body":"complete post body 4-6 lines addressing a problem and presenting the product as solution","cta":"specific CTA"},{"type":"social_proof","title":"post title","body":"complete post with social proof elements 4-6 lines","cta":"specific CTA"},{"type":"curiosity_hook","title":"post title","body":"complete curiosity-driven post 4-6 lines","cta":"specific CTA"},{"type":"urgency_offer","title":"post title","body":"complete urgency/offer post 4-6 lines","cta":"specific CTA"}],"hashtags":["#hashtag1","#hashtag2","#hashtag3","#hashtag4","#hashtag5","#hashtag6","#hashtag7","#hashtag8"],"best_posting_time":"specific best time with reason","tips":["platform-specific tip 1","tip 2","tip 3"]}`,
 
-INSTRUCTIONS:
-1. Create 4 DIFFERENT ad angles, each built around a different core emotion (pick from: curiosity, fear/problem-aware, greed/value, social proof, identity/aspiration, urgency). Each angle must target a genuinely different pain point or motivation for buying THIS product — do not just reword the same idea four times.
-2. Headlines must be short, punchy, scroll-stopping — written like real top-performing Facebook/TikTok ad headlines, not generic taglines.
-3. Body copy should use a clear persuasion structure (problem → agitate → solution → proof → CTA) compressed into 2-4 short sentences, written in a natural, human, non-salesy tone.
-4. TikTok scripts must read like an actual UGC creator talking on camera — casual, specific, with a strong pattern-interrupt hook in the first line.
-5. Facebook ads should follow proven direct-response structure (specific headline + benefit-led primary text + clear single CTA).
-6. Give a short visual_brief for each ad telling a designer/videographer exactly what to shoot or design.
-7. End with a recommendation on which single angle to test first with the smallest budget, and why.
+  viral_post:(v)=>`You are a viral content strategist. Create HIGHLY SHAREABLE social media posts.
+Topic: "${v.topic}", Platform: "${v.platform||'Facebook'}", Target: "${v.target||'general'}"
+Write COMPLETE, ACTUAL post content — ready to publish. Make it genuinely viral-worthy.
+Return ONLY this JSON (all content in output language):
+{"viral_posts":[{"hook":"irresistible scroll-stopping opening line","body":"complete viral post body 5-8 lines with psychological triggers","cta":"compelling CTA","viral_factor":"specific reason this will spread","emotion_trigger":"curiosity/shock/humor/inspiration","expected_reach":"high/medium"},{"hook":"different viral hook type","body":"complete alternative viral post","cta":"CTA","viral_factor":"reason","emotion_trigger":"different emotion","expected_reach":"high"},{"hook":"third viral angle","body":"complete post with different angle","cta":"CTA","viral_factor":"reason","emotion_trigger":"emotion","expected_reach":"medium"}],"trending_elements":["element 1 to incorporate","element 2","element 3"],"timing_tip":"specific best posting time and frequency advice","engagement_boosters":["technique 1","technique 2","technique 3"]}`,
 
-Respond as JSON:
-{"ad_angles":[{"angle":"short angle name","emotion":"curiosity/fear/greed/social_proof/identity/urgency","headline":"...","body_copy":"...","cta":"...","why_works":"specific reasoning tied to this exact product/audience"}],"tiktok_scripts":[{"hook":"first 2-3 seconds, said out loud","script":"full spoken script for the video","duration":"30s","visual_direction":"what to film, shot by shot"}],"facebook_ads":[{"headline":"...","primary_text":"...","cta_button":"Shop Now/Learn More/etc","image_direction":"specific creative brief for the image or thumbnail"}],"ad_hooks":["6-8 standalone scroll-stopping hook lines usable across multiple ads"],"recommended_first_test":"which single angle to test first with smallest budget and why"}`,
-  ad_script:(v)=>`You are an expert short-form video scriptwriter who writes high-converting UGC and ad scripts for ecommerce brands on TikTok/Facebook/YouTube Shorts. Write a complete, word-for-word, ready-to-record script — not a vague outline.
+  promo_post:(v)=>`You are a promotional copywriter. Create URGENT, HIGH-CONVERTING promotional posts.
+Product: "${v.product}", Offer Type: "${v.offer||'discount'}", Duration: "${v.duration||'48 hours'}", Platform: "${v.platform||'Facebook'}"
+Write COMPLETE, READY-TO-USE promotional copy in output language. Include actual prices/percentages if mentioned.
+Return ONLY this JSON (all content in output language):
+{"promo_posts":[{"style":"urgency_scarcity","headline":"urgent promotional headline","body":"complete urgency-driven post 4-6 lines with countdown and scarcity elements","cta":"urgent CTA","countdown_text":"specific countdown message"},{"style":"value_stacking","headline":"value-focused headline","body":"complete post stacking all the value 4-6 lines","cta":"value-focused CTA"},{"style":"social_proof_offer","headline":"social proof headline","body":"complete post with social proof + offer 4-6 lines","cta":"trust-building CTA"}],"offer_headline":"punchy promotional headline","discount_angle":"specific angle to present the discount","hashtags":["#promo1","#promo2","#promo3","#promo4","#promo5"],"best_time_to_post":"specific timing advice for this offer type"}`,
 
-BRIEF:
-- Product: ${v.product}
-- Platform: ${v.platform||'TikTok'}
-- Duration: ${v.duration||'30s'}
-- Style: ${v.style||'UGC'}
+  ad_copy:(v)=>`You are a direct response copywriter. Write HIGH-CONVERTING ad copy for multiple platforms.
+Product: "${v.product}", Goal: "${v.goal||'sales'}", Audience: "${v.audience||'adults'}", Budget: "${v.budget||'medium'}"
+Write COMPLETE, ACTUAL ad copy — not templates. Make it compelling and specific.
+Return ONLY this JSON (all copy in output language):
+{"facebook_ads":[{"headline":"FB headline max 40 chars","primary_text":"complete FB ad copy 3-5 sentences addressing pain point and offering solution","description":"2 sentence description","cta":"Shop Now","pain_point":"specific pain point addressed"},{"headline":"second headline variant","primary_text":"alternative complete copy different angle","description":"description","cta":"Learn More","pain_point":"different pain point"},{"headline":"third variant","primary_text":"complete copy third angle","description":"description","cta":"Get Offer","pain_point":"third pain point"}],"google_ads":[{"headline1":"H1 max 30 chars","headline2":"H2 max 30 chars","headline3":"H3 max 30 chars","description1":"D1 max 90 chars complete description","description2":"D2 max 90 chars second description","display_url":"brand.com/product"},{"headline1":"second set H1","headline2":"H2","headline3":"H3","description1":"D1 complete","description2":"D2 complete","display_url":"brand.com/offer"}],"power_words":["power word 1","power word 2","power word 3","power word 4","power word 5","power word 6"],"conversion_tips":["specific tip 1","specific tip 2","specific tip 3","specific tip 4"]}`,
 
-INSTRUCTIONS:
-1. Match the script length and pacing realistically to the duration (15s ≈ 35-45 spoken words, 30s ≈ 70-90 words, 60s ≈ 140-170 words). Do not write a 15-second hook and call it a 60-second script.
-2. Write the hook as the exact words a creator says in the first 2-3 seconds — must create a pattern interrupt or curiosity gap specific to this product, never a generic "Hey guys" opener.
-3. Problem/Solution/Proof/Offer/CTA sections should read as NATURAL spoken language a real person would say on camera, matching the chosen style (${v.style||'UGC'}).
-4. Build a timestamped scene breakdown so the seller knows exactly what to film and say at each second.
-5. full_script must be the complete word-for-word script combining everything in order, ready to read straight into camera or hand to a voice actor.
-6. estimated_ctr should be a believable range based on platform + style + hook strength, with brief reasoning.
+  video_script:(v)=>`You are a professional video content creator and scriptwriter. Write a COMPLETE word-for-word video script.
+Topic: "${v.topic}", Duration: "${v.duration||'3-5 min'}", Style: "${v.style||'educational'}", Platform: "${v.platform||'YouTube'}"
+Write ACTUAL script content — every word the presenter should say. Make it engaging and valuable.
+Return ONLY this JSON (all content in output language):
+{"title":"click-worthy video title","intro":{"hook":"first 15 seconds word-for-word to grab attention","presenter_line":"complete introduction word-for-word","what_to_expect":"what viewers will learn word-for-word"},"body":[{"section":"section 1 name","content":"complete word-for-word script for this section 3-5 sentences","visual_cue":"specific visual/on-screen direction","duration_seconds":60},{"section":"section 2 name","content":"complete script 3-5 sentences","visual_cue":"specific visual direction","duration_seconds":60},{"section":"section 3 name","content":"complete script 3-5 sentences","visual_cue":"visual direction","duration_seconds":60},{"section":"section 4 name","content":"complete script 3-5 sentences","visual_cue":"visual direction","duration_seconds":60}],"outro":{"summary":"complete summary word-for-word","cta":"specific call to action word-for-word","subscribe_line":"subscribe/follow line word-for-word"},"b_roll_suggestions":["shot 1 description","shot 2","shot 3","shot 4","shot 5"],"thumbnail_idea":"specific thumbnail concept with colors and text","tags":["tag1","tag2","tag3","tag4","tag5","tag6","tag7","tag8"]}`,
 
-Respond as JSON:
-{"script":{"hook":"exact spoken hook line(s)","problem":"spoken problem statement","solution":"spoken solution reveal","proof":"spoken proof/social proof line","offer":"spoken offer/value statement","cta":"exact spoken call to action","full_script":"the complete word-for-word script from hook to CTA, ready to record"},"timestamped_breakdown":[{"time":"0-3s","spoken_line":"...","on_screen_action":"what the creator/camera does"},{"time":"3-10s","spoken_line":"...","on_screen_action":"..."}],"caption_text_overlays":["short on-screen text overlay lines to reinforce key moments"],"b_roll_shots":["specific supplementary shots to film"],"voiceover_tips":"delivery/tone/pacing tips matched to ${v.style||'UGC'} style","music_suggestions":["trending or mood-matched audio style suggestions"],"estimated_ctr":"believable % range with one-line reasoning"}`,
-  product_description:(v)=>`You are a senior ecommerce copywriter and SEO specialist who writes product pages that both rank on Google and convert visitors into buyers. Write copy specific to this exact product — never generic filler that could describe any item.
+  video_prompt:(v)=>`You are an AI video generation expert. Create PROFESSIONAL prompts for AI video tools.
+Scene: "${v.scene}", Style: "${v.style||'cinematic'}", Duration: "${v.duration||'15 seconds'}"
+Write DETAILED, SPECIFIC prompts that will generate high-quality videos.
+Return ONLY this JSON:
+{"prompts":[{"title":"Hero Product Shot","prompt":"highly detailed cinematic prompt: specific camera angle, lighting setup, background, product placement, color grade, motion, atmosphere - make it specific and vivid","negative_prompt":"what to avoid: blurry, distorted, bad quality, watermark, text","camera_movement":"specific camera movement","lighting":"specific lighting setup","mood":"specific mood/atmosphere"},{"title":"Lifestyle Scene","prompt":"detailed lifestyle/usage scene prompt with specific demographics, environment, action, emotion","negative_prompt":"avoid list","camera_movement":"camera motion","lighting":"lighting description","mood":"mood"},{"title":"Brand Aesthetic","prompt":"detailed brand/marketing focused prompt","negative_prompt":"avoid list","camera_movement":"motion","lighting":"lighting","mood":"mood"}],"style_tips":["specific tip 1 for this style","tip 2","tip 3"],"best_tool":"recommended AI video tool for this style","render_settings":"recommended settings"}`,
 
-BRIEF:
-- Product: ${v.product}
-- Key features given: ${v.features||'(not provided — infer realistic, believable features for this type of product)'}
-- Primary buyer: ${v.buyer||'general'}
-- Tone: ${v.tone||'friendly'}
+  storyboard:(v)=>`You are a professional video director and storyboard artist. Create a DETAILED production-ready storyboard.
+Topic: "${v.topic}", Video Type: "${v.type||'product showcase'}", Duration: "${v.duration||'30 seconds'}"
+Return ONLY this JSON (all content in output language):
+{"title":"video title","concept":"3-4 sentence creative concept and overall vision","scenes":[{"scene_number":1,"duration_seconds":5,"visual":"detailed visual description - exactly what viewers see","audio":"exact dialogue or narration text","text_overlay":"on-screen text if any","camera_angle":"specific camera angle and movement","transition":"transition to next scene"},{"scene_number":2,"duration_seconds":6,"visual":"detailed visual","audio":"exact audio","text_overlay":"text","camera_angle":"angle","transition":"transition"},{"scene_number":3,"duration_seconds":6,"visual":"detailed visual","audio":"exact audio","text_overlay":"text","camera_angle":"angle","transition":"transition"},{"scene_number":4,"duration_seconds":7,"visual":"detailed visual","audio":"exact audio","text_overlay":"text","camera_angle":"angle","transition":"transition"},{"scene_number":5,"duration_seconds":6,"visual":"closing visual","audio":"closing audio","text_overlay":"final text/CTA","camera_angle":"angle","transition":"end"}],"music_mood":"specific music style and BPM","color_palette":["#hex1","#hex2","#hex3"],"director_notes":"specific production notes and tips"}`,
 
-INSTRUCTIONS:
-1. Title must be SEO-friendly and benefit-led (include the product type + 1 key benefit/keyword naturally, not stuffed).
-2. For every feature, translate it into a customer BENEFIT (what it means for their life), not just a spec list.
-3. Long description should follow AIDA (Attention-Interest-Desire-Action) and read naturally — short paragraphs, no robotic phrasing, written for the specified buyer (${v.buyer||'general'}) specifically.
-4. Bullet points should each lead with the benefit, then the feature that delivers it (format: "Benefit — because of Feature").
-5. FAQs must address REAL buying objections for this product type (shipping/sizing/durability/effectiveness/usage — whichever are actually relevant), not generic placeholder Q&As.
-6. Keywords should include a realistic mix of primary (high intent, e.g. "buy [product]") and secondary/long-tail keywords someone would actually search.
-7. Match tone consistently to "${v.tone||'friendly'}" throughout every section.
+  subtitle_translator:(v)=>`You are a professional translator and localization expert.
+Text to translate: "${v.text}", From: "${v.from||'English'}", To: "${v.to||'Bengali'}", Style: "${v.style||'natural conversational'}"
+Translate accurately while preserving tone, emotion, and cultural context.
+Return ONLY this JSON:
+{"translated_lines":[{"original":"original text line","translated":"accurate translated text"},{"original":"second line","translated":"translation"}],"translation_notes":"specific translation decisions and choices made","cultural_adaptations":["adaptation 1 with explanation","adaptation 2"],"formality_level":"formal/informal/casual","alternative_phrases":[{"original":"phrase","alternative":"more natural alternative translation"},{"original":"phrase2","alternative":"alternative2"}],"localization_tips":["tip for this language pair 1","tip 2","tip 3"]}`,
 
-Respond as JSON:
-{"title":"SEO-friendly benefit-led title","tagline":"punchy one-line tagline","short_description":"2-3 sentence hook for product card/listing","long_description":"full AIDA-structured product page description, 4-6 short paragraphs","bullet_points":["5-7 bullets, each 'Benefit — because of Feature' format"],"features_to_benefits":[{"feature":"...","benefit":"what this actually means for the customer"}],"seo_description":"150-160 character meta description with primary keyword naturally included","emotional_copy":"a short emotional/storytelling paragraph that connects with the buyer's real desire or pain point","faqs":[{"q":"a real objection-based question","a":"reassuring, specific answer"}],"keywords":["8-12 realistic primary + long-tail keywords"]}`,
-  supplier_finder:(v)=>`You are an experienced ecommerce sourcing consultant who has personally sourced thousands of products from Alibaba, AliExpress, 1688, and local Bangladesh/South Asia wholesale markets. Give a real, actionable sourcing strategy for this exact product — not generic "search on Alibaba" advice.
+  ad_funnel:(v)=>`You are a performance marketing expert. Design a COMPLETE, DATA-DRIVEN ad funnel strategy.
+Product: "${v.product}", Daily Budget: "${v.budget||'medium (5000-10000 BDT/day)'}", Goal: "${v.goal||'sales'}", Timeline: "${v.timeline||'30 days'}"
+Return ONLY this JSON (all content in output language):
+{"funnel_overview":"4-5 sentence overview of the complete funnel strategy with expected results","stages":[{"stage":"Awareness (TOFU)","objective":"specific awareness objective","ad_type":"specific ad format","audience":"detailed audience description with interests and demographics","budget_percentage":"30%","content":"specific content strategy for this stage","kpi":"specific KPI to track","example_copy":"complete example ad copy for this stage"},{"stage":"Consideration (MOFU)","objective":"consideration objective","ad_type":"ad format","audience":"retargeting audience description","budget_percentage":"40%","content":"content strategy","kpi":"KPI","example_copy":"complete example copy"},{"stage":"Conversion (BOFU)","objective":"conversion objective","ad_type":"ad format","audience":"hot audience description","budget_percentage":"30%","content":"content strategy","kpi":"KPI","example_copy":"complete example copy"}],"retargeting_strategy":"detailed retargeting plan with specific windows and messaging","expected_roas":"realistic ROAS range with explanation","timeline":["week 1 activities","week 2 activities","week 3 activities","week 4 activities"],"scaling_strategy":"how to scale when profitable"}`,
 
-BRIEF:
-- Product: ${v.product}
-- Budget level: ${v.budget||'medium'}
-- Quality requirement: ${v.quality||'medium'}
-
-INSTRUCTIONS:
-1. Give realistic, specific search terms a buyer would actually type into each platform to find THIS product (include relevant variants/material/spec keywords, not just the product name repeated).
-2. estimated_cogs must be a believable per-unit cost range for this specific product at the requested quality level, based on real-world sourcing patterns.
-3. Include MOQ (minimum order quantity) guidance — typical MOQ range for this product type and how to negotiate it down for a first order/sample.
-4. Compare shipping methods (sample/air vs sea freight) with rough cost/time tradeoffs relevant to this product's size/weight.
-5. Verification checklist must be specific to red flags relevant to THIS product category (e.g. electronics need certification checks, apparel needs fabric/sizing sample checks, etc).
-6. The outreach email should be ready to send as-is, professional, and specifically reference this product with realistic quantity/spec questions.
-7. If relevant, suggest whether local Bangladesh/South Asia wholesale sourcing (e.g. local markets, local manufacturers) could be a faster/cheaper alternative for this product, and why or why not.
-
-Respond as JSON:
-{"platforms":[{"name":"Alibaba","search_terms":["realistic search terms"],"tips":"specific tip for this product on this platform"},{"name":"AliExpress","search_terms":["..."],"tips":"..."},{"name":"1688.com","search_terms":["..."],"tips":"China domestic platform tip, often cheaper but needs an agent"}],"moq_guidance":{"typical_moq":"realistic range for this product","negotiation_tip":"how to get samples/small first order"},"shipping_comparison":[{"method":"Air freight","cost_estimate":"...","time_estimate":"...","best_for":"..."},{"method":"Sea freight","cost_estimate":"...","time_estimate":"...","best_for":"..."}],"local_sourcing_alternative":"is local BD/South Asia sourcing viable for this product, with reasoning","verification_checklist":["5-7 checks specific to this product category"],"red_flags":["5-6 specific red flags to watch for with this product/supplier type"],"outreach_email":{"subject":"...","body":"ready-to-send professional inquiry referencing this exact product"},"negotiation_tips":["5-6 specific negotiation tactics"],"estimated_cogs":"realistic per-unit cost range at ${v.quality||'medium'} quality","recommended_margin":"realistic margin % range after landed cost"}`,
-  competitor_analysis:(v)=>`You are a competitive intelligence analyst for ecommerce sellers. A seller wants to understand the competitive landscape for a product/niche before entering, so they can position and price smartly — not vague generalities.
-
-BRIEF:
-- Product/Niche: ${v.product}
-- Known competitors (if any): ${v.competitors||'not specified — analyze typical seller archetypes in this space'}
-- Platform: ${v.platform||'Amazon'}
-
-IMPORTANT HONESTY RULE: Do not invent specific real company names or fabricate exact revenue figures as if they were verified facts. Instead, describe 3 realistic COMPETITOR ARCHETYPES that actually exist in this space (e.g. "Budget mass-market sellers", "Premium branded sellers", "Local/regional sellers") with believable estimated positioning, clearly framed as typical patterns in this market — this is more honest and still highly useful for strategy.
-
-INSTRUCTIONS:
-1. market_overview should describe the real competitive intensity and structure of this specific product/niche on ${v.platform||'Amazon'}.
-2. For each archetype, give realistic price range, typical strengths/weaknesses based on how that type of seller usually operates, and a believable review_score range.
-3. market_gaps must be SPECIFIC opportunities a new seller could exploit (not "better marketing" — be concrete: e.g. missing bundle options, no video content, weak customer service reputation, unaddressed customer complaint pattern, etc).
-4. Give a clear pricing_strategy recommendation (undercut, match, or premium-position) with reasoning.
-5. win_strategy should be concrete, sequenced actions, not generic advice.
-
-Respond as JSON:
-{"market_overview":"specific description of competitive intensity/structure for this product on this platform","entry_difficulty":"low/medium/high with brief reason","competitors":[{"name":"archetype label e.g. 'Budget Mass-Market Sellers'","estimated_price_position":"price range this type typically charges","typical_review_score":"believable range e.g. 3.8-4.3","strengths":["..."],"weaknesses":["..."]}],"market_gaps":["4-5 specific, exploitable gaps"],"differentiation_opportunities":["3-4 concrete ways to stand out"],"pricing_strategy_recommendation":"undercut/match/premium with reasoning specific to this niche","win_strategy":["5-6 sequenced, concrete first-90-days actions"]}`,
-  market_report:(v)=>`You are a market research analyst preparing an investment-grade opportunity report for an ecommerce seller deciding whether to enter a product/niche. Be realistic and balanced — this report should help them make a genuinely informed decision, not just hype them up.
-
-BRIEF:
-- Product/Niche: ${v.product}
-- Target market: ${v.market||'US'}
-- Available budget: ${v.budget||'medium'}
-
-INSTRUCTIONS:
-1. opportunity_score should reflect honest analysis — do not default to a high score; a saturated or low-margin niche should score lower.
-2. market_size and growth_rate should be presented as realistic, defensible estimates/ranges (e.g. "growing steadily, ~10-20% YoY in this category" style), not invented precise statistics presented as hard fact.
-3. target_demographics must be 2-3 SPECIFIC segments with real pain points relevant to this exact product, not generic "millennials" type filler.
-4. financial_projections should be realistic revenue RANGES based on the stated ${v.budget||'medium'} budget level and typical ecommerce conversion/ad-cost benchmarks — explain the assumption briefly so it doesn't look like a guaranteed number.
-5. risk_assessment must include risks SPECIFIC to this product/niche (not just generic "competition" — think supply chain, platform policy, seasonality, return rate, ad account risk, etc as relevant).
-6. action_plan should be a realistic week-by-week first-month roadmap with concrete tasks.
-7. overall_recommendation must be a clear, honest go/no-go/proceed-with-caution verdict with the key reasoning.
-
-Respond as JSON:
-{"report_title":"...","executive_summary":"3-4 sentence honest overview","market_size":"realistic estimate/range framed as an estimate","growth_rate":"realistic range framed as an estimate","opportunity_score":78,"demand_prediction":"increasing/stable/declining","target_demographics":[{"segment":"specific segment name","size":"relative size e.g. 'large/niche'","pain_points":["2-3 specific pain points"]}],"market_trends":["4-5 specific current trends relevant to this niche"],"financial_projections":{"month1":"realistic range with assumption note","month3":"...","month6":"..."},"risk_assessment":[{"risk":"specific risk","probability":"low/medium/high","mitigation":"concrete mitigation"}],"action_plan":[{"week":1,"actions":["..."]},{"week":2,"actions":["..."]},{"week":3,"actions":["..."]},{"week":4,"actions":["..."]}],"overall_recommendation":"clear honest go/no-go/proceed-with-caution verdict with key reasoning"}`,
-  post_generator:(v)=>`You are a native social media copywriter who writes Facebook posts for ecommerce sellers that sound natural and engaging in ${v.lang||'Bengali'} — not robotic translated English. You understand how Bangladeshi/South Asian Facebook audiences actually read and engage with posts.
-
-BRIEF:
-- Product: ${v.product}
-- Key features: ${v.features||'(infer realistic features)'}
-- Language: ${v.lang||'Bengali'}
-
-INSTRUCTIONS:
-1. Write 3 genuinely different posts: (a) a standard direct-sell post, (b) a storytelling/relatable-scenario post that draws the reader in emotionally before mentioning the product, (c) a question-hook post that opens with a relatable question to spark comments/engagement.
-2. Format each post the way real high-performing Facebook posts look: short punchy lines, natural line breaks (use \\n), tasteful emoji use (not excessive), and a conversational tone — never a stiff paragraph block.
-3. If language is Bengali, write in natural everyday Bengali (not overly formal/literary শুদ্ধ ভাষা) the way people actually write on Facebook, mixing in common English product/brand words where natural (Banglish feel where appropriate).
-4. CTA should be specific and actionable (e.g. "Inbox করুন", "এখনই অর্ডার করুন - স্টক সীমিত", not generic "buy now").
-5. Hashtags should be a realistic mix relevant to this product and Bangladeshi/local ecommerce audience.
-6. best_posting_time should reflect realistic Bangladeshi Facebook user activity patterns (e.g. evening hours, weekend patterns).
-
-Respond as JSON:
-{"posts":[{"type":"standard","title":"optional short title/headline","body":"the full post text with natural line breaks (\\n)","cta":"specific action-driving CTA"},{"type":"storytelling","title":"...","body":"...","cta":"..."},{"type":"question_hook","title":"...","body":"...","cta":"..."}],"hashtags":["6-10 relevant hashtags"],"best_posting_time":"realistic time/day recommendation for this market","engagement_tip":"one specific tip to boost comments/shares for this type of post","tips":["3-4 practical posting tips"]}`,
-  viral_post:(v)=>`You are a viral content strategist who understands what actually makes people stop scrolling, comment, and share — relatability, surprise, useful value, light controversy, humor, or strong emotional resonance. Write posts that genuinely have shareability mechanics, not just hype words like "viral" sprinkled in.
-
-BRIEF:
-- Topic/Product: ${v.topic}
-- Platform: ${v.platform||'Facebook'}
-- Target audience: ${v.target||'general'}
-
-INSTRUCTIONS:
-1. Write 3 posts using 3 DIFFERENT real viral triggers (pick the 3 most fitting from: curiosity gap, relatable pain point, controversial-but-safe opinion, surprising fact/myth-bust, humor, social proof/bandwagon, "tag a friend who..."). Each must use a genuinely different psychological hook, not the same idea reworded.
-2. Match the writing format and length convention to the actual platform: ${v.platform||'Facebook'} (e.g. Facebook allows longer storytelling, Instagram favors punchy short captions + emoji, TikTok captions are very short with the real content in video).
-3. Hooks must be the literal first line/sentence that stops the scroll — make it specific and concrete, not abstract hype.
-4. Explain WHY each post has share/comment potential in viral_factor — tie it to a real psychological reason (identification, curiosity resolution, desire to look smart/funny by sharing, etc).
-5. Be honest about expected_reach — not every post can be "high"; vary it based on genuine strength.
-6. trending_elements should suggest real current content formats/trends relevant to this topic (e.g. POV format, "things nobody tells you about X" format, duet-bait, etc) — not vague buzzwords.
-
-Respond as JSON:
-{"viral_posts":[{"hook":"the literal scroll-stopping first line","body":"full post body matched to platform conventions","cta":"what action you want (comment/share/tag/click)","viral_factor":"specific psychological reason this spreads","emotion_trigger":"curiosity/relatability/humor/controversy/surprise/social_proof","expected_reach":"high/medium/low — honest assessment"}],"trending_elements":["3-4 specific current content formats/trends relevant to this topic"],"timing_tip":"when to post this for max reach on ${v.platform||'Facebook'}","engagement_bait_warning":"one honest note on staying authentic and not over-using engagement-bait tactics that platforms may suppress"}`,
-  promo_post:(v)=>`You are a direct-response copywriter specializing in limited-time offer promotions for ecommerce sellers on social media. Write posts that drive real urgency without sounding fake or scammy.
-
-BRIEF:
-- Product: ${v.product}
-- Offer type: ${v.offer||'discount'}
-- Duration: ${v.duration||'48 hours'}
-- Platform: ${v.platform||'Facebook'}
-
-INSTRUCTIONS:
-1. Write 3 posts with genuinely different persuasion angles: (a) urgency/scarcity-led, (b) value/savings-led (make the math/value clear and concrete), (c) social-proof-led (framed around popularity/demand, without inventing fake specific numbers presented as verified fact).
-2. The urgency post's countdown_text should reference the EXACT duration given (${v.duration||'48 hours'}) consistently — don't contradict it elsewhere in the post.
-3. Headlines must be attention-grabbing but specific to the actual offer (not vague "BIG SALE").
-4. Body copy should clearly state what the offer is, why now, and what happens after the deadline (creates real stakes).
-5. CTA must be action-specific and urgent in tone, matched to each post's angle.
-6. Suggest one pinned_comment_idea — a comment the seller can pin under the post to reinforce urgency/answer common questions (price, shipping, how to order).
-7. Keep claims honest — avoid suggesting fabricated scarcity numbers ("only 3 left!") unless the seller's offer logically implies it; otherwise use general urgency language.
-
-Respond as JSON:
-{"promo_posts":[{"style":"urgency","headline":"...","body":"...","cta":"...","countdown_text":"text referencing the exact ${v.duration||'48 hours'} window"},{"style":"value_focus","headline":"...","body":"clearly shows the value/savings","cta":"..."},{"style":"social_proof","headline":"...","body":"...","cta":"..."}],"offer_headline":"the single best one-line summary of this offer","discount_angle":"the core persuasive angle behind this offer","pinned_comment_idea":"a comment to pin reinforcing urgency/answering FAQs","hashtags":["6-8 relevant hashtags"]}`,
-  ad_copy:(v)=>`You are a senior performance marketing copywriter who writes Facebook and Google ad copy that strictly respects each platform's character limits and is optimized for the stated campaign goal — not generic copy reused across goals.
-
-BRIEF:
-- Product: ${v.product}
-- Campaign goal: ${v.goal||'sales'}
-- Audience: ${v.audience||'adults'}
-- Budget level: ${v.budget||'medium'}
-
-INSTRUCTIONS:
-1. Write 3 Facebook ad variations, each targeting a DIFFERENT specific pain point of the audience, with a CTA matched to the goal (${v.goal||'sales'}: prefer "Shop Now"/"Order Now"; leads: "Sign Up"/"Get Offer"; awareness: "Learn More"/"See More").
-2. Facebook primary_text should be 2-3 short, punchy sentences (under ~125 characters works best before "see more" cutoff) — write it concise enough to perform, not a long paragraph.
-3. Google ads MUST respect real character limits: headline1/2/3 each max 30 characters, description1/2 each max 90 characters. Count carefully — do not exceed these.
-4. Power words should be genuinely persuasive words relevant to THIS product/goal (not a generic recycled list).
-5. conversion_tips should be specific, actionable advice for running THIS ad campaign at the ${v.budget||'medium'} budget level (e.g. testing approach, audience size, creative refresh cadence).
-
-Respond as JSON:
-{"facebook_ads":[{"headline":"under 40 characters, punchy","primary_text":"2-3 short sentences, concise","description":"short supporting line","cta":"Shop Now/Learn More/Sign Up/Get Offer matched to goal","pain_point":"the specific pain point this ad targets"}],"google_ads":[{"headline1":"max 30 chars","headline2":"max 30 chars","headline3":"max 30 chars","description1":"max 90 chars","description2":"max 90 chars","display_url":"realistic display path e.g. yoursite.com/product"}],"power_words":["8-10 persuasive words specific to this product/goal"],"conversion_tips":["4-5 specific actionable tips for this budget level and goal"]}`,
-  video_script:(v)=>`You are a professional video scriptwriter who writes scripts for YouTube/Facebook/TikTok creators, optimized for audience retention — not just information, but pacing that keeps people watching.
-
-BRIEF:
-- Topic: ${v.topic}
-- Target duration: ${v.duration||'3-5 min'}
-- Style: ${v.style||'educational'}
-- Platform: ${v.platform||'YouTube'}
-
-INSTRUCTIONS:
-1. The sum of all section duration_seconds (intro + body sections + outro) must realistically add up to match the target duration "${v.duration||'3-5 min'}" — do not write a 1-minute script when 5-10 minutes was requested, or vice versa.
-2. The hook (first 5-10 seconds) must create a real reason to keep watching — a specific promise, surprising claim, or question — never a generic "Hi guys, welcome back".
-3. Break the body into clearly distinct sections, each delivering one complete idea, with a natural pattern-interrupt or mini-hook every 30-45 seconds to maintain retention (mention this in retention_tip per section if relevant).
-4. Adapt structure to the platform: YouTube can have a slower build with more context; Facebook/TikTok-style videos need faster pacing and an earlier payoff even within a longer duration.
-5. Write actual spoken content (content field) as natural speech, not bullet-point notes.
-6. outro should drive a specific next action matched to the platform (subscribe for YouTube, follow/share for Facebook/TikTok).
-7. thumbnail_idea should describe a specific, curiosity-driving visual + text concept.
-
-Respond as JSON:
-{"title":"compelling, specific video title","intro":{"hook":"exact spoken hook for first 5-10 seconds","presenter_line":"natural transition line after the hook","what_to_expect":"quick value promise of what's coming","duration_seconds":10},"body":[{"section":"section name","content":"full natural spoken content for this section","visual_cue":"what to show on screen during this part","duration_seconds":45}],"outro":{"summary":"brief spoken wrap-up","cta":"specific spoken call to action matched to platform","subscribe_line":"natural subscribe/follow line"},"b_roll_suggestions":["specific supplementary footage ideas"],"thumbnail_idea":"specific visual + text concept for the thumbnail","retention_tips":["2-3 specific tips on where/how to keep viewers from dropping off in this exact script"],"tags":["8-12 relevant search tags/keywords"]}`,
-  video_prompt:(v)=>`You are an expert AI video prompt engineer experienced with Veo, Sora, and Kling. Write prompts using the dense, single-paragraph cinematic description style these models actually respond best to — not vague short phrases.
-
-BRIEF:
-- Scene/Product: ${v.scene}
-- Style: ${v.style||'cinematic'}
-- Target duration: ${v.duration||'15 seconds'}
-
-INSTRUCTIONS:
-1. Each prompt should be ONE rich, descriptive paragraph combining: subject + specific action/movement + environment/setting details + camera angle and movement + lighting description + lens/shot type + mood/atmosphere — written the way professional AI-video prompt engineers structure prompts (specific, visual, concrete nouns and adjectives, no vague words like "nice" or "good").
-2. Give 3 DIFFERENT prompt variations of the same scene — vary camera angle/movement, lighting mood, or framing between them so the seller has real creative options.
-3. Note that negative_prompt support varies by tool — Kling supports negative prompts well, Sora and Veo currently have more limited or no negative prompt support — mention this in tool_compatibility_note.
-4. Keep prompt length and complexity realistic for the stated duration — a 5-second prompt should describe one continuous action, a 30-second prompt can describe a brief sequence/progression.
-5. best_tool recommendation should be reasoned (e.g. Kling is often strong for product close-ups with precise camera control; Sora/Veo for more cinematic narrative shots) — explain why for this specific scene.
-
-Respond as JSON:
-{"prompts":[{"title":"Prompt 1 — short label describing the variation","prompt":"one dense cinematic paragraph combining subject, action, environment, camera, lighting, lens, mood","negative_prompt":"elements to avoid (mainly useful for Kling)","camera_movement":"specific camera movement e.g. slow dolly-in, handheld tracking","lighting":"specific lighting description","mood":"specific atmosphere/mood"}],"tool_compatibility_note":"brief note on which tools support negative prompts and any other relevant tool differences","style_tips":["3-4 specific tips for getting better results from AI video generators for this type of scene"],"best_tool":"Veo/Sora/Kling recommendation with brief reasoning for this specific scene"}`,
-  storyboard:(v)=>`You are a video director creating a shot-by-shot storyboard for a short-form video. The number and length of scenes should be realistic for the actual duration requested, not a fixed template.
-
-BRIEF:
-- Topic: ${v.topic}
-- Video type: ${v.type||'product showcase'}
-- Total duration: ${v.duration||'30 seconds'}
-
-INSTRUCTIONS:
-1. Calculate a sensible number of scenes so the sum of all scene duration_seconds matches the total duration "${v.duration||'30 seconds'}" — e.g. a 30-second video might have 4-6 scenes of 4-8 seconds each, a 2-minute video would have more/longer scenes. Do not always default to exactly 5 scenes.
-2. Structure the scene flow to match the video type: "product showcase" should follow hook→problem/context→product reveal→benefits/demo→CTA; "testimonial" should follow relatable intro→struggle→discovery→result→recommendation; "tutorial" should follow hook→what you'll learn→step-by-step→result/recap→CTA. Adapt accordingly.
-3. Each scene's visual must be a specific, filmable shot description (not vague "show product").
-4. text_overlay should only be included where it genuinely adds value (key claims, numbers, CTA) — not every single scene needs one.
-5. director_notes should give 2-3 practical production tips specific to this video (lighting setup, pacing advice, what NOT to do).
-6. color_palette should suggest a believable visual mood/color direction matching the topic and type.
-
-Respond as JSON:
-{"title":"...","concept":"1-2 sentence creative concept for the whole video","scenes":[{"scene_number":1,"duration_seconds":5,"visual":"specific filmable shot description","audio":"what is heard — spoken line, sound effect, or music note","text_overlay":"on-screen text if needed, else empty string","camera_angle":"specific angle/shot type","transition":"transition into next scene"}],"music_mood":"specific music style/mood recommendation","color_palette":["3-4 color/mood descriptors"],"director_notes":"2-3 practical production tips specific to this video"}`,
-  subtitle_translator:(v)=>`You are a professional subtitle translator and localization expert fluent in ${v.from||'English'} and ${v.to||'Bengali'}. Translate naturally and idiomatically — never word-for-word literal translation that sounds robotic.
-
-BRIEF:
-- Text to translate: ${v.text}
-- From: ${v.from||'English'}
-- To: ${v.to||'Bengali'}
-- Style: ${v.style||'natural'}
-
-INSTRUCTIONS:
-1. Split the input text into proper SUBTITLE-LENGTH segments (each line should be short enough to read comfortably on screen, roughly 6-12 words / under ~42 characters per line where possible) — split by natural sentence/clause breaks, not by splitting in awkward places.
-2. Translate idiomatically and naturally — capture the real MEANING and tone, not literal word-for-word translation. If a phrase has no direct equivalent, translate the intent/feeling instead.
-3. Match the requested style "${v.style||'natural'}" consistently (e.g. natural = how people actually speak; formal = respectful/professional register).
-4. Note any phrases that required cultural adaptation (idioms, humor, references that don't translate directly) and explain the adaptation choice.
-5. For at least 2-3 key lines, offer an alternative_phrase — a different valid way to translate that line, useful if the seller wants a different tone option.
-6. State the overall formality_level used so the seller knows what register was applied.
-
-Respond as JSON:
-{"translated_lines":[{"original":"subtitle-length segment in source language","translated":"natural, idiomatic translation of that segment"}],"translation_notes":"any important notes about meaning/nuance preserved or adjusted","cultural_adaptations":["specific idioms/references that were adapted, and why"],"formality_level":"the register used (casual/natural/formal) and why it fits","alternative_phrases":[{"original":"a key line from the source","alternative":"a different valid translation option for that line"}]}`,
-  ad_funnel:(v)=>`You are a paid ads media buyer who builds full-funnel ad strategies for ecommerce sellers running campaigns in Bangladesh/South Asia on a daily budget in Bangladeshi Taka (৳). Give a real, executable funnel plan — not generic textbook funnel theory.
-
-BRIEF:
-- Product: ${v.product}
-- Daily ad budget: ${v.budget||'medium (৳2000-5000)'}
-- Goal: ${v.goal||'sales'}
-- Timeline: ${v.timeline||'30 days'}
-
-INSTRUCTIONS:
-1. Allocate the ACTUAL daily budget (parse the ৳ range given) across the 3 funnel stages (Awareness/Consideration/Conversion) in real Taka amounts, not just percentages — so the seller knows exactly how much to spend per stage per day.
-2. Recommend the specific ad platform/placement best suited to each stage (e.g. Facebook/Instagram Reels for awareness reach, retargeting via Facebook Pixel custom audience for consideration, dynamic product ads or lookalike for conversion).
-3. example_copy for each stage should be a real, ready-to-use ad line matched to that stage's psychology (awareness = curiosity/broad appeal, consideration = benefit/proof, conversion = urgency/offer).
-4. expected_roas should be a believable, honest range based on the budget level and goal — explain the assumption briefly, don't promise unrealistic returns.
-5. retargeting_strategy should describe concrete audience segments to retarget (e.g. video viewers 25%+, add-to-cart non-purchasers, page engagers) with suggested offer for each.
-6. timeline should be a realistic week-by-week execution plan matched to the stated timeline duration.
-
-Respond as JSON:
-{"funnel_overview":"2-3 sentence honest strategy summary","stages":[{"stage":"Awareness","objective":"...","ad_type":"specific ad format/placement","audience":"specific targeting description","budget_percentage":"30%","daily_budget_bdt":"actual ৳ amount per day for this stage","content":"what kind of creative/content to run","kpi":"the metric to watch for this stage","example_copy":"ready-to-use ad line for this stage"},{"stage":"Consideration","objective":"...","ad_type":"...","audience":"...","budget_percentage":"40%","daily_budget_bdt":"...","content":"...","kpi":"...","example_copy":"..."},{"stage":"Conversion","objective":"...","ad_type":"...","audience":"...","budget_percentage":"30%","daily_budget_bdt":"...","content":"...","kpi":"...","example_copy":"..."}],"retargeting_strategy":"specific retargeting audience segments and offers","expected_roas":"believable range with brief reasoning","timeline":["week-by-week execution steps matched to the timeline"]}`,
-  concept_architect:(v)=>`You are an experienced startup/business strategist who helps founders turn raw ideas into a structured, realistic launch blueprint — honest about challenges, not just hype.
-
-BRIEF:
-- Business idea: ${v.idea}
-- Industry: ${v.industry||'ecommerce'}
-- Budget level: ${v.budget||'startup'}
-- Goal: ${v.goal||'launch'}
-
-INSTRUCTIONS:
-1. Sharpen the raw idea into a clear, differentiated concept — identify what would actually make this stand out, not generic "great quality, great service" claims.
-2. target_market should be SPECIFIC (real segment description + psychographics), not "everyone who needs X".
-3. revenue_model should reflect realistic pricing/streams for this idea at the stated budget level, with a believable (not inflated) projected_monthly range and a one-line assumption behind it.
-4. marketing_plan should give a real 3-phase approach (e.g. phase1 = validate/seed audience, phase2 = scale acquisition, phase3 = retention/expansion) specific to this business, matched to the stated budget.
-5. action_items should be a genuinely actionable 4-week roadmap — concrete tasks, not vague advice.
-6. risk_mitigation must address REAL risks specific to this idea/industry (cash flow, competition, supply, regulatory, market timing — whichever apply) with concrete mitigation, not generic "manage risk well".
-7. success_metrics should be specific, measurable KPIs the founder should track in the first 90 days.
-
-Respond as JSON:
-{"concept_title":"sharp, specific concept name","executive_summary":"3-4 sentence honest overview of the opportunity and challenge","unique_value_proposition":"specific, differentiated value prop — not generic","target_market":{"primary":"specific primary segment","secondary":"specific secondary segment","psychographics":["3-4 specific traits/behaviors"]},"competitive_advantage":["3-5 specific real advantages or differentiators"],"revenue_model":{"streams":["realistic revenue streams"],"pricing_strategy":"specific pricing approach with reasoning","projected_monthly":"realistic range with one-line assumption"},"marketing_plan":{"phase1":"specific first-phase approach","phase2":"specific scaling approach","phase3":"specific retention/expansion approach"},"action_items":[{"week":1,"tasks":["..."]},{"week":2,"tasks":["..."]},{"week":3,"tasks":["..."]},{"week":4,"tasks":["..."]}],"success_metrics":["4-5 specific measurable KPIs to track in first 90 days"],"risk_mitigation":[{"risk":"specific risk for this idea","mitigation":"concrete mitigation step"}]}`,
+  concept_architect:(v)=>`You are a business strategy consultant and marketing expert. Create a COMPREHENSIVE business blueprint.
+Business Idea: "${v.idea}", Industry: "${v.industry||'ecommerce'}", Budget: "${v.budget||'startup'}", Goal: "${v.goal||'launch and grow'}"
+Return ONLY this JSON (all content in output language):
+{"concept_title":"compelling business concept name","executive_summary":"5-6 sentence comprehensive summary of the concept, opportunity, and path to success","unique_value_proposition":"specific, compelling UVP statement","target_market":{"primary":"detailed primary market description","secondary":"secondary market","psychographics":["psychographic 1","psychographic 2","psychographic 3","psychographic 4"],"market_size":"estimated addressable market"},"competitive_advantage":["advantage 1 with explanation","advantage 2","advantage 3","advantage 4"],"revenue_model":{"streams":["revenue stream 1 with detail","revenue stream 2","revenue stream 3"],"pricing_strategy":"specific pricing approach","projected_monthly":"realistic monthly revenue projection","break_even":"estimated break-even timeline"},"marketing_plan":{"phase1":"month 1-2 detailed marketing plan","phase2":"month 3-4 plan","phase3":"month 5-6 plan"},"action_items":[{"week":1,"tasks":["specific task 1","specific task 2","specific task 3"]},{"week":2,"tasks":["task 1","task 2","task 3"]},{"week":3,"tasks":["task 1","task 2","task 3"]},{"week":4,"tasks":["task 1","task 2"]}],"success_metrics":["metric 1 with target","metric 2 with target","metric 3 with target","metric 4 with target"],"risk_mitigation":["risk 1 and specific mitigation","risk 2 and mitigation","risk 3 and mitigation"]}`,
 };
 
 /* ════════ RENDER HELPERS ════════ */
@@ -1945,34 +1748,24 @@ async function runProductResearch(){
   await FB.logEvent('product_research',{product});
   const vTag=data.verdict==='winner'?'tag-green':data.verdict==='potential'?'tag-amber':'tag-red';
   document.getElementById('pr-result').innerHTML=`<div class="result-card fade-up">
-    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">${R.scoreCircle(data.overall_score)}<div><h3 style="color:#fff">${data.product_name}</h3><span class="tag ${vTag}" style="margin-top:4px">● ${(data.verdict||'').toUpperCase()}</span></div><div style="margin-left:auto;font-size:.82rem;color:var(--text2)">Trend: <strong style="color:${data.trend_direction==='rising'?'var(--a1)':'var(--a3)'}">${data.trend_direction}</strong></div></div>
-    <p style="font-size:.87rem;margin-bottom:14px">${data.summary}</p>
-    <div class="divider"></div>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">${R.scoreCircle(data.overall_score)}<div><h3 style="color:#fff">${data.product_name}</h3><span class="tag ${vTag}" style="margin-top:4px">● ${(data.verdict||'').toUpperCase()}</span></div><div style="margin-left:auto;text-align:right"><div style="font-size:.82rem;color:var(--text2)">Trend: <strong style="color:${data.trend_direction==='rising'?'var(--a1)':data.trend_direction==='stable'?'var(--a3)':'#f87171'}">${data.trend_direction}</strong></div>${data.estimated_monthly_sales?`<div style="font-size:.78rem;color:var(--text2);margin-top:2px">Est. Sales: <strong style="color:#fff">${data.estimated_monthly_sales}</strong></div>`:''}</div></div>
+    <p style="font-size:.88rem;line-height:1.7;margin-bottom:14px">${data.summary}</p>
+    ${data.demand_analysis?`<div style="background:rgba(0,245,212,.04);border:1px solid rgba(0,245,212,.1);border-radius:8px;padding:10px 12px;margin-bottom:10px;font-size:.85rem;color:var(--text2)"><strong style="color:var(--a1)">📈 Demand:</strong> ${data.demand_analysis}</div>`:''}
+    ${data.competition_analysis?`<div style="background:rgba(124,58,237,.04);border:1px solid rgba(124,58,237,.1);border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:.85rem;color:var(--text2)"><strong style="color:#a78bfa">⚔️ Competition:</strong> ${data.competition_analysis}</div>`:''}
     <div class="meter-row"><span class="meter-label">📈 Demand</span>${R.scoreBar(data.demand_score,'var(--a1)')}</div>
     <div class="meter-row"><span class="meter-label">⚔️ Competition</span>${R.scoreBar(data.competition_score,'var(--a3)')}</div>
     <div class="meter-row"><span class="meter-label">🌊 Saturation</span>${R.scoreBar(data.saturation_score,'#f87171')}</div>
-    ${data.score_reasoning?`<p style="font-size:.8rem;color:var(--text2);margin-top:6px">💭 ${data.score_reasoning}</p>`:''}
     <div class="divider"></div>
-    <div class="mb-2"><strong style="font-size:.83rem;color:var(--text2)">🔍 Demand Analysis</strong><p style="font-size:.85rem;color:var(--text2);margin-top:4px">${data.demand_analysis||''}</p></div>
-    <div class="mb-2"><strong style="font-size:.83rem;color:var(--text2)">⚔️ Competition Analysis</strong><p style="font-size:.85rem;color:var(--text2);margin-top:4px">${data.competition_analysis||''}</p></div>
-    <div class="divider"></div>
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin:14px 0"><div><div style="font-size:.77rem;color:var(--text2)">💰 আনুমানিক Margin</div><strong style="color:var(--a1)">${data.profit_margin_estimate}</strong></div><div><div style="font-size:.77rem;color:var(--text2)">🏷️ মূল্য পরিসর</div><strong style="color:#fff">${data.suggested_price_range}</strong></div><div><div style="font-size:.77rem;color:var(--text2)">📦 Sourcing Cost</div><strong style="color:#fff">${data.estimated_sourcing_cost||'-'}</strong></div></div>
-    <div class="mb-2"><strong style="font-size:.83rem;color:var(--text2)">🎯 Target Audience</strong>${R.tags(data.target_audience,'tag-mint')}</div>
-    <div class="mb-2"><strong style="font-size:.83rem;color:var(--text2)">⭐ Selling Points</strong>${R.list(data.key_selling_points,'⭐')}</div>
-    <div class="mb-2"><strong style="font-size:.83rem;color:var(--text2)">📐 Best Marketing Angles</strong>${R.list(data.best_marketing_angles,'📐')}</div>
-    ${data.common_buyer_objections?.length?`<div class="mb-2"><strong style="font-size:.83rem;color:var(--text2)">🙋 Buyer Objections ও Counter</strong>${data.common_buyer_objections.map(o=>`<div style="font-size:.84rem;color:var(--text2);padding:6px 0;border-bottom:1px solid var(--border)"><strong style="color:#fff">❓ ${o.objection}</strong><br>↳ ${o.how_to_counter}</div>`).join('')}</div>`:''}
-    ${data.seasonality_timing?`<div class="mb-2"><strong style="font-size:.83rem;color:var(--text2)">⏰ Timing/Seasonality</strong><p style="font-size:.85rem;color:var(--text2);margin-top:4px">${data.seasonality_timing}</p></div>`:''}
-    <div class="mb-2"><strong style="font-size:.83rem;color:var(--text2)">⚠️ Risks</strong>${R.list(data.risk_factors,'⚠️')}</div>
-    <div><strong style="font-size:.83rem;color:var(--text2)">✅ পরামর্শ</strong>${R.list(data.recommendations,'→')}</div>
-    <div class="divider"></div>
-    <div style="background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.2);border-radius:12px;padding:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">
-      <div style="font-size:1.6rem">🏆</div>
-      <div style="flex:1;min-width:200px">
-        <strong style="color:#fff;font-size:.88rem">${data.verdict==='winner'?'এই রকম আরও Winning Product দেখুন':data.verdict==='avoid'?'এই প্রোডাক্ট ঝুঁকিপূর্ণ — বরং যাচাইকৃত Winning Product দেখুন':'আরও ভালো বিকল্প আমাদের Winning Products পেজে আছে'}</strong>
-        <p style="font-size:.8rem;color:var(--text2);margin-top:3px">আমরা প্রতিদিন AI দিয়ে হাজারো প্রোডাক্ট রিসার্চ করে সেরাগুলো বাছাই করে Winning Products পেজে রাখি — সরাসরি যাচাইকৃত ও high-potential প্রোডাক্ট দেখুন।</p>
-      </div>
-      <a href="winning-products.html" class="btn btn-sm btn-primary" style="white-space:nowrap">🏆 Winning Products দেখুন →</a>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0">
+      <div style="background:rgba(0,0,0,.2);border-radius:10px;padding:10px;text-align:center"><div style="font-size:.72rem;color:var(--text2)">💰 Margin</div><strong style="color:var(--a1)">${data.profit_margin_estimate||'—'}</strong></div>
+      <div style="background:rgba(0,0,0,.2);border-radius:10px;padding:10px;text-align:center"><div style="font-size:.72rem;color:var(--text2)">🏷️ Price</div><strong style="color:#fff;font-size:.82rem">${data.suggested_price_range||'—'}</strong></div>
+      <div style="background:rgba(0,0,0,.2);border-radius:10px;padding:10px;text-align:center"><div style="font-size:.72rem;color:var(--text2)">📊 Score</div><strong style="color:${data.overall_score>=75?'var(--a1)':data.overall_score>=50?'var(--a3)':'#f87171'};font-size:1.1rem">${data.overall_score||'—'}</strong></div>
     </div>
+    <div class="mb-2"><strong style="font-size:.83rem;color:var(--text2)">🎯 Target Audience</strong>${R.tags(data.target_audience,'tag-mint')}</div>
+    ${data.marketing_channels?`<div class="mb-2"><strong style="font-size:.83rem;color:var(--text2)">📢 Best Channels</strong>${R.tags(data.marketing_channels,'tag-violet')}</div>`:''}
+    <div class="mb-2"><strong style="font-size:.83rem;color:var(--text2)">⭐ Key Selling Points</strong>${R.list(data.key_selling_points,'⭐')}</div>
+    <div class="mb-2"><strong style="font-size:.83rem;color:var(--text2)">⚠️ Risk Factors</strong>${R.list(data.risk_factors,'⚠️')}</div>
+    <div><strong style="font-size:.83rem;color:var(--text2)">✅ Action Steps</strong>${R.list(data.recommendations,'→')}</div>
   </div>`;
 }
 
@@ -1984,20 +1777,17 @@ async function runTikTokFinder(){
   await FB.logEvent('tiktok',{niche});
   document.getElementById('tt-result').innerHTML=`<div class="result-card fade-up mb-2"><strong style="font-size:.83rem;color:var(--text2)">🔥 Trending Categories</strong>${R.tags(data.trending_categories,'tag-red')}</div>
   ${(data.products||[]).map((p,i)=>`<div class="result-card fade-up">
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--a4),var(--a2));display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:.88rem;flex-shrink:0">${i+1}</div><div style="flex:1"><strong style="color:#fff">${p.product}</strong>${p.creator_type?`<div style="font-size:.76rem;color:var(--text2)">🎭 ${p.creator_type}</div>`:''}</div><div style="text-align:right"><div style="font-family:var(--font-h);font-size:1.3rem;font-weight:800;color:${p.viral_score>=80?'var(--a1)':'var(--a3)'}">${p.viral_score}</div><div style="font-size:.7rem;color:var(--text2)">Viral</div></div></div>
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px"><div style="width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--a4),var(--a2));display:flex;align-items:center;justify-content:center;font-weight:900;color:#fff;font-size:.88rem;flex-shrink:0">${i+1}</div><div style="flex:1"><strong style="color:#fff">${p.product}</strong></div><div style="text-align:right"><div style="font-family:var(--font-h);font-size:1.3rem;font-weight:800;color:${p.viral_score>=80?'var(--a1)':'var(--a3)'}">${p.viral_score}</div><div style="font-size:.7rem;color:var(--text2)">Viral</div></div></div>
     <p style="font-size:.84rem;color:var(--text2);margin-bottom:10px">💡 ${p.why_viral}</p>
-    ${p.content_angle?`<p style="font-size:.82rem;color:var(--text2);margin-bottom:8px">🎬 <strong style="color:#fff">Content Angle:</strong> ${p.content_angle}</p>`:''}
-    <div class="mb-1"><strong style="font-size:.81rem;color:var(--text2)">🎣 Hooks</strong>${R.list(p.hooks,'🎣')}</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;font-size:.8rem">
+      ${p.estimated_monthly_searches?`<div><span style="color:var(--text2)">🔍 Monthly Searches:</span> <strong>${p.estimated_monthly_searches?.toLocaleString()}</strong></div>`:''}
+      ${p.suggested_price?`<div><span style="color:var(--text2)">💰 Price:</span> <strong style="color:var(--a3)">${p.suggested_price}</strong></div>`:''}
+    </div>
+    <div class="mb-1"><strong style="font-size:.81rem;color:var(--text2)">🎣 Proven Hooks</strong>${R.list(p.hooks,'🎣')}</div>
+    ${p.content_ideas&&p.content_ideas.length?`<div class="mb-1"><strong style="font-size:.81rem;color:var(--text2)">💡 Content Ideas</strong>${R.list(p.content_ideas,'💡')}</div>`:''}
     ${R.tags(p.trending_hashtags,'tag-red')}
-    <div style="display:flex;gap:8px;margin-top:8px"><span class="tag tag-green">💰 ${p.profit_potential}</span></div>
   </div>`).join('')}
-  ${data.posting_strategy?`<div class="result-card fade-up mb-2"><strong style="font-size:.83rem;color:var(--text2)">📅 Posting Strategy</strong><div style="font-size:.85rem;color:var(--text2);margin-top:6px;display:grid;gap:4px"><div>⏰ <strong style="color:#fff">Best Times:</strong> ${data.posting_strategy.best_times}</div><div>🔁 <strong style="color:#fff">Frequency:</strong> ${data.posting_strategy.frequency}</div><div>💸 <strong style="color:#fff">Budget Tip:</strong> ${data.posting_strategy.budget_tip}</div></div></div>`:''}
-  <div class="result-card fade-up"><strong style="font-size:.83rem;color:var(--text2)">📋 Action Plan</strong>${R.list(data.action_plan,'→')}</div>
-  <div style="background:rgba(236,72,153,.06);border:1px solid rgba(236,72,153,.2);border-radius:12px;padding:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-top:14px">
-    <div style="font-size:1.6rem">🏆</div>
-    <div style="flex:1;min-width:200px"><strong style="color:#fff;font-size:.88rem">এই প্রোডাক্টগুলো আগে ভালোভাবে যাচাই করতে চান?</strong><p style="font-size:.8rem;color:var(--text2);margin-top:3px">Winning Products পেজে আমাদের AI-যাচাইকৃত, প্রমাণিত high-potential প্রোডাক্ট লিস্ট দেখুন।</p></div>
-    <a href="winning-products.html" class="btn btn-sm btn-primary" style="white-space:nowrap">🏆 Winning Products দেখুন →</a>
-  </div>`;
+  <div class="result-card fade-up"><strong style="font-size:.83rem;color:var(--text2)">📋 Action Plan</strong>${R.list(data.action_plan,'→')}</div>`;
 }
 
 async function runAdCreative(){
@@ -2011,8 +1801,7 @@ async function runAdCreative(){
   <div id="ac-tab-angles">${(data.ad_angles||[]).map(a=>`<div class="result-card fade-up mb-2"><div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span class="tag ${eTag(a.emotion)}">${a.emotion}</span><strong style="color:#fff">${a.angle}</strong></div><div class="mb-2">${R.copyBox(a.headline,'Copy')}</div><p style="font-size:.85rem;color:var(--text2);margin-bottom:8px">${a.body_copy}</p><div style="display:flex;gap:8px"><span class="tag tag-green">CTA: ${a.cta}</span><span style="font-size:.77rem;color:var(--text2)">💡 ${a.why_works}</span></div></div>`).join('')}</div>
   <div id="ac-tab-tiktok" class="hidden">${(data.tiktok_scripts||[]).map((s,i)=>`<div class="result-card fade-up mb-2"><div class="tag tag-red mb-2">TikTok Script ${i+1} — ${s.duration}</div><div class="mb-2"><strong style="font-size:.8rem;color:var(--text2)">🎣 HOOK</strong>${R.copyBox(s.hook,'Copy')}</div><div><strong style="font-size:.8rem;color:var(--text2)">📝 FULL SCRIPT</strong>${R.copyBox(s.script,'Copy')}</div><p style="font-size:.82rem;color:var(--text2);margin-top:8px">🎬 ${s.visual_direction}</p></div>`).join('')}</div>
   <div id="ac-tab-fb" class="hidden">${(data.facebook_ads||[]).map((ad,i)=>`<div class="result-card fade-up mb-2"><div class="tag tag-blue mb-2">Facebook Ad ${i+1}</div><div class="mb-2"><strong style="font-size:.8rem;color:var(--text2)">HEADLINE</strong>${R.copyBox(ad.headline,'Copy')}</div><div class="mb-2"><strong style="font-size:.8rem;color:var(--text2)">PRIMARY TEXT</strong>${R.copyBox(ad.primary_text,'Copy')}</div><div style="display:flex;gap:8px"><span class="tag tag-green">Button: ${ad.cta_button}</span><span style="font-size:.8rem;color:var(--text2)">📸 ${ad.image_direction}</span></div></div>`).join('')}</div>
-  <div id="ac-tab-hooks" class="hidden"><div class="result-card fade-up"><strong style="font-size:.85rem;color:var(--text2)">🎣 Power Hooks</strong><div style="margin-top:10px">${(data.ad_hooks||[]).map((h,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="width:22px;height:22px;border-radius:50%;background:rgba(0,245,212,.1);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;color:var(--a1);flex-shrink:0">${i+1}</span><span style="flex:1;font-size:.86rem">${h}</span><button class="copy-btn" style="position:static" onclick="copyText('${h.replace(/'/g,"\\'")}',this)">Copy</button></div>`).join('')}</div></div></div>
-  ${data.recommended_first_test?`<div class="result-card fade-up mt-2" style="background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.2)"><strong style="font-size:.83rem;color:var(--a1)">🚀 প্রথমে কোনটা টেস্ট করবেন</strong><p style="font-size:.85rem;color:var(--text2);margin-top:6px">${data.recommended_first_test}</p></div>`:''}`;
+  <div id="ac-tab-hooks" class="hidden"><div class="result-card fade-up"><strong style="font-size:.85rem;color:var(--text2)">🎣 Power Hooks</strong><div style="margin-top:10px">${(data.ad_hooks||[]).map((h,i)=>`<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="width:22px;height:22px;border-radius:50%;background:rgba(0,245,212,.1);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:800;color:var(--a1);flex-shrink:0">${i+1}</span><span style="flex:1;font-size:.86rem">${h}</span><button class="copy-btn" style="position:static" onclick="copyText('${h.replace(/'/g,"\\'")}',this)">Copy</button></div>`).join('')}</div></div></div>`;
 }
 
 async function runAdScript(){
@@ -2021,13 +1810,9 @@ async function runAdScript(){
   const data=await runTool(Prompts.ad_script,{product,platform:document.getElementById('as-platform')?.value,duration:document.getElementById('as-duration')?.value,style:document.getElementById('as-style')?.value},'as-result');
   if(!data)return;
   await FB.logEvent('ad_script',{product});
+  await FB.logEvent('ad_script',{product});
   const s=data.script||{};
-  document.getElementById('as-result').innerHTML=`<div class="result-card fade-up"><div style="display:flex;gap:10px;margin-bottom:14px"><span class="tag tag-mint">${document.getElementById('as-platform')?.value}</span><span class="tag tag-blue">${document.getElementById('as-duration')?.value}</span></div><div style="display:grid;gap:10px"><div><div class="tag tag-red mb-1">🎣 HOOK</div>${R.copyBox(s.hook,'Copy')}</div><div><div class="tag tag-amber mb-1">❓ PROBLEM</div><p style="font-size:.86rem">${s.problem}</p></div><div><div class="tag tag-green mb-1">✅ SOLUTION</div><p style="font-size:.86rem">${s.solution}</p></div><div><div class="tag tag-violet mb-1">🎁 OFFER</div><p style="font-size:.86rem">${s.offer}</p></div><div><div class="tag tag-mint mb-1">📣 CTA</div>${R.copyBox(s.cta,'Copy')}</div></div><div class="divider"></div><div><strong style="font-size:.84rem;color:var(--text2)">📝 FULL SCRIPT</strong><div style="margin-top:8px">${R.copyBox(s.full_script,'📋 Copy Full')}</div></div>
-  ${data.timestamped_breakdown?.length?`<div class="divider"></div><div><strong style="font-size:.84rem;color:var(--text2)">⏱️ Scene-by-Scene Breakdown</strong><div style="margin-top:8px;display:grid;gap:8px">${data.timestamped_breakdown.map(b=>`<div style="display:flex;gap:10px;padding:8px;background:rgba(0,0,0,.18);border-radius:8px"><span class="tag tag-blue" style="flex-shrink:0;height:fit-content">${b.time}</span><div style="font-size:.84rem"><div style="color:#fff">🗣️ ${b.spoken_line}</div><div style="color:var(--text2);margin-top:2px">🎥 ${b.on_screen_action}</div></div></div>`).join('')}</div></div>`:''}
-  <div class="divider"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div><strong style="font-size:.82rem;color:var(--text2)">🎬 B-Roll</strong>${R.list(data.b_roll_shots,'📷')}</div><div><strong style="font-size:.82rem;color:var(--text2)">🎵 Music</strong>${R.list(data.music_suggestions,'🎵')}</div></div>
-  ${data.caption_text_overlays?.length?`<div class="mt-2"><strong style="font-size:.82rem;color:var(--text2)">💬 Text Overlays</strong>${R.tags(data.caption_text_overlays,'tag-mint')}</div>`:''}
-  ${data.estimated_ctr?`<div class="mt-2" style="font-size:.8rem;color:var(--text2)">📈 <strong style="color:var(--a1)">Estimated CTR:</strong> ${data.estimated_ctr}</div>`:''}
-  </div>`;
+  document.getElementById('as-result').innerHTML=`<div class="result-card fade-up"><div style="display:flex;gap:10px;margin-bottom:14px"><span class="tag tag-mint">${document.getElementById('as-platform')?.value}</span><span class="tag tag-blue">${document.getElementById('as-duration')?.value}</span></div><div style="display:grid;gap:10px"><div><div class="tag tag-red mb-1">🎣 HOOK</div>${R.copyBox(s.hook,'Copy')}</div><div><div class="tag tag-amber mb-1">❓ PROBLEM</div><p style="font-size:.86rem">${s.problem}</p></div><div><div class="tag tag-green mb-1">✅ SOLUTION</div><p style="font-size:.86rem">${s.solution}</p></div><div><div class="tag tag-violet mb-1">🎁 OFFER</div><p style="font-size:.86rem">${s.offer}</p></div><div><div class="tag tag-mint mb-1">📣 CTA</div>${R.copyBox(s.cta,'Copy')}</div></div><div class="divider"></div><div><strong style="font-size:.84rem;color:var(--text2)">📝 FULL SCRIPT</strong><div style="margin-top:8px">${R.copyBox(s.full_script,'📋 Copy Full')}</div></div><div class="divider"></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div><strong style="font-size:.82rem;color:var(--text2)">🎬 B-Roll</strong>${R.list(data.b_roll_shots,'📷')}</div><div><strong style="font-size:.82rem;color:var(--text2)">🎵 Music</strong>${R.list(data.music_suggestions,'🎵')}</div></div></div>`;
 }
 
 async function runProductDesc(){
@@ -2037,7 +1822,7 @@ async function runProductDesc(){
   if(!data)return;
   await FB.logEvent('product_desc',{product});
   document.getElementById('pd-result').innerHTML=`<div class="tabs"><button class="tab-btn active" onclick="switchTab('pdt','main',this)">📝 Main</button><button class="tab-btn" onclick="switchTab('pdt','seo',this)">🔍 SEO</button><button class="tab-btn" onclick="switchTab('pdt','emo',this)">❤️ Emotional</button></div>
-  <div id="pdt-tab-main"><div class="result-card fade-up mb-2"><div class="tag tag-mint mb-2">Title</div>${R.copyBox(data.title,'Copy')}</div><div class="result-card fade-up mb-2"><div class="tag tag-violet mb-2">Tagline</div>${R.copyBox(data.tagline,'Copy')}</div><div class="result-card fade-up mb-2"><div class="tag tag-green mb-2">Short Description</div>${R.copyBox(data.short_description,'Copy')}</div><div class="result-card fade-up mb-2"><div class="tag tag-mint mb-2">✅ Bullet Points</div>${(data.bullet_points||[]).map(b=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:.86rem;display:flex;gap:8px"><span style="color:var(--a1)">●</span>${b}</div>`).join('')}<button class="copy-btn" style="position:static;margin-top:8px" onclick="copyText('${(data.bullet_points||[]).join('\\n').replace(/'/g,"\\'")}',this)">📋 সব Copy করুন</button></div>${data.features_to_benefits?.length?`<div class="result-card fade-up mb-2"><div class="tag tag-blue mb-2">⚙️→❤️ Feature → Benefit</div>${data.features_to_benefits.map(f=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:.85rem"><strong style="color:#fff">${f.feature}</strong><div style="color:var(--text2);margin-top:2px">↳ ${f.benefit}</div></div>`).join('')}</div>`:''}<div class="result-card fade-up"><div class="tag tag-blue mb-2">Full Description</div>${R.copyBox(data.long_description,'📋 Copy')}</div></div>
+  <div id="pdt-tab-main"><div class="result-card fade-up mb-2"><div class="tag tag-mint mb-2">Title</div>${R.copyBox(data.title,'Copy')}</div><div class="result-card fade-up mb-2"><div class="tag tag-violet mb-2">Tagline</div>${R.copyBox(data.tagline,'Copy')}</div><div class="result-card fade-up mb-2"><div class="tag tag-green mb-2">Short Description</div>${R.copyBox(data.short_description,'Copy')}</div><div class="result-card fade-up mb-2"><div class="tag tag-mint mb-2">✅ Bullet Points</div>${(data.bullet_points||[]).map(b=>`<div style="padding:6px 0;border-bottom:1px solid var(--border);font-size:.86rem;display:flex;gap:8px"><span style="color:var(--a1)">●</span>${b}</div>`).join('')}<button class="copy-btn" style="position:static;margin-top:8px" onclick="copyText('${(data.bullet_points||[]).join('\\n').replace(/'/g,"\\'")}',this)">📋 সব Copy করুন</button></div><div class="result-card fade-up"><div class="tag tag-blue mb-2">Full Description</div>${R.copyBox(data.long_description,'📋 Copy')}</div></div>
   <div id="pdt-tab-seo" class="hidden"><div class="result-card fade-up mb-2"><div class="tag tag-green mb-2">SEO Description</div>${R.copyBox(data.seo_description,'Copy')}</div><div class="result-card fade-up"><strong style="font-size:.83rem;color:var(--text2)">🎯 Keywords</strong>${R.tags(data.keywords,'tag-mint')}</div></div>
   <div id="pdt-tab-emo" class="hidden"><div class="result-card fade-up mb-2"><div class="tag tag-red mb-2">❤️ Emotional Copy</div>${R.copyBox(data.emotional_copy,'Copy')}</div><div class="result-card fade-up"><strong style="font-size:.83rem;color:var(--text2)">❓ FAQs</strong>${(data.faqs||[]).map(f=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="font-weight:800;color:#fff;font-size:.86rem;margin-bottom:4px">Q: ${f.q}</div><div style="font-size:.84rem;color:var(--text2)">A: ${f.a}</div></div>`).join('')}</div></div>`;
 }
@@ -2048,20 +1833,99 @@ async function runSupplier(){
   const data=await runTool(Prompts.supplier_finder,{product,budget:document.getElementById('sf-budget')?.value,quality:document.getElementById('sf-quality')?.value},'sf-result');
   if(!data)return;
   await FB.logEvent('supplier',{product});
-  document.getElementById('sf-result').innerHTML=`<div class="tabs"><button class="tab-btn active" onclick="switchTab('sf','plat',this)">🏭 Platforms</button><button class="tab-btn" onclick="switchTab('sf','ship',this)">🚢 Shipping/MOQ</button><button class="tab-btn" onclick="switchTab('sf','check',this)">✅ Checklist</button><button class="tab-btn" onclick="switchTab('sf','email',this)">📧 Outreach</button></div>
-  <div id="sf-tab-plat">${(data.platforms||[]).map(p=>`<div class="result-card fade-up mb-2"><div class="tag tag-mint mb-2">🏭 ${p.name}</div><strong style="font-size:.82rem;color:var(--text2)">Search Terms:</strong>${R.tags(p.search_terms,'tag-mint')}<p style="font-size:.84rem;margin-top:8px">💡 ${p.tips}</p></div>`).join('')}<div class="result-card fade-up" style="display:grid;grid-template-columns:1fr 1fr;gap:14px"><div><div style="font-size:.77rem;color:var(--text2)">📦 COGS</div><strong style="color:var(--a1)">${data.estimated_cogs}</strong></div><div><div style="font-size:.77rem;color:var(--text2)">💹 Margin</div><strong style="color:var(--a3)">${data.recommended_margin}</strong></div></div>${data.local_sourcing_alternative?`<div class="result-card fade-up mt-2"><strong style="font-size:.83rem;color:var(--text2)">🇧🇩 Local Sourcing Alternative</strong><p style="font-size:.85rem;color:var(--text2);margin-top:4px">${data.local_sourcing_alternative}</p></div>`:''}</div>
-  <div id="sf-tab-ship" class="hidden">${data.moq_guidance?`<div class="result-card fade-up mb-2"><strong style="font-size:.83rem;color:var(--text2)">📊 MOQ Guidance</strong><div style="font-size:.85rem;color:var(--text2);margin-top:6px"><div>Typical MOQ: <strong style="color:#fff">${data.moq_guidance.typical_moq}</strong></div><div style="margin-top:4px">💡 ${data.moq_guidance.negotiation_tip}</div></div></div>`:''}${(data.shipping_comparison||[]).map(s=>`<div class="result-card fade-up mb-2"><div class="tag tag-blue mb-2">🚢 ${s.method}</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;font-size:.84rem"><div><div style="color:var(--text2);font-size:.75rem">Cost</div><strong style="color:var(--a1)">${s.cost_estimate}</strong></div><div><div style="color:var(--text2);font-size:.75rem">Time</div><strong style="color:#fff">${s.time_estimate}</strong></div></div><p style="font-size:.82rem;color:var(--text2);margin-top:6px">📌 ${s.best_for}</p></div>`).join('')}</div>
-  <div id="sf-tab-check" class="hidden"><div class="result-card fade-up mb-2"><strong style="font-size:.84rem;color:var(--text2)">✅ Verification</strong>${R.list(data.verification_checklist,'✅')}</div><div class="result-card fade-up"><strong style="font-size:.84rem;color:#f87171">🚩 Red Flags</strong>${R.list(data.red_flags,'🚩')}</div></div>
-  <div id="sf-tab-email" class="hidden"><div class="result-card fade-up mb-2"><div style="font-size:.82rem;color:var(--text2);margin-bottom:6px">Subject: <strong style="color:#fff">${data.outreach_email?.subject}</strong></div>${R.copyBox(data.outreach_email?.body,'📋 Copy Email')}</div><div class="result-card fade-up"><strong style="font-size:.84rem;color:var(--text2)">💼 Negotiation</strong>${R.list(data.negotiation_tips,'💼')}</div></div>`;
+  document.getElementById('sf-result').innerHTML=`
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:14px">
+    ${data.estimated_cogs?`<div style="background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.15);border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:.7rem;color:var(--text2);margin-bottom:4px">💰 Est. COGS</div>
+      <strong style="color:var(--a1)">${data.estimated_cogs}</strong>
+    </div>`:''}
+    ${data.recommended_margin?`<div style="background:rgba(124,58,237,.06);border:1px solid rgba(124,58,237,.15);border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:.7rem;color:var(--text2);margin-bottom:4px">📈 Target Margin</div>
+      <strong style="color:#a78bfa">${data.recommended_margin}</strong>
+    </div>`:''}
+    ${data.sample_order_advice?`<div style="background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.15);border-radius:10px;padding:12px;text-align:center">
+      <div style="font-size:.7rem;color:var(--text2);margin-bottom:4px">📦 Sample Order</div>
+      <strong style="color:var(--a3);font-size:.78rem">${data.sample_order_advice}</strong>
+    </div>`:''}
+  </div>
+  ${(data.platforms||[]).map(p=>`<div class="result-card fade-up mb-2">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <span class="tag tag-mint">${p.name}</span>
+      <div style="font-size:.8rem;color:var(--text2)">MOQ: <strong style="color:#fff">${p.moq||'—'}</strong> • Lead: <strong style="color:#fff">${p.lead_time||'—'}</strong></div>
+    </div>
+    <div class="mb-2">
+      <strong style="font-size:.8rem;color:var(--text2)">🔍 Search Terms:</strong>
+      ${R.tags(p.search_terms,'tag-violet')}
+    </div>
+    <div style="font-size:.84rem;color:var(--text2)">${p.tips}</div>
+  </div>`).join('')}
+  ${data.outreach_email?`<div class="result-card fade-up mb-2">
+    <strong style="font-size:.84rem;color:var(--text2)">📧 Supplier Outreach Email</strong>
+    <div class="mb-1 mt-1"><strong style="font-size:.8rem;color:var(--text2)">Subject:</strong> ${R.copyBox(data.outreach_email.subject||'','📋 Copy')}</div>
+    ${R.copyBox(data.outreach_email.body||'','📋 Copy Email')}
+  </div>`:''}
+  <div class="result-card fade-up mb-2">
+    <strong style="font-size:.84rem;color:var(--text2)">✅ Verification Checklist</strong>
+    ${R.list(data.verification_checklist,'✅')}
+  </div>
+  <div class="result-card fade-up mb-2">
+    <strong style="font-size:.84rem;color:var(--text2)">🚩 Red Flags to Avoid</strong>
+    ${R.list(data.red_flags,'🚩')}
+  </div>
+  ${data.negotiation_tips&&data.negotiation_tips.length?`<div class="result-card fade-up">
+    <strong style="font-size:.84rem;color:var(--text2)">💬 Negotiation Tips</strong>
+    ${R.list(data.negotiation_tips,'💬')}
+  </div>`:''}`;
 }
 
 async function runCompetitor(){
   const product=document.getElementById('ca-product')?.value?.trim();
-  if(!product){ Toast.error('Product/Niche দিন'); return; }
+  if(!product){ Toast.error('Product দিন'); return; }
   const data=await runTool(Prompts.competitor_analysis,{product,competitors:document.getElementById('ca-competitors')?.value,platform:document.getElementById('ca-platform')?.value},'ca-result');
   if(!data)return;
   await FB.logEvent('competitor',{product});
-  document.getElementById('ca-result').innerHTML=`<div class="result-card fade-up mb-2"><p style="font-size:.86rem">${data.market_overview}</p>${data.entry_difficulty?`<div style="margin-top:8px"><span class="tag tag-amber">⚔️ Entry Difficulty: ${data.entry_difficulty}</span></div>`:''}</div>${(data.competitors||[]).map(c=>`<div class="result-card fade-up mb-2"><div style="display:flex;justify-content:space-between;margin-bottom:12px"><strong style="color:#fff">🏢 ${c.name}</strong>${c.typical_review_score?`<strong style="color:var(--a3)">⭐ ${c.typical_review_score}</strong>`:''}</div>${c.estimated_price_position?`<div style="margin-bottom:10px"><div style="font-size:.73rem;color:var(--text2)">Typical Price Position</div><strong style="color:#fff">${c.estimated_price_position}</strong></div>`:''}<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div><div style="font-size:.77rem;color:var(--a1);margin-bottom:4px">✅ Strengths</div>${R.list(c.strengths,'✅')}</div><div><div style="font-size:.77rem;color:#f87171;margin-bottom:4px">❌ Weaknesses</div>${R.list(c.weaknesses,'❌')}</div></div></div>`).join('')}<div class="result-card fade-up mb-2"><strong style="font-size:.84rem;color:var(--text2)">🔓 Market Gaps</strong>${R.list(data.market_gaps,'💡')}</div><div class="result-card fade-up mb-2"><strong style="font-size:.84rem;color:var(--text2)">🎯 Differentiation</strong>${R.list(data.differentiation_opportunities,'🎯')}</div>${data.pricing_strategy_recommendation?`<div class="result-card fade-up mb-2"><strong style="font-size:.84rem;color:var(--text2)">🏷️ Pricing Strategy</strong><p style="font-size:.85rem;color:var(--text2);margin-top:4px">${data.pricing_strategy_recommendation}</p></div>`:''}<div class="result-card fade-up"><strong style="font-size:.84rem;color:var(--text2)">🏆 Win Strategy</strong>${R.list(data.win_strategy,'→')}</div>`;
+  document.getElementById('ca-result').innerHTML=`
+  <div class="result-card fade-up mb-2" style="background:rgba(0,0,0,.2)">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <strong style="font-size:.84rem;color:var(--text2)">Market Overview</strong>
+      ${data.entry_difficulty?`<span class="tag ${data.entry_difficulty==='easy'?'tag-green':data.entry_difficulty==='medium'?'tag-amber':'tag-red'}">Entry: ${data.entry_difficulty}</span>`:''}
+      ${data.pricing_recommendation?`<span style="font-size:.78rem;color:var(--text2);margin-left:auto">💰 ${data.pricing_recommendation}</span>`:''}
+    </div>
+    <p style="font-size:.87rem;line-height:1.7">${data.market_overview}</p>
+  </div>
+  ${(data.competitors||[]).map((c,i)=>`<div class="result-card fade-up mb-2">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <strong style="color:#fff;font-size:.92rem">${c.name}</strong>
+      <div style="display:flex;gap:8px;align-items:center">
+        ${c.review_score?`<span class="tag tag-amber">⭐ ${c.review_score}</span>`:''}
+        ${c.estimated_monthly_revenue?`<span style="font-size:.8rem;color:var(--a3)">~${c.estimated_monthly_revenue}/mo</span>`:''}
+        ${c.price_range?`<span class="tag tag-mint">${c.price_range}</span>`:''}
+      </div>
+    </div>
+    ${c.marketing_strategy?`<div style="font-size:.83rem;color:var(--text2);margin-bottom:10px;padding:8px 10px;background:rgba(0,0,0,.2);border-radius:6px">📢 ${c.marketing_strategy}</div>`:''}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div>
+        <strong style="font-size:.79rem;color:var(--a1)">✅ Strengths</strong>
+        ${R.list(c.strengths,'✅')}
+      </div>
+      <div>
+        <strong style="font-size:.79rem;color:#f87171">❌ Weaknesses</strong>
+        ${R.list(c.weaknesses,'❌')}
+      </div>
+    </div>
+  </div>`).join('')}
+  ${data.market_gaps&&data.market_gaps.length?`<div class="result-card fade-up mb-2">
+    <strong style="font-size:.84rem;color:var(--a1)">🎯 Market Gaps (আপনার সুযোগ)</strong>
+    ${R.list(data.market_gaps,'🎯')}
+  </div>`:''}
+  ${data.differentiation_opportunities&&data.differentiation_opportunities.length?`<div class="result-card fade-up mb-2">
+    <strong style="font-size:.84rem;color:var(--text2)">⚡ Differentiation Opportunities</strong>
+    ${R.list(data.differentiation_opportunities,'⚡')}
+  </div>`:''}
+  <div class="result-card fade-up">
+    <strong style="font-size:.84rem;color:var(--text2)">🏆 Win Strategy</strong>
+    ${R.list(data.win_strategy,'→')}
+  </div>`;
 }
 
 async function runMarketReport(){
@@ -2070,12 +1934,56 @@ async function runMarketReport(){
   const data=await runTool(Prompts.market_report,{product,market:document.getElementById('mr-market')?.value,budget:document.getElementById('mr-budget')?.value},'mr-result');
   if(!data)return;
   await FB.logEvent('market_report',{product});
-  document.getElementById('mr-result').innerHTML=`<div class="result-card fade-up mb-2" style="background:linear-gradient(135deg,rgba(0,245,212,.06),rgba(124,58,237,.04))"><div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">${R.scoreCircle(data.opportunity_score)}<div><h3 style="color:#fff;font-size:.97rem">${data.report_title}</h3><div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap"><span class="tag tag-mint">${data.market_size}</span>${data.growth_rate?`<span class="tag tag-blue">📈 ${data.growth_rate}</span>`:''}<span class="tag ${data.demand_prediction==='increasing'?'tag-green':'tag-amber'}">${data.demand_prediction}</span></div></div></div><p style="font-size:.86rem">${data.executive_summary}</p></div>
-  ${data.target_demographics?.length?`<div class="result-card fade-up mb-2"><strong style="font-size:.84rem;color:var(--text2)">👥 Target Demographics</strong>${data.target_demographics.map(d=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><strong style="color:#fff">${d.segment}</strong>${d.size?`<span class="tag tag-mint">${d.size}</span>`:''}</div>${R.list(d.pain_points,'🎯')}</div>`).join('')}</div>`:''}
-  <div class="result-card fade-up mb-2"><strong style="font-size:.84rem;color:var(--text2)">📈 Revenue Projections</strong><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px">${[['Month 1',data.financial_projections?.month1,'var(--a5)'],['Month 3',data.financial_projections?.month3,'var(--a1)'],['Month 6',data.financial_projections?.month6,'#4ade80']].map(([l,v,c])=>`<div style="text-align:center;padding:12px;background:rgba(0,0,0,.2);border-radius:10px"><div style="font-size:.71rem;color:var(--text2)">${l}</div><strong style="color:${c};font-size:.88rem">${v}</strong></div>`).join('')}</div><p style="font-size:.72rem;color:var(--text2);margin-top:8px">⚠️ এগুলো অনুমানভিত্তিক estimate, গ্যারান্টি নয়</p></div>
+  document.getElementById('mr-result').innerHTML=`
+  <div class="result-card fade-up mb-2" style="background:linear-gradient(135deg,rgba(0,245,212,.06),rgba(124,58,237,.04))">
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:14px">
+      ${R.scoreCircle(data.opportunity_score)}
+      <div>
+        <h3 style="color:#fff;font-size:.97rem">${data.report_title}</h3>
+        <div style="display:flex;gap:6px;margin-top:5px;flex-wrap:wrap">
+          <span class="tag tag-mint">${data.market_size||'—'}</span>
+          <span class="tag ${data.demand_prediction==='increasing'?'tag-green':'tag-amber'}">${data.demand_prediction||'—'}</span>
+          ${data.growth_rate?`<span class="tag tag-violet">Growth: ${data.growth_rate}</span>`:''}
+        </div>
+      </div>
+    </div>
+    <p style="font-size:.87rem;line-height:1.7">${data.executive_summary}</p>
+  </div>
+  <div class="result-card fade-up mb-2">
+    <strong style="font-size:.84rem;color:var(--text2)">📈 Financial Projections</strong>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px">
+      ${[['Month 1',data.financial_projections?.month1,'var(--a5)'],['Month 3',data.financial_projections?.month3,'var(--a1)'],['Month 6',data.financial_projections?.month6,'#4ade80'],['Year 1',data.financial_projections?.year1,'#60a5fa']].map(([l,v,c])=>`<div style="text-align:center;padding:12px;background:rgba(0,0,0,.2);border-radius:10px"><div style="font-size:.68rem;color:var(--text2)">${l}</div><strong style="color:${c};font-size:.82rem">${v||'—'}</strong></div>`).join('')}
+    </div>
+  </div>
+  ${(data.target_demographics||[]).length?`<div class="result-card fade-up mb-2">
+    <strong style="font-size:.84rem;color:var(--text2)">👥 Target Demographics</strong>
+    ${data.target_demographics.map(d=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="font-weight:700;color:#fff;margin-bottom:4px">${d.segment} ${d.size?`<span class="tag tag-mint" style="font-size:.7rem">${d.size}</span>`:''}</div>
+      ${d.buying_behavior?`<div style="font-size:.82rem;color:var(--text2);margin-bottom:4px">🛒 ${d.buying_behavior}</div>`:''}
+      ${d.pain_points&&d.pain_points.length?R.tags(d.pain_points,'tag-amber'):''}
+    </div>`).join('')}
+  </div>`:''}
   <div class="result-card fade-up mb-2"><strong style="font-size:.84rem;color:var(--text2)">📊 Market Trends</strong>${R.list(data.market_trends,'📊')}</div>
-  <div class="result-card fade-up mb-2"><strong style="font-size:.84rem;color:var(--text2)">⚠️ Risk Assessment</strong>${(data.risk_assessment||[]).map(r=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><strong style="color:#fff">${r.risk}</strong><span class="tag ${r.probability==='low'?'tag-green':r.probability==='medium'?'tag-amber':'tag-red'}">${r.probability}</span></div><p style="font-size:.82rem">🛡️ ${r.mitigation}</p></div>`).join('')}</div>
-  <div class="result-card fade-up"><strong style="font-size:.84rem;color:var(--text2)">📅 Action Plan</strong>${(data.action_plan||[]).map(w=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div class="tag tag-mint mb-1">Week ${w.week}</div>${R.list(w.actions,'→')}</div>`).join('')}<div style="margin-top:14px;padding:14px;background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.2);border-radius:10px;font-size:.86rem"><strong style="color:var(--a1)">চূড়ান্ত পরামর্শ:</strong> ${data.overall_recommendation}</div></div>`;
+  <div class="result-card fade-up mb-2">
+    <strong style="font-size:.84rem;color:var(--text2)">⚠️ Risk Assessment</strong>
+    ${(data.risk_assessment||[]).map(r=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <strong style="color:#fff">${r.risk}</strong>
+        <span class="tag ${r.probability==='low'?'tag-green':r.probability==='medium'?'tag-amber':'tag-red'}">${r.probability}</span>
+      </div>
+      <p style="font-size:.82rem;color:var(--text2)">🛡️ ${r.mitigation}</p>
+    </div>`).join('')}
+  </div>
+  <div class="result-card fade-up">
+    <strong style="font-size:.84rem;color:var(--text2)">📅 4-Week Action Plan</strong>
+    ${(data.action_plan||[]).map(w=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div class="tag tag-mint mb-1" style="margin-bottom:6px">Week ${w.week}</div>
+      ${R.list(w.actions,'→')}
+    </div>`).join('')}
+    <div style="margin-top:14px;padding:14px;background:rgba(0,245,212,.06);border:1px solid rgba(0,245,212,.2);border-radius:10px;font-size:.87rem;line-height:1.6">
+      <strong style="color:var(--a1)">📌 চূড়ান্ত পরামর্শ:</strong> ${data.overall_recommendation}
+    </div>
+  </div>`;
 }
 
 async function runPostGenerator(){
@@ -2084,7 +1992,24 @@ async function runPostGenerator(){
   const data=await runTool(Prompts.post_generator,{product,features:document.getElementById('pg-features')?.value,lang:document.getElementById('pg-lang')?.value},'pg-result');
   if(!data)return;
   await FB.logEvent('post_generator',{product});
-  document.getElementById('pg-result').innerHTML=`${(data.posts||[]).map((p,i)=>`<div class="result-card fade-up mb-2"><div class="tag tag-mint mb-2">Post ${i+1} — ${p.type}</div>${p.title?`<div class="mb-1"><strong style="font-size:.82rem;color:var(--text2)">Title:</strong> <span style="color:#fff">${p.title}</span></div>`:''} ${R.copyBox(p.body,'📋 Copy Post')}<div style="margin-top:8px;font-size:.84rem;color:var(--a1)">📣 CTA: ${p.cta}</div></div>`).join('')}<div class="result-card fade-up"><strong style="font-size:.83rem;color:var(--text2)">🏷️ Hashtags</strong>${R.tags(data.hashtags,'tag-violet')}<div style="margin-top:10px;display:grid;gap:6px;font-size:.84rem;color:var(--text2)">${data.best_posting_time?`<div>⏰ <strong style="color:#fff">Best Time:</strong> ${data.best_posting_time}</div>`:''}${data.engagement_tip?`<div>💬 <strong style="color:#fff">Engagement Tip:</strong> ${data.engagement_tip}</div>`:''}</div><div style="margin-top:10px"><strong style="font-size:.83rem;color:var(--text2)">💡 Tips</strong>${R.list(data.tips,'💡')}</div></div>`;
+  document.getElementById('pg-result').innerHTML=`
+  ${data.best_posting_time?`<div class="result-card fade-up mb-2" style="background:rgba(0,245,212,.04);border:1px solid rgba(0,245,212,.15)">
+    <div style="font-size:.84rem"><span style="color:var(--text2)">⏰ Best Posting Time:</span> <strong style="color:var(--a1)">${data.best_posting_time}</strong></div>
+  </div>`:''}
+  ${(data.posts||[]).map((p,i)=>`<div class="result-card fade-up mb-2">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span class="tag tag-mint">Post ${i+1}</span>
+      <span style="font-size:.78rem;color:var(--text2);text-transform:capitalize">${(p.type||'').replace(/_/g,' ')}</span>
+    </div>
+    ${p.title?`<div style="font-weight:800;color:#fff;font-size:.92rem;margin-bottom:10px">${p.title}</div>`:''}
+    ${R.copyBox(p.body,'📋 Copy Post')}
+    <div style="margin-top:8px;padding:8px 12px;background:rgba(0,245,212,.06);border-radius:8px;font-size:.84rem;color:var(--a1)">📣 ${p.cta}</div>
+  </div>`).join('')}
+  <div class="result-card fade-up">
+    <strong style="font-size:.83rem;color:var(--text2);display:block;margin-bottom:8px">🏷️ Hashtags</strong>
+    ${R.tags(data.hashtags,'tag-violet')}
+    ${data.tips&&data.tips.length?`<div style="margin-top:14px"><strong style="font-size:.83rem;color:var(--text2)">💡 Expert Tips</strong>${R.list(data.tips,'💡')}</div>`:''}
+  </div>`;
 }
 
 async function runViralPost(){
@@ -2093,8 +2018,30 @@ async function runViralPost(){
   const data=await runTool(Prompts.viral_post,{topic,platform:document.getElementById('vp-platform')?.value,target:document.getElementById('vp-target')?.value},'vp-result');
   if(!data)return;
   await FB.logEvent('viral_post',{topic});
-  const ec={curiosity:'tag-mint',fear:'tag-red',humor:'tag-green',greed:'tag-amber'};
-  document.getElementById('vp-result').innerHTML=`${(data.viral_posts||[]).map((p,i)=>`<div class="result-card fade-up mb-2"><div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span class="tag tag-pink">Viral ${i+1}</span><span class="tag ${ec[p.emotion_trigger]||'tag-violet'}">${p.emotion_trigger}</span><span class="tag ${p.expected_reach==='high'?'tag-green':p.expected_reach==='medium'?'tag-amber':'tag-red'}" style="margin-left:auto">${p.expected_reach} reach</span></div><div class="mb-2">${R.copyBox(p.hook,'Copy Hook')}</div>${R.copyBox(p.body,'📋 Copy Post')}<div style="margin-top:8px;font-size:.84rem"><strong style="color:var(--text2)">Viral Factor:</strong> <span style="color:var(--a1)">${p.viral_factor}</span></div></div>`).join('')}<div class="result-card fade-up"><strong style="font-size:.83rem;color:var(--text2)">🔥 Trending Elements</strong>${R.tags(data.trending_elements,'tag-red')}<div style="margin-top:10px;font-size:.84rem;color:var(--text2)">⏰ ${data.timing_tip}</div>${data.engagement_bait_warning?`<div style="margin-top:10px;font-size:.78rem;color:var(--text2);border-top:1px solid var(--border);padding-top:8px">⚠️ ${data.engagement_bait_warning}</div>`:''}</div>`;
+  const ec={curiosity:'tag-mint',fear:'tag-red',humor:'tag-green',greed:'tag-amber',inspiration:'tag-blue',shock:'tag-red'};
+  document.getElementById('vp-result').innerHTML=`
+  ${(data.viral_posts||[]).map((p,i)=>`<div class="result-card fade-up mb-2">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <span class="tag tag-pink">Viral Post ${i+1}</span>
+      <span class="tag ${ec[p.emotion_trigger]||'tag-violet'}">${p.emotion_trigger}</span>
+      <span class="tag ${p.expected_reach==='high'?'tag-green':'tag-amber'}" style="margin-left:auto">${p.expected_reach} reach</span>
+    </div>
+    <div class="mb-2"><strong style="font-size:.8rem;color:var(--text2)">🎯 HOOK</strong>
+      ${R.copyBox(p.hook,'📋 Copy Hook')}
+    </div>
+    <strong style="font-size:.8rem;color:var(--text2)">📝 FULL POST</strong>
+    ${R.copyBox(p.body,'📋 Copy Full Post')}
+    <div style="margin-top:10px;padding:8px 12px;background:rgba(0,245,212,.06);border-radius:8px">
+      <div style="font-size:.82rem"><strong style="color:var(--a1)">Why Viral:</strong> <span style="color:var(--text2)">${p.viral_factor}</span></div>
+      <div style="font-size:.82rem;margin-top:4px;color:var(--a1)">📣 CTA: ${p.cta}</div>
+    </div>
+  </div>`).join('')}
+  <div class="result-card fade-up">
+    <strong style="font-size:.83rem;color:var(--text2)">🔥 Trending Elements to Use</strong>
+    ${R.tags(data.trending_elements,'tag-red')}
+    ${data.timing_tip?`<div style="margin-top:12px;padding:10px 12px;background:rgba(0,0,0,.2);border-radius:8px;font-size:.84rem;color:var(--text2)">⏰ ${data.timing_tip}</div>`:''}
+    ${data.engagement_boosters&&data.engagement_boosters.length?`<div style="margin-top:10px"><strong style="font-size:.83rem;color:var(--text2)">💡 Engagement Boosters</strong>${R.list(data.engagement_boosters,'💡')}</div>`:''}
+  </div>`;
 }
 
 async function runPromoPost(){
@@ -2103,7 +2050,26 @@ async function runPromoPost(){
   const data=await runTool(Prompts.promo_post,{product,offer:document.getElementById('pp-offer')?.value,duration:document.getElementById('pp-duration')?.value,platform:document.getElementById('pp-platform')?.value},'pp-result');
   if(!data)return;
   await FB.logEvent('promo_post',{product});
-  document.getElementById('pp-result').innerHTML=`<div class="result-card fade-up mb-2" style="text-align:center;background:linear-gradient(135deg,rgba(245,158,11,.1),rgba(236,72,153,.06))"><div style="font-family:var(--font-h);font-size:1.2rem;font-weight:800;color:var(--a3)">${data.offer_headline}</div><div style="font-size:.84rem;color:var(--text2);margin-top:4px">${data.discount_angle}</div></div>${(data.promo_posts||[]).map(p=>`<div class="result-card fade-up mb-2"><div class="tag tag-amber mb-2">${p.style}</div><div class="mb-1"><strong style="font-size:.82rem;color:var(--text2)">Headline:</strong> <span style="color:#fff;font-weight:700">${p.headline}</span></div>${R.copyBox(p.body,'📋 Copy')}${p.countdown_text?`<div style="margin-top:8px;padding:8px 12px;background:rgba(245,158,11,.1);border-radius:8px;font-size:.84rem;color:var(--a3)">⏳ ${p.countdown_text}</div>`:''}<div style="margin-top:8px;font-size:.84rem;color:var(--a1)">📣 ${p.cta}</div></div>`).join('')}${data.pinned_comment_idea?`<div class="result-card fade-up mb-2"><strong style="font-size:.83rem;color:var(--text2)">📌 Pinned Comment Idea</strong><div style="margin-top:6px">${R.copyBox(data.pinned_comment_idea,'📋 Copy')}</div></div>`:''}<div class="result-card fade-up">${R.tags(data.hashtags,'tag-amber')}</div>`;
+  document.getElementById('pp-result').innerHTML=`
+  <div class="result-card fade-up mb-2" style="background:linear-gradient(135deg,rgba(245,158,11,.1),rgba(236,72,153,.06));text-align:center">
+    <div style="font-family:var(--font-h);font-size:1.2rem;font-weight:800;color:var(--a3)">${data.offer_headline||'Special Offer!'}</div>
+    ${data.discount_angle?`<div style="font-size:.85rem;color:var(--text2);margin-top:6px">${data.discount_angle}</div>`:''}
+    ${data.best_time_to_post?`<div style="font-size:.8rem;color:var(--a1);margin-top:6px">⏰ ${data.best_time_to_post}</div>`:''}
+  </div>
+  ${(data.promo_posts||[]).map((p,i)=>`<div class="result-card fade-up mb-2">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span class="tag tag-amber">Promo ${i+1}</span>
+      <span style="font-size:.78rem;color:var(--text2);text-transform:capitalize">${(p.style||'').replace(/_/g,' ')}</span>
+    </div>
+    <div class="mb-2"><strong style="font-size:.8rem;color:var(--text2)">📌 HEADLINE</strong>
+      ${R.copyBox(p.headline,'📋 Copy')}
+    </div>
+    <strong style="font-size:.8rem;color:var(--text2)">📝 FULL POST</strong>
+    ${R.copyBox(p.body,'📋 Copy Post')}
+    ${p.countdown_text?`<div style="margin-top:8px;padding:8px 12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:8px;font-size:.84rem;color:var(--a3)">⏳ ${p.countdown_text}</div>`:''}
+    <div style="margin-top:8px;padding:8px 12px;background:rgba(0,245,212,.06);border-radius:8px;font-size:.84rem;color:var(--a1)">📣 ${p.cta}</div>
+  </div>`).join('')}
+  <div class="result-card fade-up">${R.tags(data.hashtags,'tag-amber')}</div>`;
 }
 
 async function runAdCopy(){
@@ -2112,10 +2078,52 @@ async function runAdCopy(){
   const data=await runTool(Prompts.ad_copy,{product,goal:document.getElementById('adc-goal')?.value,audience:document.getElementById('adc-audience')?.value,budget:document.getElementById('adc-budget')?.value},'adc-result');
   if(!data)return;
   await FB.logEvent('ad_copy',{product});
-  document.getElementById('adc-result').innerHTML=`<div class="tabs"><button class="tab-btn active" onclick="switchTab('adc','fb',this)">📘 Facebook</button><button class="tab-btn" onclick="switchTab('adc','gg',this)">🔍 Google</button><button class="tab-btn" onclick="switchTab('adc','tips',this)">💡 Tips</button></div>
-  <div id="adc-tab-fb">${(data.facebook_ads||[]).map((ad,i)=>`<div class="result-card fade-up mb-2"><div class="tag tag-blue mb-2">Facebook Ad ${i+1}</div><div class="mb-2">${R.copyBox(ad.headline,'Headline')}</div>${R.copyBox(ad.primary_text,'Primary Text')}<div style="margin-top:8px;font-size:.83rem;color:var(--text2)">Pain Point: ${ad.pain_point}</div></div>`).join('')}</div>
-  <div id="adc-tab-gg" class="hidden">${(data.google_ads||[]).map((ad,i)=>`<div class="result-card fade-up mb-2"><div class="tag tag-green mb-2">Google Ad ${i+1}</div><div style="display:grid;gap:8px"><div>${R.copyBox(ad.headline1+' | '+ad.headline2+' | '+ad.headline3,'Headlines')}</div><div>${R.copyBox(ad.description1+'\n'+ad.description2,'Descriptions')}</div></div><div style="margin-top:8px;font-size:.83rem;color:var(--text2)">URL: ${ad.display_url}</div></div>`).join('')}</div>
-  <div id="adc-tab-tips" class="hidden"><div class="result-card fade-up mb-2"><strong style="font-size:.84rem;color:var(--text2)">⚡ Power Words</strong>${R.tags(data.power_words,'tag-red')}</div><div class="result-card fade-up"><strong style="font-size:.84rem;color:var(--text2)">💡 Conversion Tips</strong>${R.list(data.conversion_tips,'💡')}</div></div>`;
+  document.getElementById('adc-result').innerHTML=`
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('adc','fb',this)">📘 Facebook Ads</button>
+    <button class="tab-btn" onclick="switchTab('adc','gg',this)">🔍 Google Ads</button>
+    <button class="tab-btn" onclick="switchTab('adc','tips',this)">💡 Tips</button>
+  </div>
+  <div id="adc-tab-fb">
+    ${(data.facebook_ads||[]).map((ad,i)=>`<div class="result-card fade-up mb-2">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+        <span class="tag tag-blue">FB Ad ${i+1}</span>
+        ${ad.pain_point?`<span style="font-size:.78rem;color:var(--text2)">Pain: ${ad.pain_point}</span>`:''}
+      </div>
+      <div class="mb-2"><strong style="font-size:.8rem;color:var(--text2)">📌 HEADLINE</strong>
+        ${R.copyBox(ad.headline,'📋 Copy')}
+      </div>
+      <strong style="font-size:.8rem;color:var(--text2)">📝 PRIMARY TEXT</strong>
+      ${R.copyBox(ad.primary_text,'📋 Copy')}
+      ${ad.description?`<div class="mt-1"><strong style="font-size:.8rem;color:var(--text2)">Description:</strong> <span style="font-size:.84rem;color:var(--text2)">${ad.description}</span></div>`:''}
+      <div style="margin-top:8px"><span class="tag tag-green">Button: ${ad.cta||'Shop Now'}</span></div>
+    </div>`).join('')}
+  </div>
+  <div id="adc-tab-gg" class="hidden">
+    ${(data.google_ads||[]).map((ad,i)=>`<div class="result-card fade-up mb-2">
+      <div class="tag tag-green mb-2">Google Ad ${i+1}</div>
+      <div class="mb-2">
+        <strong style="font-size:.8rem;color:var(--text2)">HEADLINES</strong>
+        ${R.copyBox([ad.headline1,ad.headline2,ad.headline3].filter(Boolean).join(' | '),'📋 Copy')}
+      </div>
+      <div class="mb-1">
+        <strong style="font-size:.8rem;color:var(--text2)">DESCRIPTIONS</strong>
+        ${R.copyBox((ad.description1||'')+(ad.description2?'
+'+ad.description2:''),'📋 Copy')}
+      </div>
+      ${ad.display_url?`<div style="font-size:.82rem;color:var(--text2);margin-top:6px">🔗 ${ad.display_url}</div>`:''}
+    </div>`).join('')}
+  </div>
+  <div id="adc-tab-tips" class="hidden">
+    <div class="result-card fade-up mb-2">
+      <strong style="font-size:.84rem;color:var(--text2)">⚡ Power Words</strong>
+      ${R.tags(data.power_words,'tag-red')}
+    </div>
+    <div class="result-card fade-up">
+      <strong style="font-size:.84rem;color:var(--text2)">💡 Conversion Tips</strong>
+      ${R.list(data.conversion_tips,'💡')}
+    </div>
+  </div>`;
 }
 
 async function runVideoScript(){
@@ -2124,7 +2132,7 @@ async function runVideoScript(){
   const data=await runTool(Prompts.video_script,{topic,duration:document.getElementById('vs-duration')?.value,style:document.getElementById('vs-style')?.value,platform:document.getElementById('vs-platform')?.value},'vs-result');
   if(!data)return;
   await FB.logEvent('video_script',{topic});
-  document.getElementById('vs-result').innerHTML=`<div class="result-card fade-up mb-2"><div class="tag tag-red mb-2">📹 Video Title</div>${R.copyBox(data.title,'Copy')}</div><div class="result-card fade-up mb-2"><div class="tag tag-mint mb-2">🎬 Intro</div><div class="mb-1"><strong style="font-size:.81rem;color:var(--text2)">Hook:</strong> ${R.copyBox(data.intro?.hook,'Copy')}</div><div style="font-size:.84rem;color:var(--text2)">Presenter: ${data.intro?.presenter_line}</div></div>${(data.body||[]).map((sec,i)=>`<div class="result-card fade-up mb-2"><div class="tag tag-violet mb-2">Section ${i+1}: ${sec.section} (${sec.duration_seconds}s)</div>${R.copyBox(sec.content,'Copy')}<div style="font-size:.82rem;color:var(--text2);margin-top:6px">🎬 ${sec.visual_cue}</div></div>`).join('')}<div class="result-card fade-up mb-2"><div class="tag tag-amber mb-2">🎯 Outro</div>${R.copyBox((data.outro?.summary||'')+'\n\n'+(data.outro?.cta||''),'Copy')}</div>${data.retention_tips?.length?`<div class="result-card fade-up mb-2"><strong style="font-size:.83rem;color:var(--text2)">📊 Retention Tips</strong>${R.list(data.retention_tips,'📊')}</div>`:''}<div class="result-card fade-up"><strong style="font-size:.83rem;color:var(--text2)">🖼️ Thumbnail</strong><div style="padding:10px;background:rgba(0,0,0,.2);border-radius:8px;font-size:.85rem;margin-top:8px">${data.thumbnail_idea}</div>${R.tags(data.tags,'tag-blue')}</div>`;
+  document.getElementById('vs-result').innerHTML=`<div class="result-card fade-up mb-2"><div class="tag tag-red mb-2">📹 Video Title</div>${R.copyBox(data.title,'Copy')}</div><div class="result-card fade-up mb-2"><div class="tag tag-mint mb-2">🎬 Intro</div><div class="mb-1"><strong style="font-size:.81rem;color:var(--text2)">Hook:</strong> ${R.copyBox(data.intro?.hook,'Copy')}</div><div style="font-size:.84rem;color:var(--text2)">Presenter: ${data.intro?.presenter_line}</div></div>${(data.body||[]).map((sec,i)=>`<div class="result-card fade-up mb-2"><div class="tag tag-violet mb-2">Section ${i+1}: ${sec.section} (${sec.duration_seconds}s)</div>${R.copyBox(sec.content,'Copy')}<div style="font-size:.82rem;color:var(--text2);margin-top:6px">🎬 ${sec.visual_cue}</div></div>`).join('')}<div class="result-card fade-up mb-2"><div class="tag tag-amber mb-2">🎯 Outro</div>${R.copyBox((data.outro?.summary||'')+'\n\n'+(data.outro?.cta||''),'Copy')}</div><div class="result-card fade-up"><strong style="font-size:.83rem;color:var(--text2)">🖼️ Thumbnail</strong><div style="padding:10px;background:rgba(0,0,0,.2);border-radius:8px;font-size:.85rem;margin-top:8px">${data.thumbnail_idea}</div>${R.tags(data.tags,'tag-blue')}</div>`;
 }
 
 async function runVideoPrompt(){
@@ -2133,7 +2141,7 @@ async function runVideoPrompt(){
   const data=await runTool(Prompts.video_prompt,{scene,style:document.getElementById('vpr-style')?.value,duration:document.getElementById('vpr-duration')?.value},'vpr-result');
   if(!data)return;
   await FB.logEvent('video_prompt',{scene});
-  document.getElementById('vpr-result').innerHTML=`<div class="result-card fade-up mb-2" style="display:flex;align-items:center;gap:10px"><span style="font-size:1.5rem">🎬</span><div><strong style="color:var(--a1)">Best Tool:</strong> <span style="color:#fff">${data.best_tool}</span></div></div>${(data.prompts||[]).map(p=>`<div class="result-card fade-up mb-2"><div class="tag tag-violet mb-2">${p.title}</div>${R.copyBox(p.prompt,'📋 Copy')}<div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:.8rem"><div><span style="color:var(--text2)">Camera:</span> <span>${p.camera_movement}</span></div><div><span style="color:var(--text2)">Light:</span> <span>${p.lighting}</span></div><div><span style="color:var(--text2)">Mood:</span> <span>${p.mood}</span></div></div>${p.negative_prompt?`<div style="margin-top:6px;font-size:.78rem;color:var(--text2)">🚫 Negative: ${p.negative_prompt}</div>`:''}</div>`).join('')}${data.tool_compatibility_note?`<div class="result-card fade-up mb-2" style="font-size:.8rem;color:var(--text2)">ℹ️ ${data.tool_compatibility_note}</div>`:''}<div class="result-card fade-up">${R.list(data.style_tips,'💡')}</div>`;
+  document.getElementById('vpr-result').innerHTML=`<div class="result-card fade-up mb-2" style="display:flex;align-items:center;gap:10px"><span style="font-size:1.5rem">🎬</span><div><strong style="color:var(--a1)">Best Tool:</strong> <span style="color:#fff">${data.best_tool}</span></div></div>${(data.prompts||[]).map(p=>`<div class="result-card fade-up mb-2"><div class="tag tag-violet mb-2">${p.title}</div>${R.copyBox(p.prompt,'📋 Copy')}<div style="margin-top:8px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;font-size:.8rem"><div><span style="color:var(--text2)">Camera:</span> <span>${p.camera_movement}</span></div><div><span style="color:var(--text2)">Light:</span> <span>${p.lighting}</span></div><div><span style="color:var(--text2)">Mood:</span> <span>${p.mood}</span></div></div></div>`).join('')}<div class="result-card fade-up">${R.list(data.style_tips,'💡')}</div>`;
 }
 
 async function runStoryboard(){
@@ -2151,7 +2159,7 @@ async function runSubtitleTranslator(){
   const data=await runTool(Prompts.subtitle_translator,{text,from:document.getElementById('st-from')?.value,to:document.getElementById('st-to')?.value,style:document.getElementById('st-style')?.value},'st-result');
   if(!data)return;
   await FB.logEvent('subtitle_translator',{});
-  document.getElementById('st-result').innerHTML=`<div class="result-card fade-up mb-2"><div style="display:flex;gap:10px;margin-bottom:14px"><span class="tag tag-blue">${document.getElementById('st-from')?.value}</span><span style="color:var(--text2)">→</span><span class="tag tag-mint">${document.getElementById('st-to')?.value}</span><span class="tag tag-violet">${data.formality_level}</span></div>${(data.translated_lines||[]).map(l=>`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="font-size:.85rem;color:var(--text2)">${l.original}</div><div style="font-size:.85rem;color:var(--a1)">${l.translated}</div></div>`).join('')}${data.translation_notes?`<p style="font-size:.8rem;color:var(--text2);margin-top:10px">📝 ${data.translation_notes}</p>`:''}</div>${data.alternative_phrases?.length?`<div class="result-card fade-up mb-2"><strong style="font-size:.83rem;color:var(--text2)">🔄 বিকল্প অনুবাদ</strong>${data.alternative_phrases.map(a=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:.84rem"><div style="color:var(--text2)">${a.original}</div><div style="color:var(--a3);margin-top:2px">↳ ${a.alternative}</div></div>`).join('')}</div>`:''}${data.cultural_adaptations?.length?`<div class="result-card fade-up">${R.list(data.cultural_adaptations,'🌐')}</div>`:''}`;
+  document.getElementById('st-result').innerHTML=`<div class="result-card fade-up mb-2"><div style="display:flex;gap:10px;margin-bottom:14px"><span class="tag tag-blue">${document.getElementById('st-from')?.value}</span><span style="color:var(--text2)">→</span><span class="tag tag-mint">${document.getElementById('st-to')?.value}</span><span class="tag tag-violet">${data.formality_level}</span></div>${(data.translated_lines||[]).map(l=>`<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 0;border-bottom:1px solid var(--border)"><div style="font-size:.85rem;color:var(--text2)">${l.original}</div><div style="font-size:.85rem;color:var(--a1)">${l.translated}</div></div>`).join('')}</div>${data.cultural_adaptations?.length?`<div class="result-card fade-up">${R.list(data.cultural_adaptations,'🌐')}</div>`:''}`;
 }
 
 async function runAdFunnel(){
@@ -2160,17 +2168,114 @@ async function runAdFunnel(){
   const data=await runTool(Prompts.ad_funnel,{product,budget:document.getElementById('af-budget')?.value,goal:document.getElementById('af-goal')?.value,timeline:document.getElementById('af-timeline')?.value},'af-result');
   if(!data)return;
   await FB.logEvent('ad_funnel',{product});
-  const stageColors=['tag-blue','tag-violet','tag-green'];
-  document.getElementById('af-result').innerHTML=`<div class="result-card fade-up mb-2"><p style="font-size:.86rem">${data.funnel_overview}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px"><div><div style="font-size:.77rem;color:var(--text2)">📊 Expected ROAS</div><strong style="color:var(--a1)">${data.expected_roas}</strong></div></div></div>${(data.stages||[]).map((s,i)=>`<div class="result-card fade-up mb-2"><div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap"><span class="tag ${stageColors[i]||'tag-mint'}">${s.stage}</span><span style="font-size:.82rem;color:var(--text2)">Budget: ${s.budget_percentage}</span>${s.daily_budget_bdt?`<span class="tag tag-amber">৳ ${s.daily_budget_bdt}/day</span>`:''}</div><div style="display:grid;gap:7px;font-size:.85rem"><div><span style="color:var(--text2)">🎯 Objective:</span> ${s.objective}</div><div><span style="color:var(--text2)">📢 Ad Type:</span> ${s.ad_type}</div><div><span style="color:var(--text2)">👥 Audience:</span> ${s.audience}</div><div><span style="color:var(--text2)">📏 KPI:</span> ${s.kpi}</div></div><div style="margin-top:10px">${R.copyBox(s.example_copy,'Copy Example')}</div></div>`).join('')}<div class="result-card fade-up mb-2"><strong style="font-size:.83rem;color:var(--text2)">🔄 Retargeting</strong><p style="font-size:.85rem;margin-top:8px">${data.retargeting_strategy}</p></div><div class="result-card fade-up">${R.list(data.timeline,'→')}</div>`;
+  document.getElementById('af-result').innerHTML=`
+  <div class="result-card fade-up mb-2" style="background:rgba(0,0,0,.2)">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">
+      <strong style="font-size:.84rem;color:var(--text2)">Funnel Overview</strong>
+      ${data.expected_roas?`<span class="tag tag-green" style="margin-left:auto">Expected ROAS: ${data.expected_roas}</span>`:''}
+    </div>
+    <p style="font-size:.87rem;line-height:1.7">${data.funnel_overview}</p>
+  </div>
+  ${(data.stages||[]).map(s=>`<div class="result-card fade-up mb-2">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:6px">
+      <span class="tag ${s.stage?.includes('Awareness')?'tag-blue':s.stage?.includes('Consideration')?'tag-amber':'tag-green'}">${s.stage}</span>
+      <div style="display:flex;gap:6px">
+        ${s.budget_percentage?`<span style="font-size:.78rem;color:var(--a3)">Budget: ${s.budget_percentage}</span>`:''}
+        ${s.kpi?`<span style="font-size:.78rem;color:var(--text2)">KPI: ${s.kpi}</span>`:''}
+      </div>
+    </div>
+    ${s.objective?`<div style="font-size:.83rem;color:var(--text2);margin-bottom:8px">🎯 ${s.objective}</div>`:''}
+    ${s.ad_type?`<div style="font-size:.83rem;margin-bottom:8px"><strong style="color:var(--text2)">Ad Type:</strong> <span style="color:#fff">${s.ad_type}</span></div>`:''}
+    ${s.audience?`<div style="font-size:.83rem;margin-bottom:8px;padding:8px;background:rgba(0,0,0,.2);border-radius:6px;color:var(--text2)">👥 ${s.audience}</div>`:''}
+    ${s.example_copy?`<div><strong style="font-size:.8rem;color:var(--text2)">📝 Example Copy</strong>${R.copyBox(s.example_copy,'📋 Copy')}</div>`:''}
+  </div>`).join('')}
+  ${data.retargeting_strategy?`<div class="result-card fade-up mb-2">
+    <strong style="font-size:.84rem;color:var(--text2)">🔄 Retargeting Strategy</strong>
+    <p style="font-size:.85rem;color:var(--text2);margin-top:8px;line-height:1.6">${data.retargeting_strategy}</p>
+  </div>`:''}
+  ${data.timeline&&data.timeline.length?`<div class="result-card fade-up mb-2">
+    <strong style="font-size:.84rem;color:var(--text2)">📅 Monthly Timeline</strong>
+    ${data.timeline.map((t,i)=>`<div style="padding:8px 0;border-bottom:1px solid var(--border);display:flex;gap:10px;align-items:flex-start">
+      <span class="tag tag-mint" style="flex-shrink:0">Week ${i+1}</span>
+      <span style="font-size:.84rem;color:var(--text2)">${t}</span>
+    </div>`).join('')}
+  </div>`:''}
+  ${data.scaling_strategy?`<div class="result-card fade-up">
+    <strong style="font-size:.84rem;color:var(--a1)">🚀 Scaling Strategy</strong>
+    <p style="font-size:.85rem;color:var(--text2);margin-top:8px;line-height:1.6">${data.scaling_strategy}</p>
+  </div>`:''}`;
 }
 
 async function runConceptArchitect(){
   const idea=document.getElementById('con-idea')?.value?.trim();
-  if(!idea){ Toast.error('Idea দিন'); return; }
+  if(!idea){ Toast.error('Business idea দিন'); return; }
   const data=await runTool(Prompts.concept_architect,{idea,industry:document.getElementById('con-industry')?.value,budget:document.getElementById('con-budget')?.value,goal:document.getElementById('con-goal')?.value},'con-result');
   if(!data)return;
-  await FB.logEvent('concept_architect',{idea});
-  document.getElementById('con-result').innerHTML=`<div class="result-card fade-up mb-2" style="background:linear-gradient(135deg,rgba(0,245,212,.06),rgba(124,58,237,.04))"><h3 style="color:#fff;margin-bottom:6px">${data.concept_title}</h3><p style="font-size:.86rem;margin-bottom:12px">${data.executive_summary}</p><div style="padding:12px;background:rgba(0,245,212,.08);border-radius:10px;font-size:.88rem"><strong style="color:var(--a1)">💎 Value Proposition:</strong> ${data.unique_value_proposition}</div></div><div class="result-card fade-up mb-2"><strong style="font-size:.84rem;color:var(--text2)">🎯 Target Market</strong><div style="margin-top:10px;display:grid;gap:6px;font-size:.85rem"><div><span style="color:var(--text2)">Primary:</span> <strong style="color:#fff">${data.target_market?.primary}</strong></div><div><span style="color:var(--text2)">Secondary:</span> ${data.target_market?.secondary}</div></div>${R.tags(data.target_market?.psychographics||[],'tag-violet')}</div><div class="result-card fade-up mb-2"><strong style="font-size:.84rem;color:var(--text2)">💰 Revenue Model</strong>${R.list(data.revenue_model?.streams||[],'💰')}<div style="font-size:.85rem;margin-top:8px"><span style="color:var(--text2)">Pricing Strategy:</span> ${data.revenue_model?.pricing_strategy||''}</div><div style="font-size:.85rem;margin-top:6px"><span style="color:var(--text2)">Projected Monthly:</span> <strong style="color:var(--a1)">${data.revenue_model?.projected_monthly}</strong></div></div>${data.marketing_plan?`<div class="result-card fade-up mb-2"><strong style="font-size:.84rem;color:var(--text2)">📣 Marketing Plan</strong><div style="margin-top:10px;display:grid;gap:8px;font-size:.85rem"><div><span class="tag tag-mint">Phase 1</span> ${data.marketing_plan.phase1}</div><div><span class="tag tag-blue">Phase 2</span> ${data.marketing_plan.phase2}</div><div><span class="tag tag-violet">Phase 3</span> ${data.marketing_plan.phase3}</div></div></div>`:''}<div class="result-card fade-up mb-2"><strong style="font-size:.84rem;color:var(--text2)">📅 4-Week Action Plan</strong>${(data.action_items||[]).map(w=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)"><div class="tag tag-mint mb-1">Week ${w.week}</div>${R.list(w.tasks,'→')}</div>`).join('')}</div><div class="result-card fade-up mb-2"><strong style="font-size:.84rem;color:var(--text2)">✅ Competitive Advantage</strong>${R.list(data.competitive_advantage,'✅')}</div>${data.risk_mitigation?.length?`<div class="result-card fade-up mb-2"><strong style="font-size:.84rem;color:var(--text2)">⚠️ Risk & Mitigation</strong>${data.risk_mitigation.map(r=>typeof r==='string'?`<div style="padding:6px 0;font-size:.85rem">⚠️ ${r}</div>`:`<div style="padding:8px 0;border-bottom:1px solid var(--border);font-size:.85rem"><strong style="color:#f87171">${r.risk}</strong><div style="color:var(--text2);margin-top:2px">🛡️ ${r.mitigation}</div></div>`).join('')}</div>`:''}${data.success_metrics?.length?`<div class="result-card fade-up"><strong style="font-size:.84rem;color:var(--text2)">📊 Success Metrics (90 days)</strong>${R.list(data.success_metrics,'📊')}</div>`:''}`;
+  await FB.logEvent('concept_architect',{idea:idea.substring(0,50)});
+  document.getElementById('con-result').innerHTML=`
+  <div class="result-card fade-up mb-2" style="background:linear-gradient(135deg,rgba(0,245,212,.06),rgba(124,58,237,.05))">
+    <h3 style="color:#fff;font-size:1.05rem;margin-bottom:8px">${data.concept_title}</h3>
+    <p style="font-size:.87rem;line-height:1.7;margin-bottom:12px">${data.executive_summary}</p>
+    ${data.unique_value_proposition?`<div style="padding:10px 14px;background:rgba(0,245,212,.08);border:1px solid rgba(0,245,212,.2);border-radius:8px;font-size:.86rem;font-weight:700;color:var(--a1)">"${data.unique_value_proposition}"</div>`:''}
+  </div>
+  ${data.target_market?`<div class="result-card fade-up mb-2">
+    <strong style="font-size:.84rem;color:var(--text2)">👥 Target Market</strong>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px">
+      <div style="background:rgba(0,0,0,.2);border-radius:8px;padding:10px">
+        <div style="font-size:.72rem;color:var(--text2);margin-bottom:4px">Primary</div>
+        <strong style="font-size:.84rem;color:#fff">${data.target_market.primary||'—'}</strong>
+      </div>
+      <div style="background:rgba(0,0,0,.2);border-radius:8px;padding:10px">
+        <div style="font-size:.72rem;color:var(--text2);margin-bottom:4px">Market Size</div>
+        <strong style="font-size:.84rem;color:var(--a1)">${data.target_market.market_size||'—'}</strong>
+      </div>
+    </div>
+    ${data.target_market.psychographics&&data.target_market.psychographics.length?`<div style="margin-top:10px">${R.tags(data.target_market.psychographics,'tag-mint')}</div>`:''}
+  </div>`:''}
+  ${data.revenue_model?`<div class="result-card fade-up mb-2">
+    <strong style="font-size:.84rem;color:var(--text2)">💰 Revenue Model</strong>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:10px">
+      ${data.revenue_model.projected_monthly?`<div style="text-align:center;padding:10px;background:rgba(0,0,0,.2);border-radius:8px">
+        <div style="font-size:.68rem;color:var(--text2)">Monthly Target</div>
+        <strong style="color:var(--a1);font-size:.86rem">${data.revenue_model.projected_monthly}</strong>
+      </div>`:''}
+      ${data.revenue_model.break_even?`<div style="text-align:center;padding:10px;background:rgba(0,0,0,.2);border-radius:8px">
+        <div style="font-size:.68rem;color:var(--text2)">Break Even</div>
+        <strong style="color:var(--a3);font-size:.86rem">${data.revenue_model.break_even}</strong>
+      </div>`:''}
+      ${data.revenue_model.pricing_strategy?`<div style="text-align:center;padding:10px;background:rgba(0,0,0,.2);border-radius:8px">
+        <div style="font-size:.68rem;color:var(--text2)">Pricing</div>
+        <strong style="color:#a78bfa;font-size:.78rem">${data.revenue_model.pricing_strategy}</strong>
+      </div>`:''}
+    </div>
+    ${data.revenue_model.streams&&data.revenue_model.streams.length?`<div style="margin-top:10px"><strong style="font-size:.8rem;color:var(--text2)">Revenue Streams:</strong>${R.list(data.revenue_model.streams,'💰')}</div>`:''}
+  </div>`:''}
+  ${data.competitive_advantage&&data.competitive_advantage.length?`<div class="result-card fade-up mb-2">
+    <strong style="font-size:.84rem;color:var(--text2)">⚡ Competitive Advantages</strong>
+    ${R.list(data.competitive_advantage,'⚡')}
+  </div>`:''}
+  ${data.marketing_plan?`<div class="result-card fade-up mb-2">
+    <strong style="font-size:.84rem;color:var(--text2)">📢 Marketing Plan</strong>
+    ${['phase1','phase2','phase3'].map((p,i)=>data.marketing_plan[p]?`<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div class="tag tag-violet mb-1">Phase ${i+1}</div>
+      <div style="font-size:.85rem;color:var(--text2)">${data.marketing_plan[p]}</div>
+    </div>`:'').join('')}
+  </div>`:''}
+  ${data.action_items&&data.action_items.length?`<div class="result-card fade-up mb-2">
+    <strong style="font-size:.84rem;color:var(--text2)">📅 First Month Action Plan</strong>
+    ${data.action_items.map(w=>`<div style="padding:10px 0;border-bottom:1px solid var(--border)">
+      <div class="tag tag-mint mb-1" style="margin-bottom:6px">Week ${w.week}</div>
+      ${R.list(w.tasks,'→')}
+    </div>`).join('')}
+  </div>`:''}
+  ${data.success_metrics&&data.success_metrics.length?`<div class="result-card fade-up mb-2">
+    <strong style="font-size:.84rem;color:var(--text2)">🎯 Success Metrics</strong>
+    ${R.list(data.success_metrics,'🎯')}
+  </div>`:''}
+  ${data.risk_mitigation&&data.risk_mitigation.length?`<div class="result-card fade-up">
+    <strong style="font-size:.84rem;color:var(--text2)">⚠️ Risks & Mitigation</strong>
+    ${R.list(data.risk_mitigation,'⚠️')}
+  </div>`:''}`;
 }
 
 /* ════════ INIT ════════ */
