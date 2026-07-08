@@ -66,6 +66,7 @@ function initFirebase() {
       db   = firebase.firestore();
       auth = firebase.auth();
       Store.loadApiKeyFromFirestore();
+      if(typeof GStore !== 'undefined') GStore.loadKeyFromFirestore();
       auth.onAuthStateChanged(async (user) => {
         currentUser = user;
         if (user) {
