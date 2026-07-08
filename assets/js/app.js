@@ -16,8 +16,18 @@ const FB_CONFIG = {
 
 /* ── App Config ── */
 const CONFIG = {
+  /* AI Backend — Hugging Face Inference API (সম্পূর্ণ বিনামূল্যে) */
+  HF_URL:  'https://api-inference.huggingface.co/models/',
+  HF_MODELS: [
+    'mistralai/Mistral-7B-Instruct-v0.3',
+    'microsoft/Phi-3.5-mini-instruct',
+    'HuggingFaceH4/zephyr-7b-beta',
+    'mistralai/Mistral-7B-Instruct-v0.1',
+    'google/flan-t5-xxl',
+  ],
+
+  /* OpenRouter (backup — admin key দিলে ব্যবহার হবে) */
   OPENROUTER_URL:   'https://openrouter.ai/api/v1/chat/completions',
-  /* Free models — currently working on OpenRouter */
   OPENROUTER_MODELS: [
     'meta-llama/llama-3.1-8b-instruct:free',
     'qwen/qwen-2.5-7b-instruct:free',
@@ -1035,11 +1045,59 @@ const Engine = {
   },
 
   async call(prompt){
-    const { key: apiKey } = await Engine.getActiveKey();
-    if(!apiKey){
-      throw new Error('API Key সেট নেই। 🔑 Key দিন বাটনে ক্লিক করুন।');
+    const { key, type, source } = await Engine.getActiveKey();
+
+    if(key){
+      /* Key আছে → OpenRouter এ পাঠাও */
+      try {
+        return await Engine.callOpenRouter(key, prompt);
+      } catch(e) {
+        console.warn('OpenRouter failed:', e.message, '→ trying HuggingFace');
+        return await Engine.callHuggingFace(null, prompt);
+      }
+    } else {
+      /* Key নেই → Hugging Face free inference */
+      return await Engine.callHuggingFace(null, prompt);
     }
-    return await Engine.callOpenRouter(apiKey, prompt);
+  },
+
+  async callHuggingFace(hfToken, prompt, modelIdx=0){
+    const models = CONFIG.HF_MODELS;
+    if(!models||!models.length) throw new Error('No HF models configured');
+    const useModel = models[modelIdx];
+    const lang = window._toolLang || 'Bengali';
+    const instruction = 'You are an ecommerce AI expert. ' +
+      (lang==='Bengali'?'Respond in Bengali.':'Respond in English.') +
+      ' Respond ONLY with valid JSON. No markdown. No backticks. Pure JSON.\n\n' + prompt;
+    const headers = {'Content-Type':'application/json'};
+    if(hfToken) headers['Authorization'] = `Bearer ${hfToken}`;
+    let res;
+    try {
+      res = await fetch(CONFIG.HF_URL + useModel, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          inputs: instruction,
+          parameters: { max_new_tokens:2000, temperature:0.7, return_full_text:false },
+          options: { wait_for_model:true }
+        })
+      });
+    } catch(e){ throw new Error('ইন্টারনেট সংযোগ সমস্যা।'); }
+    if(!res.ok){
+      const st = res.status;
+      if(modelIdx+1 < models.length){
+        console.log(`HF [${st}] ${useModel} → ${models[modelIdx+1]}`);
+        return await Engine.callHuggingFace(hfToken, prompt, modelIdx+1);
+      }
+      throw new Error(`সব AI model এ সমস্যা (${st})। Admin OpenRouter key দিন।`);
+    }
+    const data = await res.json();
+    let raw = Array.isArray(data) ? (data[0]?.generated_text||'') : (data.generated_text||JSON.stringify(data));
+    raw = raw.replace(/```json|```/g,'').trim();
+    const fi=raw.indexOf('{'), li=raw.lastIndexOf('}');
+    if(fi>-1&&li>fi){ try{return JSON.parse(raw.slice(fi,li+1));}catch{} }
+    try{return JSON.parse(raw);}catch{}
+    throw new Error('ফলাফল parse করতে সমস্যা। আবার চেষ্টা করুন।');
   },
 
   async callOpenRouter(apiKey, prompt, modelIdx=0){
@@ -1711,26 +1769,13 @@ async function runTool(promptFn, inputs, resultId) {
   const resultEl = document.getElementById(resultId);
   if(!resultEl) return null;
 
-  /* Admin system key only — user নিজে key দিতে হবে না */
-  await Store.loadApiKeyFromFirestore();
-  const apiKey = Store.getApiKey();
-  if(!apiKey){
-    resultEl.innerHTML = `<div class="alert alert-warning" style="flex-direction:column;gap:12px">
-      <div>⚙️ <strong>সার্ভিস সাময়িক অনুপলব্ধ</strong></div>
-      <div style="font-size:.85rem;color:var(--text2)">দয়া করে কিছুক্ষণ পরে আবার চেষ্টা করুন অথবা Admin-এর সাথে যোগাযোগ করুন।</div>
-    </div>`;
-    return null;
-  }
-
-  /* Normal User: lifetime সর্বোচ্চ ৩ বার, Pro: unlimited */
   const canRun = await Engine.checkLimit();
-  if(!canRun){ resultEl.innerHTML=R.limitReached(); return null; }
+  if(!canRun){ resultEl.innerHTML = await R.limitReached(); return null; }
 
   resultEl.innerHTML = R.skeleton(2);
   try{
     const data = await Engine.call(promptFn(inputs));
-    /* Normal User হলে lifetime AI usage counter বাড়াও (Pro হলে কখনোই বাড়বে না) */
-    if(!FB.isPro()) await FB.incAiUsageCount();
+    await FB.incUsage();
     await updateUsageDisplay();
     return data;
   }catch(e){
