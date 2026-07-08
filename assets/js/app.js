@@ -1045,62 +1045,54 @@ const Engine = {
   },
 
   async call(prompt){
-    const { key, type, source } = await Engine.getActiveKey();
-
+    const { key } = await Engine.getActiveKey();
     if(key){
-      /* Key আছে → OpenRouter এ পাঠাও */
-      try {
-        return await Engine.callOpenRouter(key, prompt);
-      } catch(e) {
-        console.warn('OpenRouter failed:', e.message, '→ trying HuggingFace');
-        return await Engine.callHuggingFace(null, prompt);
-      }
-    } else {
-      /* Key নেই → Hugging Face free inference */
-      return await Engine.callHuggingFace(null, prompt);
+      try{ return await Engine.callOpenRouter(key, prompt); }
+      catch(e){ console.warn('OpenRouter failed:', e.message); }
     }
+    /* Claude API — always works */
+    return await Engine.callClaude(prompt);
   },
 
-  async callHuggingFace(hfToken, prompt, modelIdx=0){
-    const models = CONFIG.HF_MODELS;
-    if(!models||!models.length) throw new Error('No HF models configured');
-    const useModel = models[modelIdx];
+  async callClaude(prompt){
     const lang = window._toolLang || 'Bengali';
-    const instruction = 'You are an ecommerce AI expert. ' +
-      (lang==='Bengali'?'Respond in Bengali.':'Respond in English.') +
-      ' Respond ONLY with valid JSON. No markdown. No backticks. Pure JSON.\n\n' + prompt;
-    const headers = {'Content-Type':'application/json'};
-    if(hfToken) headers['Authorization'] = `Bearer ${hfToken}`;
+    const systemMsg = 'You are an expert ecommerce AI assistant for Bangladesh market. ' +
+      (lang==='Bengali' ? 'Respond in Bengali language.' : 'Respond in English.') +
+      ' Always respond with valid JSON only. No markdown, no backticks, no explanation text outside JSON.';
     let res;
     try {
-      res = await fetch(CONFIG.HF_URL + useModel, {
+      res = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        headers,
+        headers: {
+          'Content-Type': 'application/json',
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
         body: JSON.stringify({
-          inputs: instruction,
-          parameters: { max_new_tokens:2000, temperature:0.7, return_full_text:false },
-          options: { wait_for_model:true }
+          model: 'claude-haiku-4-5',
+          max_tokens: 4000,
+          system: systemMsg,
+          messages: [{ role: 'user', content: prompt +
+            '\n\nIMPORTANT: Reply with ONLY valid JSON. No text before or after the JSON object.' }]
         })
       });
-    } catch(e){ throw new Error('ইন্টারনেট সংযোগ সমস্যা।'); }
+    } catch(e){ throw new Error('ইন্টারনেট সংযোগ সমস্যা। আবার চেষ্টা করুন।'); }
+
     if(!res.ok){
-      const st = res.status;
-      if(modelIdx+1 < models.length){
-        console.log(`HF [${st}] ${useModel} → ${models[modelIdx+1]}`);
-        return await Engine.callHuggingFace(hfToken, prompt, modelIdx+1);
-      }
-      throw new Error(`সব AI model এ সমস্যা (${st})। Admin OpenRouter key দিন।`);
+      const err = await res.json().catch(()=>({}));
+      throw new Error(`AI Error (${res.status}): ${err.error?.message||'সমস্যা হয়েছে'}`);
     }
+
     const data = await res.json();
-    let raw = Array.isArray(data) ? (data[0]?.generated_text||'') : (data.generated_text||JSON.stringify(data));
-    raw = raw.replace(/```json|```/g,'').trim();
-    const fi=raw.indexOf('{'), li=raw.lastIndexOf('}');
-    if(fi>-1&&li>fi){ try{return JSON.parse(raw.slice(fi,li+1));}catch{} }
-    try{return JSON.parse(raw);}catch{}
+    const raw = data.content?.[0]?.text || '';
+    const clean = raw.replace(/```json|```/g,'').trim();
+    const fi = clean.indexOf('{'), li = clean.lastIndexOf('}');
+    if(fi>-1&&li>fi){ try{ return JSON.parse(clean.slice(fi,li+1)); }catch{} }
+    try{ return JSON.parse(clean); }catch{}
     throw new Error('ফলাফল parse করতে সমস্যা। আবার চেষ্টা করুন।');
   },
 
-  async callOpenRouter(apiKey, prompt, modelIdx=0){
+    async callOpenRouter(apiKey, prompt, modelIdx=0){
     const models = CONFIG.OPENROUTER_MODELS;
     const useModel = models[modelIdx] || models[0];
     const lang = window._toolLang || 'Bengali';
