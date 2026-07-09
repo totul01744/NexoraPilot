@@ -9,9 +9,9 @@
 
 const GEMINI_CONFIG = {
   BASE: 'https://generativelanguage.googleapis.com/v1beta/models',
-  TEXT_MODEL:  'gemini-2.5-flash',
-  IMAGE_MODEL: 'gemini-2.5-flash-image',
-  TTS_MODEL:   'gemini-2.5-flash-preview-tts',
+  TEXT_MODEL:  'gemini-3.5-flash',          // ফ্রি-টিয়ার এলিজিবল (জুলাই ২০২৬ অনুযায়ী current)
+  IMAGE_MODEL: 'gemini-3.1-flash-lite-image', // ছবি জেনারেশন — Google Cloud billing enable লাগবে
+  TTS_MODEL:   'gemini-3.1-flash-tts-preview',
 };
 
 /* ── Key storage — same pattern as Store.systemApiKey, নতুন ফিল্ড systemGeminiKey ── */
@@ -90,10 +90,10 @@ const GeminiEngine = {
     return `<div class="alert alert-warning" style="flex-direction:column;gap:12px;align-items:flex-start">
       <div>⚙️ <strong>Gemini API Key সেট করা নেই</strong></div>
       <div style="font-size:.85rem;color:var(--text2);line-height:1.6">
-        এই টুলটি চালাতে একটা ফ্রি Google Gemini API Key লাগবে।<br>
         ১. <a href="https://aistudio.google.com/apikey" target="_blank" style="color:#a78bfa;font-weight:700">aistudio.google.com/apikey</a> এ যান (Google account দিয়ে লগইন)<br>
-        ২. "Create API Key" চাপুন — সম্পূর্ণ ফ্রি, কোনো কার্ড লাগবে না<br>
-        ৩. Key কপি করে নিচে বসান
+        ২. "Create API Key" চাপুন — টেক্সট টুলগুলো (পোস্ট, স্ক্রিপ্ট, ফানেল ইত্যাদি) এই ফ্রি key দিয়েই চলবে<br>
+        ৩. ছবি/ভয়েস টুল (BG remover, Try-On, Photoshoot, Voiceover ইত্যাদি) চালাতে হলে একই Google Cloud প্রজেক্টে <a href="https://console.cloud.google.com/billing" target="_blank" style="color:#a78bfa;font-weight:700">Billing enable</a> করতে হবে — প্রতি ছবির খরচ মাত্র ~$0.02-0.05, কোনো মাসিক ফি নেই<br>
+        ৪. Key কপি করে নিচে বসান
       </div>
       <div style="display:flex;gap:8px;width:100%">
         <input class="form-control" id="geminiKeyInput" placeholder="AIzaSy..." style="flex:1">
@@ -122,6 +122,9 @@ const GeminiEngine = {
 
     if(!res.ok){
       const err = await res.json().catch(()=>({}));
+      if(res.status===429){
+        throw new Error('একটু বেশি রিকোয়েস্ট হয়ে গেছে (rate limit) — কিছুক্ষণ পর আবার চেষ্টা করুন।');
+      }
       throw new Error(`Gemini Error (${res.status}): ${err.error?.message?.substring(0,150) || 'সমস্যা হয়েছে'}`);
     }
     const data = await res.json();
@@ -158,6 +161,9 @@ const GeminiEngine = {
 
     if(!res.ok){
       const err = await res.json().catch(()=>({}));
+      if(res.status===429){
+        throw new Error('এই ছবি-জেনারেশন মডেলের জন্য Google-এর ফ্রি কোটা শেষ/অনুপলব্ধ। ছবি/ভয়েস টুল চালাতে হলে আপনার Google Cloud প্রজেক্টে Billing enable করতে হবে (console.cloud.google.com → Billing) — প্রতি ছবির খরচ মাত্র ~$0.02-0.05, কোনো মাসিক সাবস্ক্রিপশন লাগে না।');
+      }
       throw new Error(`Gemini Error (${res.status}): ${err.error?.message?.substring(0,150) || 'সমস্যা হয়েছে'}`);
     }
     const data = await res.json();
@@ -195,10 +201,11 @@ const GeminiEngine = {
 
     if(!res.ok){
       const err = await res.json().catch(()=>({}));
+      if(res.status===429){
+        throw new Error('ভয়েসওভার মডেলের ফ্রি কোটা শেষ/অনুপলব্ধ। এটা চালাতে Google Cloud প্রজেক্টে Billing enable করতে হবে (console.cloud.google.com → Billing)।');
+      }
       throw new Error(`Gemini Error (${res.status}): ${err.error?.message?.substring(0,150) || 'সমস্যা হয়েছে'}`);
     }
-    const data = await res.json();
-    const b64Audio = data.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
     if(!b64Audio){
       if(data.promptFeedback?.blockReason) throw new Error(`Gemini ব্লক করেছে: ${data.promptFeedback.blockReason}`);
       throw new Error('ভয়েস জেনারেট হয়নি। আবার চেষ্টা করুন।');
