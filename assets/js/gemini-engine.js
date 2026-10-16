@@ -12,6 +12,10 @@ const GEMINI_CONFIG = {
   TEXT_MODEL:  'gemini-3.5-flash',          // ফ্রি-টিয়ার এলিজিবল (জুলাই ২০২৬ অনুযায়ী current)
   IMAGE_MODEL: 'gemini-3.1-flash-lite-image', // ছবি জেনারেশন — Google Cloud billing enable লাগবে
   TTS_MODEL:   'gemini-3.1-flash-tts-preview',
+  /* মূল মডেল ব্যস্ত (503) / কোটা শেষ (429) / নেই (404) হলে এই মডেলগুলো ক্রমান্বয়ে চেষ্টা হবে */
+  TEXT_FALLBACKS:  ['gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-flash-latest'],
+  IMAGE_FALLBACKS: ['gemini-2.5-flash-image'],
+  TTS_FALLBACKS:   ['gemini-2.5-flash-preview-tts'],
 };
 
 /* ── Key storage — same pattern as Store.systemApiKey, নতুন ফিল্ড systemGeminiKey ── */
@@ -107,27 +111,57 @@ const GeminiEngine = {
     return `${GEMINI_CONFIG.BASE}/${model}:generateContent?key=${key}`;
   },
 
-  /* প্লেইন টেক্সট আউটপুট (মার্কডাউন-স্টাইল) */
-  async generateText(prompt){
+  /* ── শেয়ার্ড রিকোয়েস্ট: ব্যস্ত (5xx) হলে রিট্রাই, 404/429 হলে পরের মডেল ── */
+  async _request(models, body){
     const key = GStore.getKey();
     if(!key) throw new Error('NO_KEY');
-    let res;
-    try{
-      res = await fetch(await this._endpoint(GEMINI_CONFIG.TEXT_MODEL), {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ contents:[{ parts:[{ text: prompt }] }] })
-      });
-    }catch(e){ throw new Error('ইন্টারনেট সংযোগ সমস্যা। আবার চেষ্টা করুন।'); }
+    const sleep = ms => new Promise(r => setTimeout(r, ms));
+    const list = [...new Set(models.filter(Boolean))];
+    let lastErr = null, sawQuota = false;
+    for(const model of list){
+      for(let attempt = 0; attempt < 2; attempt++){
+        let res;
+        try{
+          res = await fetch(`${GEMINI_CONFIG.BASE}/${model}:generateContent?key=${key}`, {
+            method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body)
+          });
+        }catch(e){ throw new Error('ইন্টারনেট সংযোগ সমস্যা। আবার চেষ্টা করুন।'); }
 
-    if(!res.ok){
-      const err = await res.json().catch(()=>({}));
-      if(res.status===429){
-        throw new Error('একটু বেশি রিকোয়েস্ট হয়ে গেছে (rate limit) — কিছুক্ষণ পর আবার চেষ্টা করুন।');
+        if(res.ok){
+          const data = await res.json().catch(()=>({}));
+          return { data, model };
+        }
+        const err = await res.json().catch(()=>({}));
+        const msg = err.error?.message || '';
+        if((res.status === 400 && /api key/i.test(msg)) || res.status === 401 || res.status === 403){
+          throw new Error(`Gemini API Key কাজ করছে না (${res.status}): ${msg.substring(0,120)}`);
+        }
+        if(res.status === 429){ sawQuota = true; lastErr = new Error('RATE'); break; }      // পরের মডেল
+        if(res.status === 404){ lastErr = new Error(`মডেল পাওয়া যায়নি: ${model}`); break; } // পরের মডেল
+        if(res.status >= 500){                                                              // ব্যস্ত — একটু অপেক্ষা করে আবার
+          lastErr = new Error(`Gemini Error (${res.status}): ${msg.substring(0,150) || 'সার্ভার ব্যস্ত'}`);
+          if(attempt === 0){ await sleep(1800); continue; }
+          break;
+        }
+        lastErr = new Error(`Gemini Error (${res.status}): ${msg.substring(0,150) || 'সমস্যা হয়েছে'}`);
+        break;
       }
-      throw new Error(`Gemini Error (${res.status}): ${err.error?.message?.substring(0,150) || 'সমস্যা হয়েছে'}`);
     }
-    const data = await res.json();
+    if(sawQuota && (!lastErr || lastErr.message === 'RATE')) throw new Error('RATE');
+    throw lastErr || new Error('উত্তর পাওয়া যায়নি। আবার চেষ্টা করুন।');
+  },
+
+  /* প্লেইন টেক্সট আউটপুট (মার্কডাউন-স্টাইল) */
+  async generateText(prompt){
+    let r;
+    try{
+      r = await this._request([GEMINI_CONFIG.TEXT_MODEL, ...GEMINI_CONFIG.TEXT_FALLBACKS],
+        { contents:[{ parts:[{ text: prompt }] }] });
+    }catch(e){
+      if(e.message === 'RATE') throw new Error('একটু বেশি রিকোয়েস্ট হয়ে গেছে (rate limit) — কিছুক্ষণ পর আবার চেষ্টা করুন।');
+      throw e;
+    }
+    const data = r.data;
     const parts = data.candidates?.[0]?.content?.parts || [];
     const text = parts.map(p=>p.text||'').join('').trim();
     if(!text){
@@ -139,9 +173,7 @@ const GeminiEngine = {
 
   /* ইমেজ জেনারেশন — টেক্সট প্রম্পট + (ঐচ্ছিক) ১টা বা একাধিক ইনপুট ইমেজ */
   async generateImage(prompt, imageFiles=[]){
-    const key = GStore.getKey();
-    if(!key) throw new Error('NO_KEY');
-
+    if(!GStore.getKey()) throw new Error('NO_KEY');
     const parts = [];
     for(const f of imageFiles){
       if(!f) continue;
@@ -150,27 +182,19 @@ const GeminiEngine = {
     }
     parts.push({ text: prompt });
 
-    let res;
+    let r;
     try{
-      res = await fetch(await this._endpoint(GEMINI_CONFIG.IMAGE_MODEL), {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ contents:[{ parts }] })
-      });
-    }catch(e){ throw new Error('ইন্টারনেট সংযোগ সমস্যা। আবার চেষ্টা করুন।'); }
-
-    if(!res.ok){
-      const err = await res.json().catch(()=>({}));
-      if(res.status===429){
-        throw new Error('এই ছবি-জেনারেশন মডেলের জন্য Google-এর ফ্রি কোটা শেষ/অনুপলব্ধ। ছবি/ভয়েস টুল চালাতে হলে আপনার Google Cloud প্রজেক্টে Billing enable করতে হবে (console.cloud.google.com → Billing) — প্রতি ছবির খরচ মাত্র ~$0.02-0.05, কোনো মাসিক সাবস্ক্রিপশন লাগে না।');
-      }
-      throw new Error(`Gemini Error (${res.status}): ${err.error?.message?.substring(0,150) || 'সমস্যা হয়েছে'}`);
+      r = await this._request([GEMINI_CONFIG.IMAGE_MODEL, ...GEMINI_CONFIG.IMAGE_FALLBACKS], { contents:[{ parts }] });
+    }catch(e){
+      if(e.message === 'RATE') throw new Error('এই ছবি-জেনারেশন মডেলের জন্য Google-এর ফ্রি কোটা শেষ/অনুপলব্ধ। ছবি/ভয়েস টুল চালাতে হলে আপনার Google Cloud প্রজেক্টে Billing enable করতে হবে (console.cloud.google.com → Billing) — প্রতি ছবির খরচ মাত্র ~$0.02-0.05, কোনো মাসিক সাবস্ক্রিপশন লাগে না।');
+      throw e;
     }
-    const data = await res.json();
+    const data = r.data;
     const outParts = data.candidates?.[0]?.content?.parts || [];
     let imageUrl = '', text = '';
     for(const p of outParts){
-      if(p.inlineData) imageUrl = `data:${p.inlineData.mimeType};base64,${p.inlineData.data}`;
+      const inl = p.inlineData || p.inline_data;
+      if(inl) imageUrl = `data:${inl.mimeType || inl.mime_type};base64,${inl.data}`;
       else if(p.text) text += p.text;
     }
     if(!imageUrl){
@@ -182,30 +206,25 @@ const GeminiEngine = {
 
   /* টেক্সট-টু-স্পিচ (voice: 'Kore' | 'Puck') */
   async generateSpeech(text, voice='Kore'){
-    const key = GStore.getKey();
-    if(!key) throw new Error('NO_KEY');
-    let res;
-    try{
-      res = await fetch(await this._endpoint(GEMINI_CONFIG.TTS_MODEL), {
-        method:'POST',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({
-          contents:[{ parts:[{ text }] }],
-          generationConfig:{
-            responseModalities:['AUDIO'],
-            speechConfig:{ voiceConfig:{ prebuiltVoiceConfig:{ voiceName: voice } } }
-          }
-        })
-      });
-    }catch(e){ throw new Error('ইন্টারনেট সংযোগ সমস্যা। আবার চেষ্টা করুন।'); }
-
-    if(!res.ok){
-      const err = await res.json().catch(()=>({}));
-      if(res.status===429){
-        throw new Error('ভয়েসওভার মডেলের ফ্রি কোটা শেষ/অনুপলব্ধ। এটা চালাতে Google Cloud প্রজেক্টে Billing enable করতে হবে (console.cloud.google.com → Billing)।');
+    if(!GStore.getKey()) throw new Error('NO_KEY');
+    const body = {
+      contents:[{ parts:[{ text }] }],
+      generationConfig:{
+        responseModalities:['AUDIO'],
+        speechConfig:{ voiceConfig:{ prebuiltVoiceConfig:{ voiceName: voice } } }
       }
-      throw new Error(`Gemini Error (${res.status}): ${err.error?.message?.substring(0,150) || 'সমস্যা হয়েছে'}`);
+    };
+    let r;
+    try{
+      r = await this._request([GEMINI_CONFIG.TTS_MODEL, ...GEMINI_CONFIG.TTS_FALLBACKS], body);
+    }catch(e){
+      if(e.message === 'RATE') throw new Error('ভয়েসওভার মডেলের ফ্রি কোটা শেষ/অনুপলব্ধ। এটা চালাতে Google Cloud প্রজেক্টে Billing enable করতে হবে (console.cloud.google.com → Billing)।');
+      throw e;
     }
+    const data = r.data;
+    const outParts = data.candidates?.[0]?.content?.parts || [];
+    const inl = outParts.map(p => p.inlineData || p.inline_data).find(Boolean);
+    const b64Audio = inl?.data;
     if(!b64Audio){
       if(data.promptFeedback?.blockReason) throw new Error(`Gemini ব্লক করেছে: ${data.promptFeedback.blockReason}`);
       throw new Error('ভয়েস জেনারেট হয়নি। আবার চেষ্টা করুন।');

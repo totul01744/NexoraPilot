@@ -198,11 +198,15 @@ async function geminiCall({ system, userText, imageDataUrl, temperature, json })
       if(system) body.systemInstruction = { parts: [{ text: system }] };
 
       let res;
-      try{
-        res = await fetch(`${GEMINI_CONFIG.BASE}/${model}:generateContent?key=${key}`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
-        });
-      }catch(e){ throw new Error('ইন্টারনেট সংযোগ সমস্যা। আবার চেষ্টা করুন।'); }
+      for(let attempt = 0; attempt < 2; attempt++){      // মডেল ব্যস্ত (5xx) হলে একবার অপেক্ষা করে আবার
+        try{
+          res = await fetch(`${GEMINI_CONFIG.BASE}/${model}:generateContent?key=${key}`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+          });
+        }catch(e){ throw new Error('ইন্টারনেট সংযোগ সমস্যা। আবার চেষ্টা করুন।'); }
+        if(res.status < 500 || attempt === 1) break;
+        await new Promise(r => setTimeout(r, 1800));
+      }
 
       if(res.ok){
         const data = await res.json().catch(() => ({}));
