@@ -1485,23 +1485,13 @@ function renderPaymentStep1(){
 
   el.innerHTML = `
     <!-- Plan selector -->
-    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:20px">
+    <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:20px">
       <div class="plan-opt active" id="plan_monthly" onclick="selectPlan('monthly',this)" style="background:rgba(0,245,212,.08);border:2px solid var(--a1);border-radius:12px;padding:14px;text-align:center;cursor:pointer">
         <div style="font-size:.72rem;color:var(--text2);margin-bottom:4px">মাসিক</div>
-        <div style="font-family:var(--font-h);font-size:1.3rem;font-weight:900;color:var(--a1)">৳১৯৯</div>
+        <div style="font-family:var(--font-h);font-size:1.3rem;font-weight:900;color:var(--a1)">৳৮৯৯</div>
         <div style="font-size:.7rem;color:var(--text2)">/মাস</div>
       </div>
-      <div class="plan-opt" id="plan_yearly" onclick="selectPlan('yearly',this)" style="background:rgba(0,0,0,.2);border:2px solid var(--border);border-radius:12px;padding:14px;text-align:center;cursor:pointer">
-        <div style="font-size:.72rem;color:var(--text2);margin-bottom:4px">বার্ষিক</div>
-        <div style="font-family:var(--font-h);font-size:1.3rem;font-weight:900;color:#fff">৳১,৯৯৯</div>
-        <div style="font-size:.7rem;color:var(--a1)">মাত্র ৳১৬৬/মাস</div>
       </div>
-      <div class="plan-opt" id="plan_agency" onclick="selectPlan('agency',this)" style="background:rgba(0,0,0,.2);border:2px solid var(--border);border-radius:12px;padding:14px;text-align:center;cursor:pointer">
-        <div style="font-size:.72rem;color:var(--text2);margin-bottom:4px">Agency</div>
-        <div style="font-family:var(--font-h);font-size:1.3rem;font-weight:900;color:#a78bfa">৳৪৯৯</div>
-        <div style="font-size:.7rem;color:var(--text2)">/মাস</div>
-      </div>
-    </div>
 
     <!-- bKash instruction box -->
     <div style="background:linear-gradient(135deg,rgba(236,72,153,.15),rgba(124,58,237,.1));border:1px solid rgba(236,72,153,.35);border-radius:14px;padding:18px;margin-bottom:18px">
@@ -1591,7 +1581,7 @@ async function submitPayment(){
   if(!phone) { Toast.error('Phone নম্বর দিন'); return; }
   if(!txn||txn.length < 5){ Toast.error('Transaction ID দিন (কমপক্ষে ৫ অক্ষর)'); return; }
 
-  const amountMap = {monthly:'৳১৯৯', yearly:'৳১,৯৯৯', agency:'৳৪৯৯'};
+  const amountMap = {monthly:'৳৮৯৯', yearly:'৳১,৯৯৯', agency:'৳৪,৯৯৯'};
   const planMap   = {monthly:'Pro Monthly', yearly:'Pro Annual', agency:'Agency'};
   const bkash     = Store.getBkashNumber();
 

@@ -847,5 +847,15 @@ function hookOpenTool(){
 document.addEventListener('DOMContentLoaded', hookOpenTool);
 window.addEventListener('load', hookOpenTool);
 hookOpenTool();
+/* হোমপেজ থেকে tools.html#inbox_reply_master লিংকে এলে টুলটি নিজে খুলে যাবে */
+(function(){
+  if(location.hash!=='#inbox_reply_master') return;
+  var tries=0, t=setInterval(function(){
+    tries++;
+    if(typeof window.openTool==='function' && typeof TOOLS!=='undefined' && typeof currentUser!=='undefined' && currentUser && document.getElementById('toolContainer')){
+      clearInterval(t); try{ window.openTool('inbox_reply_master'); }catch(e){}
+    } else if(tries>60) clearInterval(t);
+  },250);
+})();
 
 })();

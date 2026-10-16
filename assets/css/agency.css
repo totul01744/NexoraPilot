@@ -1,0 +1,83 @@
+/* NexoraPilot — Agency / Consultation / Services */
+.ag-sec{padding:64px 0}
+.ag-sec.alt{background:rgba(0,0,0,.2)}
+.ag-center{text-align:center}
+.ag-cta{border:1px solid rgba(0,245,212,.25);background:linear-gradient(135deg,rgba(0,245,212,.07),rgba(124,58,237,.09));border-radius:24px;padding:44px 28px;text-align:center;max-width:920px;margin:0 auto}
+.ag-cta h2{font-family:var(--font-h);font-size:clamp(1.4rem,3.4vw,2.1rem);color:#fff;margin-bottom:12px;line-height:1.3}
+.ag-cta p{color:var(--text2);max-width:640px;margin:0 auto 24px;line-height:1.75}
+.ag-cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
+.ag-note{font-size:.78rem;color:var(--text2);line-height:1.6}
+.ag-plan-tag{display:inline-block;font-size:.7rem;font-weight:800;padding:3px 10px;border-radius:20px;background:rgba(245,158,11,.14);color:var(--a3);margin-bottom:8px}
+.ag-soon{font-size:.66rem;font-weight:800;color:var(--a3);background:rgba(245,158,11,.12);border-radius:10px;padding:2px 7px;margin-left:6px;white-space:nowrap}
+.ag-target{font-size:.8rem;color:var(--text2);line-height:1.55;margin:-4px 0 4px}
+.pricing-card .price-feat{align-items:flex-start;line-height:1.45}
+.pricing-card .price-feat-icon{flex-shrink:0;margin-top:1px}
+.ag-pbtns{display:grid;gap:10px;margin-top:20px}
+.ag-pbtns .btn{margin:0!important}
+.ag-pnote{font-size:.74rem;color:var(--text2);margin-top:14px;line-height:1.6}
+
+/* services */
+.ag-filters{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-bottom:26px}
+.ag-chip{border:1px solid var(--border2);background:rgba(255,255,255,.04);color:var(--text2);border-radius:20px;padding:8px 16px;font-size:.82rem;font-weight:700;cursor:pointer;font-family:var(--font);min-height:40px}
+.ag-chip.on{background:rgba(0,245,212,.12);border-color:var(--a1);color:var(--a1)}
+.ag-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:18px}
+.ag-card{display:flex;flex-direction:column;background:rgba(10,18,36,.7);border:1px solid var(--border);border-radius:20px;padding:22px;gap:10px}
+.ag-card.feat{border-color:rgba(0,245,212,.35)}
+.ag-ic{width:46px;height:46px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.4rem;background:rgba(0,245,212,.08);border:1px solid rgba(0,245,212,.2)}
+.ag-card h3{font-family:var(--font-h);font-size:1.02rem;color:#fff;line-height:1.35}
+.ag-card p{font-size:.85rem;color:var(--text2);line-height:1.65}
+.ag-meta{font-size:.78rem;color:var(--text2);line-height:1.55}
+.ag-meta b{color:#cbd5e1}
+.ag-dels{margin:0;padding-left:18px;font-size:.8rem;color:var(--text2);display:grid;gap:3px}
+.ag-price{font-weight:900;color:var(--a1);font-size:.95rem;margin-top:auto;padding-top:6px}
+.ag-card .ag-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px}
+.ag-empty{text-align:center;color:var(--text2);padding:40px 10px}
+
+/* how we work / trust */
+.ag-steps{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:14px;counter-reset:s}
+.ag-step{background:rgba(10,18,36,.7);border:1px solid var(--border);border-radius:18px;padding:18px;position:relative}
+.ag-step::before{counter-increment:s;content:counter(s);display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:rgba(0,245,212,.12);color:var(--a1);font-weight:900;font-size:.85rem;margin-bottom:10px}
+.ag-step b{display:block;color:#fff;font-size:.9rem;margin-bottom:4px}
+.ag-step span{font-size:.78rem;color:var(--text2);line-height:1.55}
+.ag-trust{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:26px}
+.ag-trust div{background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:16px;padding:16px 18px;font-size:.86rem;color:var(--text2);line-height:1.6}
+.ag-trust b{display:block;color:#fff;margin-bottom:3px}
+.ag-contact{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:20px}
+
+/* modal */
+.ag-ov{position:fixed;inset:0;background:rgba(4,8,15,.88);z-index:2000;display:none;align-items:center;justify-content:center;padding:16px;overflow-y:auto}
+.ag-ov.open{display:flex}
+.ag-box{background:rgba(8,18,36,.99);border:1px solid var(--border2);border-radius:22px;padding:26px;width:100%;max-width:640px;max-height:94vh;overflow-y:auto;-webkit-overflow-scrolling:touch;position:relative;margin:auto}
+.ag-x{position:absolute;top:10px;right:10px;width:44px;height:44px;background:none;border:none;color:var(--text2);font-size:1.4rem;cursor:pointer}
+.ag-box h3{font-family:var(--font-h);color:#fff;font-size:1.2rem;margin:0 36px 6px 0;line-height:1.35}
+.ag-box .sub{font-size:.84rem;color:var(--text2);margin-bottom:18px;line-height:1.6}
+.ag-f{margin-bottom:14px}
+.ag-f label{display:block;font-size:.8rem;font-weight:700;color:var(--text2);margin-bottom:6px}
+.ag-f label i{color:#f87171;font-style:normal}
+.ag-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.ag-checks{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.ag-checks label{display:flex;align-items:center;gap:8px;font-weight:600;color:#cbd5e1;font-size:.83rem;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin:0;cursor:pointer;min-height:44px}
+.ag-checks input{width:18px;height:18px;min-height:0!important;flex-shrink:0;accent-color:#00f5d4}
+.ag-err{color:#f87171;font-size:.82rem;margin:8px 0;display:none;line-height:1.5}
+.ag-ok{text-align:center;padding:6px 0}
+.ag-ok .big{font-size:2.6rem}
+.ag-bid{display:inline-block;margin:10px 0;padding:10px 18px;border:1px dashed var(--a1);border-radius:12px;font-family:monospace;font-size:1.15rem;color:var(--a1);font-weight:800;letter-spacing:1px;user-select:all}
+.ag-hp{position:absolute;left:-9999px;opacity:0;height:0;width:0}
+.ag-det h4{color:var(--a1);font-size:.85rem;margin:16px 0 6px}
+.ag-det ul{padding-left:18px;color:var(--text2);font-size:.86rem;line-height:1.7}
+.ag-det details{border-bottom:1px solid var(--border);padding:8px 0;font-size:.85rem;color:var(--text2)}
+.ag-det summary{cursor:pointer;color:#fff;font-weight:700;min-height:36px;display:flex;align-items:center}
+@media(max-width:640px){
+  .ag-2,.ag-checks{grid-template-columns:1fr}
+  .ag-sec{padding:44px 0}
+  .ag-ov{padding:0;align-items:flex-end}
+  .ag-box{border-radius:22px 22px 0 0;max-height:96vh;padding:22px 16px;margin:0}
+  .ag-cta{padding:30px 16px;border-radius:20px}
+  .ag-card .ag-row{grid-template-columns:1fr}
+}
+
+/* Admin sidebar: Logout বাটন লম্বা মেনুর উপর ভেসে না ওঠে */
+.sidebar div[style*="position:absolute"][style*="bottom:16px"]{position:static!important;margin:14px 0 0;padding:0 0 24px}
+/* Pricing: বাটন সবসময় কার্ডের নিচে */
+#pricing .pricing-card{display:flex;flex-direction:column}
+#pricing .ag-pbtns{margin-top:auto;padding-top:20px}
