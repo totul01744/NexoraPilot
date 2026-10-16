@@ -1488,7 +1488,7 @@ function renderPaymentStep1(){
     <div style="display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:20px">
       <div class="plan-opt active" id="plan_monthly" onclick="selectPlan('monthly',this)" style="background:rgba(0,245,212,.08);border:2px solid var(--a1);border-radius:12px;padding:14px;text-align:center;cursor:pointer">
         <div style="font-size:.72rem;color:var(--text2);margin-bottom:4px">মাসিক</div>
-        <div style="font-family:var(--font-h);font-size:1.3rem;font-weight:900;color:var(--a1)">৳৮৯৯</div>
+        <div style="font-family:var(--font-h);font-size:1.3rem;font-weight:900;color:var(--a1)">৳২০০</div>
         <div style="font-size:.7rem;color:var(--text2)">/মাস</div>
       </div>
       </div>
@@ -1581,7 +1581,7 @@ async function submitPayment(){
   if(!phone) { Toast.error('Phone নম্বর দিন'); return; }
   if(!txn||txn.length < 5){ Toast.error('Transaction ID দিন (কমপক্ষে ৫ অক্ষর)'); return; }
 
-  const amountMap = {monthly:'৳৮৯৯', yearly:'৳১,৯৯৯', agency:'৳৪,৯৯৯'};
+  const amountMap = {monthly:'৳২০০', yearly:'৳১,৯৯৯', agency:'৳৫০০'};
   const planMap   = {monthly:'Pro Monthly', yearly:'Pro Annual', agency:'Agency'};
   const bkash     = Store.getBkashNumber();
 

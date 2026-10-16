@@ -820,7 +820,7 @@ IR.copy = async function(id, btn, noCommit){
 /* ════════════════ টুল রেজিস্ট্রেশন ════════════════ */
 if(typeof TOOLS !== 'undefined' && Array.isArray(TOOLS) && !TOOLS.some(t => t.id === 'inbox_reply_master')){
   TOOLS.unshift({
-    id: 'inbox_reply_master', icon: '💬', badge: '🆕 NEW',
+    id: 'inbox_reply_master', icon: '💬',
     name: 'ইনবক্স রিপ্লাই মাস্টার',
     desc: 'কাস্টমারের মেসেজ পেস্ট করুন — সেভ করা প্রোডাক্ট অনুযায়ী বেশি অর্ডার আনে এমন উত্তর পান (ইনবক্সে বাজিমাত টেকনিক)',
     color: 'rgba(0,245,212,.08)', border: 'rgba(0,245,212,.28)',
