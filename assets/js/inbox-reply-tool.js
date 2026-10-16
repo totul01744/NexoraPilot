@@ -10,8 +10,10 @@
    ============================================================ */
 (function(){
 'use strict';
+if(window.IR && window.IR.__loaded) return;   // দুবার লোড হলে আবার চালাবে না
 
 const IR = window.IR = {};
+IR.__loaded = true;
 const MAX_PRODUCTS = 30;
 const IMG_MAX = 640;      // AI-কে পাঠানো/লোকালি রাখা ছবির সর্বোচ্চ সাইড (px)
 const THUMB_MAX = 320;    // তালিকা + ক্লাউডের জন্য ছোট ছবি
@@ -537,7 +539,10 @@ function fillProfileForm(){
 /* ════════════════ Public API (onclick থেকে) ════════════════ */
 IR.html = TOOL_HTML;
 
+let _lastOpen = 0;
 IR.open = async function(){
+  if(Date.now() - _lastOpen < 600) return;      // tools.html ও হুক দুটোই ডাকলে একবারই চলবে
+  _lastOpen = Date.now();
   document.getElementById('toolLangBar')?.remove();   // এই টুলে ভাষা টগল দরকার নেই — উত্তর কাস্টমারের ভাষায় হয়
   S.thread = []; S.last = null; S.editingId = null;
   try{ await load(); }catch(e){ console.error(e); }
@@ -823,5 +828,24 @@ if(typeof TOOLS !== 'undefined' && Array.isArray(TOOLS) && !TOOLS.some(t => t.id
     onOpen: IR.open
   });
 }
+
+/* ════════════════ openTool হুক ════════════════
+   পুরোনো tools.html টুলের onOpen ডাকে না — তাই openTool মোড়ক দিয়ে ডাকা হয়।
+   (নতুন tools.html হলে নিজেই ডাকে; IR.open ডিবাউন্স করা আছে, তাই সমস্যা নেই।) */
+function hookOpenTool(){
+  if(window.__irHooked || typeof window.openTool !== 'function') return;
+  window.__irHooked = true;
+  const orig = window.openTool;
+  window.openTool = function(id){
+    const r = orig.apply(this, arguments);
+    try{
+      if(id === 'inbox_reply_master' && document.getElementById('ir-root')) IR.open();
+    }catch(e){ console.error('inbox tool open error:', e); }
+    return r;
+  };
+}
+document.addEventListener('DOMContentLoaded', hookOpenTool);
+window.addEventListener('load', hookOpenTool);
+hookOpenTool();
 
 })();

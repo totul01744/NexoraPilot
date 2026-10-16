@@ -293,3 +293,10 @@ async function runVideoScriptGenerator(){
   const prompt = `"${topic}" নিয়ে ${platform} এর জন্য একটি সম্পূর্ণ ভিডিও মার্কেটিং স্ক্রিপ্ট লিখুন। দৈর্ঘ্য: ${duration}। স্ক্রিপ্টে থাকবে: হুক (প্রথম ৩ সেকেন্ড), সমস্যা তুলে ধরা, সমাধান/পণ্যের পরিচিতি, মূল বেনিফিট, এবং CTA। প্রতিটি অংশে সময় (timestamp) উল্লেখ করুন এবং ভিজ্যুয়াল নির্দেশনাও দিন। বাংলায় লিখুন।`;
   await runGeminiText(prompt, 'vs-result', 'video_script_generator', {topic});
 }
+
+/* ── ইনবক্স রিপ্লাই মাস্টার লোডার ── */
+/* tools.html এ আলাদা <script> না থাকলেও টুলটি যেন লোড হয় (পার্সার-ব্লকিং, তাই TOOLS তালিকা বানানোর আগেই রেজিস্টার হয়) */
+if(!window.__irScriptRequested && !document.querySelector('script[src*="inbox-reply-tool"]')){
+  window.__irScriptRequested = true;
+  document.write('<script src="assets/js/inbox-reply-tool.js"><\/script>');
+}
