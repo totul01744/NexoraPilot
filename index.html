@@ -129,42 +129,69 @@
 
 <!-- HEADER -->
 <header class="header">
-  <div class="header-inner">
+  <div class="header-inner wide">
     <a href="index.html" class="logo"><div class="logo-icon">⚡</div>NexoraPilot</a>
-    <nav class="nav" id="mainNav">
-      <a class="nav-link active" href="index.html">🏠 Home</a>
-      <a class="nav-link" href="winning-products.html">🏆 Products</a>
-      <a class="nav-link" href="tools.html">🛠️ Tools</a>
-      <a class="nav-link" href="marketplace.html">🛍️ Marketplace</a>
-      <a class="nav-link" href="dashboard.html">📊 Dashboard</a>
-      <a class="nav-link" href="#pricing">💎 Pricing</a>
-      <a class="nav-link" href="#services">🧰 Services</a>
-      <a class="nav-link" href="#consultation">🎯 ফ্রি কনসাল্টেশন</a>
-      <a class="nav-link" href="#contact">📞 Contact</a>
-      <a class="nav-link" href="help.html">💬 Support</a>
+    <nav class="nav nav-wide" id="mainNav">
+      <a class="nav-link active" href="index.html">Home</a>
+      <a class="nav-link" href="winning-products.html">Products</a>
+      <a class="nav-link" href="tools.html">Tools</a>
+      <a class="nav-link" href="marketplace.html">Marketplace</a>
+      <a class="nav-link" href="dashboard.html">Dashboard</a>
+      <a class="nav-link" href="#pricing">Pricing</a>
+      <a class="nav-link" href="#services">Services</a>
+      <a class="nav-link" href="#consultation">কনসাল্টেশন</a>
+      <a class="nav-link" href="#contact">Contact</a>
+      <a class="nav-link" href="help.html">Support</a>
     </nav>
     <div id="headerUserArea" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"></div>
     <button class="hamburger" onclick="openDrawer()" aria-label="Menu">☰</button>
   </div>
 </header>
 
-<!-- HERO -->
-<section class="hero">
-  <div class="container">
-    <div class="hero-badge">⚡ AI-Powered Ecommerce Research</div>
-    <h1 class="hero-title">Winning Products খুঁজুন AI দিয়ে</h1>
-    <p class="hero-sub">Product research, ad creative, market reports — সব কিছু মিনিটে। বাংলাদেশের সেরা ecommerce AI tool।</p>
-    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
-      <a href="tools.html" class="btn btn-primary btn-lg">🚀 Tools ব্যবহার করুন</a>
-      <a href="winning-products.html" class="btn btn-outline btn-lg">🏆 Winning Products দেখুন</a>
+<!-- HERO VIDEO SLIDER -->
+<section class="hs" id="heroSlider" aria-roledescription="carousel" aria-label="NexoraPilot হাইলাইটস">
+  <div class="hs-track">
+    <div class="hs-slide on" role="group" aria-label="স্লাইড 1">
+      <video muted loop playsinline preload="auto" poster="assets/video/hero-1.jpg" autoplay><source src="assets/video/hero-1.mp4" type="video/mp4"></video>
+      <div class="hs-in">
+        <div class="hs-tag">🏆 Winning Products</div>
+        <h1 class="hs-title">Winning Products <em>খুঁজুন</em></h1>
+        <p class="hs-sub">Admin-দের বাছাই করা সেরা ecommerce products, সম্পূর্ণ ad strategy সহ — সব বাংলায়।</p>
+        <div class="hs-btns"><a href="winning-products.html" class="btn btn-primary btn-lg">🏆 Winning Products দেখুন</a><a href="tools.html" class="btn btn-outline btn-lg">🚀 Tools ব্যবহার করুন</a></div>
+      </div>
     </div>
-    <div class="hero-stats">
-      <div class="hero-stat"><div class="hero-stat-num mint">১৮+</div><div class="hero-stat-label">AI Tools</div></div>
-      <div class="hero-stat"><div class="hero-stat-num">১০০%</div><div class="hero-stat-label">বাংলায়</div></div>
-      <div class="hero-stat"><div class="hero-stat-num violet">Free</div><div class="hero-stat-label">৩ বার ব্যবহার</div></div>
+    <div class="hs-slide" role="group" aria-label="স্লাইড 2">
+      <video muted loop playsinline preload="none" poster="assets/video/hero-2.jpg"><source src="assets/video/hero-2.mp4" type="video/mp4"></video>
+      <div class="hs-in">
+        <div class="hs-tag">🛠️ ১৮+ Tools</div>
+        <h1 class="hs-title">সব Tools, <em>এক জায়গায়</em></h1>
+        <p class="hs-sub">পোস্ট, অ্যাড কপি, ভিডিও স্ক্রিপ্ট, ভয়েসওভার — আর নতুন: ইনবক্স রিপ্লাই মাস্টার, কাস্টমারের মেসেজের জন্য সেরা রিপ্লাই তৈরি করে।</p>
+        <div class="hs-btns"><a href="tools.html#inbox_reply_master" class="btn btn-primary btn-lg">💬 ইনবক্স রিপ্লাই মাস্টার</a><a href="tools.html" class="btn btn-outline btn-lg">সব Tools দেখুন</a></div>
+      </div>
+    </div>
+    <div class="hs-slide" role="group" aria-label="স্লাইড 3">
+      <video muted loop playsinline preload="none" poster="assets/video/hero-3.jpg"><source src="assets/video/hero-3.mp4" type="video/mp4"></video>
+      <div class="hs-in">
+        <div class="hs-tag">🎯 Free Consultation</div>
+        <h1 class="hs-title">আপনার ব্যবসার <em>বিক্রি বাড়াতে</em> চান?</h1>
+        <p class="hs-sub">Facebook Ads, TikTok Marketing, Pixel Setup ও E-commerce গ্রোথ — প্রাথমিক পরামর্শ বিনামূল্যে।</p>
+        <div class="hs-btns"><button class="btn btn-primary btn-lg" onclick="AG.openConsult()">🎯 ফ্রি কনসাল্টেশন নিন</button><a href="#services" class="btn btn-outline btn-lg">🧰 Services দেখুন</a></div>
+      </div>
     </div>
   </div>
+  <button class="hs-arrow hs-prev" aria-label="আগের স্লাইড">‹</button>
+  <button class="hs-arrow hs-next" aria-label="পরের স্লাইড">›</button>
+  <div class="hs-dots" role="tablist">
+    <button class="hs-dot" role="tab" aria-label="স্লাইড ১"><i></i></button>
+    <button class="hs-dot" role="tab" aria-label="স্লাইড ২"><i></i></button>
+    <button class="hs-dot" role="tab" aria-label="স্লাইড ৩"><i></i></button>
+  </div>
 </section>
+<div class="hs-stats"><div class="hero-stats" style="margin-top:0">
+  <div class="hero-stat"><div class="hero-stat-num mint">১৮+</div><div class="hero-stat-label">AI Tools</div></div>
+  <div class="hero-stat"><div class="hero-stat-num">১০০%</div><div class="hero-stat-label">বাংলায়</div></div>
+  <div class="hero-stat"><div class="hero-stat-num violet">Free</div><div class="hero-stat-label">৩ বার ব্যবহার</div></div>
+</div></div>
 
 <!-- BANNER -->
 <section style="padding:0 0 48px">
@@ -392,6 +419,7 @@
 <script src="assets/js/app.js"></script>
 <script src="assets/js/agency-data.js"></script>
 <script src="assets/js/agency.js"></script>
+<script src="assets/js/hero-slider.js"></script>
 <script>
 /* ═══════════════════════════════════════
    LOGIN GATE LOGIC
