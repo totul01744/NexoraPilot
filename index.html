@@ -37,6 +37,7 @@
 .gate-form{display:none}
 .gate-form.active{display:block}
 </style>
+<link rel="stylesheet" href="assets/css/agency.css">
 </head>
 <body>
 
@@ -136,6 +137,10 @@
       <a class="nav-link" href="tools.html">🛠️ Tools</a>
       <a class="nav-link" href="marketplace.html">🛍️ Marketplace</a>
       <a class="nav-link" href="dashboard.html">📊 Dashboard</a>
+      <a class="nav-link" href="#pricing">💎 Pricing</a>
+      <a class="nav-link" href="#services">🧰 Services</a>
+      <a class="nav-link" href="#consultation">🎯 ফ্রি কনসাল্টেশন</a>
+      <a class="nav-link" href="#contact">📞 Contact</a>
       <a class="nav-link" href="help.html">💬 Support</a>
     </nav>
     <div id="headerUserArea" style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"></div>
@@ -215,42 +220,116 @@
 </section>
 
 <!-- PRICING -->
-<section style="padding:60px 0 80px;background:rgba(0,0,0,.2)">
+<section id="pricing" class="ag-sec alt">
   <div class="container">
     <div class="section-header">
       <div class="section-label">💎 Plans</div>
       <h2 class="section-title">Pricing</h2>
+      <p class="section-sub">নিজে শিখে করুন, নাকি বিশেষজ্ঞের সরাসরি সহায়তা নিন — আপনার প্রয়োজন অনুযায়ী বেছে নিন।</p>
     </div>
     <div class="pricing-grid">
       <div class="card pricing-card">
-        <div style="font-family:var(--font-h);font-size:.9rem;color:var(--text2);margin-bottom:12px">🆓 Free</div>
+        <div style="font-family:var(--font-h);font-size:.9rem;color:var(--text2);margin-bottom:12px">🆓 Free Starter</div>
         <div class="price-amt">৳০</div><div class="price-period">সবসময়</div>
+        <div class="ag-target">নতুন উদ্যোক্তা, অনলাইন সেলার ও যারা মার্কেটিং শিখতে চান।</div>
         <div class="price-divider"></div>
-        <div class="price-feat"><div class="price-feat-icon yes">✓</div>সর্বোচ্চ ৩টি AI generation (Lifetime)</div>
-        <div class="price-feat"><div class="price-feat-icon yes">✓</div>সব tools access</div>
-        <div class="price-feat"><div class="price-feat-icon no">✗</div>Premium products locked</div>
-        <button class="btn btn-outline btn-full" style="margin-top:20px" disabled>✅ আপনি এখানে আছেন</button>
+        <div class="price-feat"><div class="price-feat-icon yes">✓</div><span>সর্বোচ্চ ৩টি AI generation (Lifetime)</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Basic AI Tools Access</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Product Description Generator</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Social Media Caption Generator</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Available Services Browsing</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Free Initial Marketing Consultation</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Consultation Booking Form</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Marketing Needs Assessment</span></div>
+        <div class="ag-pbtns">
+          <button class="btn btn-primary btn-full" onclick="AG.openConsult()">🎯 ফ্রি কনসাল্টেশন নিন</button>
+          <a class="btn btn-outline btn-full" href="tools.html">🛠️ AI Tools ব্যবহার করুন</a>
+        </div>
       </div>
       <div class="card pricing-card featured">
         <div class="price-ribbon">BEST</div>
-        <div style="font-family:var(--font-h);font-size:.9rem;color:var(--a1);margin-bottom:12px">⭐ Pro</div>
-        <div class="price-amt">৳১৯৯</div><div class="price-period">/মাস</div>
+        <div style="font-family:var(--font-h);font-size:.9rem;color:var(--a1);margin-bottom:12px">⭐ Pro Growth</div>
+        <div class="price-amt">৳৮৯৯</div><div class="price-period">/মাস</div>
+        <div class="ag-target">যারা নিজের মার্কেটিং নিজে পরিচালনা করতে চান।</div>
         <div class="price-divider"></div>
-        <div class="price-feat"><div class="price-feat-icon yes">✓</div>Unlimited AI generation</div>
-        <div class="price-feat"><div class="price-feat-icon yes">✓</div>সব Premium products unlock</div>
-        <div class="price-feat"><div class="price-feat-icon yes">✓</div>সম্পূর্ণ ad strategies</div>
-        <div class="price-feat"><div class="price-feat-icon yes">✓</div>Priority support</div>
-        <button class="btn btn-primary btn-full" style="margin-top:20px" onclick="showPaymentModal()">🚀 Pro নিন</button>
+        <div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Premium AI Tools Access — Unlimited generation</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Winning Products সব unlock + সম্পূর্ণ ad strategies</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Facebook Ads Copywriting (Ad Copy টুল)</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>TikTok Ads Content Planning (Video Script/Storyboard টুল)</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Product Marketing Content (Post Generator)</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Landing Page Content Assistance (AI Content Studio)</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Campaign Planning (Ad Funnel Generator)</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Priority Support</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>E-commerce Growth Checklist <span class="ag-soon">শীঘ্রই আসছে</span></span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Marketing Templates <span class="ag-soon">শীঘ্রই আসছে</span></span></div>
+        <div class="ag-pbtns"><button class="btn btn-primary btn-full" onclick="showPaymentModal()">🚀 Pro Plan নিন</button></div>
       </div>
       <div class="card pricing-card card-violet">
-        <div style="font-family:var(--font-h);font-size:.9rem;color:#a78bfa;margin-bottom:12px">🏢 Agency</div>
-        <div class="price-amt" style="color:#a78bfa">৳৪৯৯</div><div class="price-period">/মাস</div>
+        <div style="font-family:var(--font-h);font-size:.9rem;color:#a78bfa;margin-bottom:12px">🏢 Agency Partner</div>
+        <div class="ag-plan-tag">Starting Price</div>
+        <div class="price-amt" style="color:#a78bfa">৳৪,৯৯৯</div><div class="price-period">/মাস থেকে শুরু</div>
+        <div class="ag-target">যারা নিজের ব্যবসার মার্কেটিংয়ে আমার সরাসরি সহায়তা চান।</div>
         <div class="price-divider"></div>
-        <div class="price-feat"><div class="price-feat-icon yes">✓</div>৫টি team seat</div>
-        <div class="price-feat"><div class="price-feat-icon yes">✓</div>White-label reports</div>
-        <div class="price-feat"><div class="price-feat-icon yes">✓</div>Dedicated support</div>
-        <button class="btn btn-violet btn-full" style="margin-top:20px" onclick="window.location.href='help.html'">📩 Inquiry করুন</button>
+        <div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Pro Plan-এর সুবিধা</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Business Marketing Audit</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Facebook Ads Strategy</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>TikTok Ads Strategy</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Pixel & Conversion Tracking Review</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Product & Offer Strategy</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Campaign Performance Review</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Landing Page Optimization Recommendations</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Scheduled Expert Consultation</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Monthly Progress Report</span></div><div class="price-feat"><div class="price-feat-icon yes">✓</div><span>Custom Service Quotation</span></div>
+        <div class="ag-pnote">চূড়ান্ত মূল্য কাজের পরিধি অনুযায়ী নির্ধারিত হবে। প্রতিটি কাজের সংখ্যা ও সময়সীমা কোটেশনে লিখিতভাবে উল্লেখ থাকবে; অনির্দিষ্ট সংখ্যক ক্যাম্পেইন/ডিজাইন/পরামর্শ অন্তর্ভুক্ত নয়।</div>
+        <div class="ag-pbtns"><button class="btn btn-violet btn-full" onclick="AG.openConsult({agency:true})">📅 Agency Consultation বুক করুন</button></div>
       </div>
+    </div>
+    <p class="ag-note ag-center" style="margin-top:18px">কোনো প্ল্যানে বিক্রি বা নির্দিষ্ট ফলাফলের নিশ্চয়তা দেওয়া হয় না।</p>
+  </div>
+</section>
+
+<!-- FREE CONSULTATION CTA -->
+<section id="consultation" class="ag-sec">
+  <div class="container">
+    <div class="ag-cta">
+      <h2>আপনার অনলাইন ব্যবসার বিক্রি বাড়াতে চান?</h2>
+      <p>Facebook Ads, TikTok Marketing, Pixel Setup অথবা E-commerce Sales নিয়ে সমস্যায় আছেন? আপনার ব্যবসার অবস্থা জানান। প্রাথমিক পরামর্শের জন্য আমাদের সঙ্গে যোগাযোগ করুন।</p>
+      <div class="ag-cta-btns">
+        <button class="btn btn-primary" onclick="AG.openConsult()">🎯 ফ্রি কনসাল্টেশন নিন</button>
+        <button class="btn btn-outline" onclick="AG.openConsult()">আমার ব্যবসার সমস্যা জানান</button>
+      </div>
+      <p class="ag-note" style="margin:18px auto 0">বিনামূল্যে পাবেন: প্রাথমিক Marketing Needs Assessment ও সংক্ষিপ্ত পরামর্শ। দীর্ঘ অডিট, ক্যাম্পেইন ব্যবস্থাপনা ও বাস্তবায়ন আলাদা Paid Service।</p>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICES -->
+<section id="services" class="ag-sec alt">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">🧰 Services</div>
+      <h2 class="section-title">Our E-commerce Growth Services</h2>
+      <p class="section-sub">আপনার ব্যবসার যে সমস্যাই হোক, সঠিক Marketing Service বেছে নিন।</p>
+    </div>
+    <div class="ag-filters" id="agFilters"></div>
+    <div class="ag-grid" id="agServices"><div class="ag-empty">⏳ লোড হচ্ছে...</div></div>
+  </div>
+</section>
+
+<!-- HOW WE WORK + TRUST -->
+<section id="how" class="ag-sec">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-label">🤝 How We Work</div>
+      <h2 class="section-title">কীভাবে কাজ হয়</h2>
+      <p class="section-sub">প্রয়োজনের বাইরে কোনো সার্ভিস চাপিয়ে দেওয়া হয় না।</p>
+    </div>
+    <div class="ag-steps">
+      <div class="ag-step"><b>ফ্রি কনসাল্টেশন</b><span>ফর্মে আপনার সমস্যা জানান।</span></div>
+      <div class="ag-step"><b>Business Assessment</b><span>আপনার ব্যবসার অবস্থা বোঝা হয়।</span></div>
+      <div class="ag-step"><b>Service Recommendation</b><span>কোনটি জরুরি ও কোনটি পরে — পরিষ্কার করে জানানো হয়।</span></div>
+      <div class="ag-step"><b>Custom Quotation</b><span>কাজ, সংখ্যা, সময় ও মূল্য লিখিতভাবে।</span></div>
+      <div class="ag-step"><b>আপনার অনুমোদন</b><span>আপনি রাজি হলেই কাজ শুরু।</span></div>
+      <div class="ag-step"><b>Delivery & Review</b><span>কাজ সরবরাহ ও পারফরম্যান্স পর্যালোচনা।</span></div>
+    </div>
+    <div class="ag-trust">
+      <div><b>✅ বাস্তব মার্কেটিং অভিজ্ঞতা</b>Facebook Ads, TikTok Ads, Pixel ও Conversion Tracking নিয়ে ব্যবহারিক কাজ।</div>
+      <div><b>📋 পরিষ্কার সার্ভিস স্কোপ</b>কী কাজ, কতবার, কত সময়ে — আগেই লিখিত।</div>
+      <div><b>💰 স্বচ্ছ মূল্য</b>লুকানো চার্জ নয়; কোটেশন অনুরোধ ফ্রি।</div>
+      <div><b>🎯 ব্যক্তিগত সুপারিশ</b>আপনার ব্যবসার সমস্যা অনুযায়ী পরামর্শ।</div>
+      <div><b>📊 Performance Tracking</b>মাপার মতো মেট্রিক ধরে অগ্রগতি দেখা।</div>
+      <div><b>🚫 কোনো বিক্রির নিশ্চয়তা নয়</b>আমরা ফলাফল বা বিক্রির মিথ্যা প্রতিশ্রুতি দিই না।</div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTACT -->
+<section id="contact" class="ag-sec alt">
+  <div class="container ag-center">
+    <div class="section-header">
+      <div class="section-label">📞 Contact</div>
+      <h2 class="section-title">যোগাযোগ করুন</h2>
+      <p class="section-sub">প্রশ্ন থাকলে সরাসরি WhatsApp-এ জানান অথবা ফর্ম পূরণ করুন।</p>
+    </div>
+    <div class="ag-contact">
+      <a class="btn btn-primary" data-ag-wa href="#" style="background:linear-gradient(135deg,#25D366,#128C7E)">📲 WhatsApp-এ কথা বলুন</a>
+      <button class="btn btn-outline" onclick="AG.openConsult()">🎯 ফ্রি কনসাল্টেশন</button>
+      <a class="btn btn-outline" href="help.html">💬 Support Center</a>
     </div>
   </div>
 </section>
@@ -311,6 +390,8 @@
 </div><!-- end #mainApp -->
 
 <script src="assets/js/app.js"></script>
+<script src="assets/js/agency-data.js"></script>
+<script src="assets/js/agency.js"></script>
 <script>
 /* ═══════════════════════════════════════
    LOGIN GATE LOGIC
@@ -421,10 +502,14 @@ function onAuthStateReady(user){
 
 /* হোমপেজে শুধু কিছু Tool card preview — পুরো list tools.html-এ */
 const TOOLS_PREVIEW = [
+  {icon:'💬',name:'ইনবক্স রিপ্লাই মাস্টার',badge:'🆕 NEW',hash:'inbox_reply_master',desc:'কাস্টমারের মেসেজের সেরা কনভার্সন-রিপ্লাই তৈরি করুন',color:'rgba(0,245,212,.08)',border:'rgba(0,245,212,.3)'},
   {icon:'📱',name:'পোস্ট জেনারেটর',desc:'পণ্যের বিবরণ থেকে ভাইরাল ফেসবুক পোস্ট',color:'rgba(59,130,246,.08)',border:'rgba(59,130,246,.2)'},
   {icon:'✨',name:'ভার্চুয়াল ট্রাই-অন',desc:'মডেলের গায়ে ভার্চুয়ালি পোশাক পরান',color:'rgba(236,72,153,.08)',border:'rgba(236,72,153,.2)'},
   {icon:'📷',name:'প্রোডাক্ট ফটোশুট',desc:'সাধারণ ছবিকে প্রফেশনাল ফটোশুটে রূপান্তর',color:'rgba(124,58,237,.08)',border:'rgba(124,58,237,.2)'},
   {icon:'🔊',name:'AI ভয়েসওভার স্টুডিও',desc:'স্ক্রিপ্ট থেকে ভয়েসওভার তৈরি করুন',color:'rgba(245,158,11,.08)',border:'rgba(245,158,11,.2)'},
+  {icon:'📢',name:'অ্যাড কপি জেনারেটর',desc:'পণ্যের জন্য বিজ্ঞাপনের কপি তৈরি করুন',color:'rgba(239,68,68,.08)',border:'rgba(239,68,68,.2)'},
+  {icon:'🪄',name:'AI কন্টেন্ট স্টুডিও',desc:'আপনার লেখা থেকে মার্কেটিং কন্টেন্ট',color:'rgba(34,197,94,.08)',border:'rgba(34,197,94,.2)'},
+  {icon:'🎥',name:'ভিডিও স্ক্রিপ্ট জেনারেটর',desc:'পণ্যের ভিডিও বিজ্ঞাপনের স্ক্রিপ্ট',color:'rgba(14,165,233,.08)',border:'rgba(14,165,233,.2)'},
 ];
 (function(){
   const nav=document.getElementById('homeToolsPreview');
@@ -433,8 +518,8 @@ const TOOLS_PREVIEW = [
     const d=document.createElement('div');
     d.className='card tool-card';
     d.style.cssText=`background:${t.color};border-color:${t.border};cursor:pointer`;
-    d.innerHTML=`<div class="tool-card-icon" style="background:${t.color};border:1px solid ${t.border}">${t.icon}</div><h3>${t.name}</h3><p>${t.desc}</p><button class="btn btn-sm btn-secondary btn-full" style="margin-top:10px">Open Tool →</button>`;
-    d.onclick=()=>window.location.href='tools.html';
+    d.innerHTML=`<div class="tool-card-icon" style="background:${t.color};border:1px solid ${t.border}">${t.icon}</div><h3>${t.name}${t.badge?` <span class="tag tag-mint" style="font-size:.7rem;vertical-align:middle">${t.badge}</span>`:''}</h3><p>${t.desc}</p><button class="btn btn-sm btn-secondary btn-full" style="margin-top:10px">Open Tool →</button>`;
+    d.onclick=()=>window.location.href='tools.html'+(t.hash?'#'+t.hash:'');
     nav.appendChild(d);
   });
 })();
@@ -590,7 +675,7 @@ function closeDrawer(){
 </script>
 
 <script>
-document.getElementById('drawerNav').innerHTML = '<a class="nav-link active" href="index.html" onclick="closeDrawer()">🏠 Home</a><a class="nav-link" href="winning-products.html" onclick="closeDrawer()">🏆 Products</a><a class="nav-link" href="tools.html" onclick="closeDrawer()">🛠️ Tools</a><a class="nav-link" href="marketplace.html" onclick="closeDrawer()">🛍️ Marketplace</a><a class="nav-link" href="dashboard.html" onclick="closeDrawer()">📊 Dashboard</a><a class="nav-link" href="help.html" onclick="closeDrawer()">💬 Support</a>';
+document.getElementById('drawerNav').innerHTML = '<a class="nav-link active" href="index.html" onclick="closeDrawer()">🏠 Home</a><a class="nav-link" href="winning-products.html" onclick="closeDrawer()">🏆 Products</a><a class="nav-link" href="tools.html" onclick="closeDrawer()">🛠️ Tools</a><a class="nav-link" href="marketplace.html" onclick="closeDrawer()">🛍️ Marketplace</a><a class="nav-link" href="dashboard.html" onclick="closeDrawer()">📊 Dashboard</a><a class="nav-link" href="#pricing" onclick="closeDrawer()">💎 Pricing</a><a class="nav-link" href="#services" onclick="closeDrawer()">🧰 Services</a><a class="nav-link" href="#consultation" onclick="closeDrawer()">🎯 ফ্রি কনসাল্টেশন</a><a class="nav-link" href="#contact" onclick="closeDrawer()">📞 Contact</a><a class="nav-link" href="help.html" onclick="closeDrawer()">💬 Support</a>';
 if(!window._drawerHooked){
   window._drawerHooked = true;
   var _origUpdate = window.updateUsageDisplay;
